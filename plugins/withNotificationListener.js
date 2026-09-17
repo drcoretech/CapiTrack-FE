@@ -27,12 +27,35 @@ module.exports = function withNotificationListener(config) {
       }
     });
 
+    // Ensure xmlns:tools exists
+    if (!androidManifest.$) {
+      androidManifest.$ = {};
+    }
+    if (!androidManifest.$['xmlns:tools']) {
+      androidManifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
+    }
+
     // Ensure application element
     if (!androidManifest.application || !androidManifest.application[0]) {
       return config;
     }
 
     const app = androidManifest.application[0];
+    if (!app.$) {
+      app.$ = {};
+    }
+
+    // Add tools:replace to resolve any third-party manifest merger conflicts with allowBackup
+    const currentReplace = app.$['tools:replace'] || '';
+    const replaceList = currentReplace
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!replaceList.includes('android:allowBackup')) {
+      replaceList.push('android:allowBackup');
+    }
+    app.$['tools:replace'] = replaceList.join(',');
+
     if (!app.service) {
       app.service = [];
     }
