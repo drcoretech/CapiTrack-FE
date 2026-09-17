@@ -1,0 +1,128 @@
+import { StateCreator } from 'zustand';
+import { AppState, SyncSlice } from '../types';
+import { api } from '../../services/api';
+
+export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, get) => ({
+  isSyncing: false,
+  lastSyncedAt: null,
+  dashboardData: null,
+
+  loadInitialData: async () => {
+    set({ isSyncing: true });
+    try {
+      const [dashRes, expRes, contactRes, userRes] = await Promise.allSettled([
+        api.getDashboardSummary(),
+        api.getExpenses(),
+        api.getContacts(),
+        api.getUserProfile(),
+      ]);
+
+      set((state) => {
+        const nextState: Partial<AppState> = { isSyncing: false, lastSyncedAt: new Date() };
+
+        if (dashRes.status === 'fulfilled' && dashRes.value.success) {
+          nextState.dashboardData = {
+            spentToday: dashRes.value.spentToday,
+            spentYesterday: dashRes.value.spentYesterday,
+            delta: dashRes.value.delta,
+            insight: dashRes.value.insight,
+            owedToYou: dashRes.value.owedToYou,
+            youOwe: dashRes.value.youOwe,
+          };
+          if (dashRes.value.currency) nextState.currencySymbol = dashRes.value.currency;
+        }
+
+        if (expRes.status === 'fulfilled' && expRes.value.success) {
+          nextState.expenses = expRes.value.expenses.map((e) => ({
+            id: e.id,
+            amount: e.amount,
+            category: e.category as any,
+            icon: e.icon || '💸',
+            note: e.note,
+            time: e.time,
+            dayGroup: e.dayGroup || 'Today',
+            createdAt: e.date,
+          }));
+        }
+
+        if (contactRes.status === 'fulfilled' && contactRes.value.success) {
+          nextState.contacts = contactRes.value.contacts.map((c) => {
+            const existing = state.contacts.find((ex) => ex.id === c.id || ex.name === c.name);
+            return {
+              id: c.id,
+              name: c.name,
+              initial: c.initial,
+              lastDate: c.lastDate,
+              netBalance: c.netBalance,
+              status: c.status,
+              transactions: existing ? existing.transactions : [],
+            };
+          });
+        }
+
+        if (userRes.status === 'fulfilled' && userRes.value.success) {
+          if (userRes.value.user.name) {
+            nextState.userName = userRes.value.user.name;
+          }
+          if (userRes.value.user.preferredLanguage) {
+            const lang = userRes.value.user.preferredLanguage;
+            if (lang === 'hi' || lang === 'mr' || lang === 'en') {
+              nextState.selectedLanguage = lang;
+            }
+          }
+          if (userRes.value.user.preferences) {
+            nextState.autoCaptureEnabled = userRes.value.user.preferences.autoCaptureEnabled ?? state.autoCaptureEnabled;
+            nextState.darkModeEnabled = userRes.value.user.preferences.darkMode ?? state.darkModeEnabled;
+          }
+        }
+
+        return nextState;
+      });
+    } catch {
+      set({ isSyncing: false });
+    }
+  },
+
+  refreshDashboard: async () => {
+    try {
+      const [dashRes, expRes, contactRes] = await Promise.all([
+        api.getDashboardSummary(),
+        api.getExpenses(),
+        api.getContacts(),
+      ]);
+
+      set((state) => ({
+        dashboardData: {
+          spentToday: dashRes.spentToday,
+          spentYesterday: dashRes.spentYesterday,
+          delta: dashRes.delta,
+          insight: dashRes.insight,
+          owedToYou: dashRes.owedToYou,
+          youOwe: dashRes.youOwe,
+        },
+        expenses: expRes.expenses.map((e) => ({
+          id: e.id,
+          amount: e.amount,
+          category: e.category as any,
+          icon: e.icon || '💸',
+          note: e.note,
+          time: e.time,
+          dayGroup: e.dayGroup || 'Today',
+          createdAt: e.date,
+        })),
+        contacts: contactRes.contacts.map((c) => {
+          const existing = state.contacts.find((ex) => ex.id === c.id || ex.name === c.name);
+          return {
+            id: c.id,
+            name: c.name,
+            initial: c.initial,
+            lastDate: c.lastDate,
+            netBalance: c.netBalance,
+            status: c.status,
+            transactions: existing ? existing.transactions : [],
+          };
+        }),
+      }));
+    } catch {}
+  },
+});
