@@ -7,6 +7,7 @@ export interface PendingNudge {
   merchant: string;
   timestamp: string;
   suggestedCategory: ExpenseCategory;
+  createdAt?: number;
 }
 
 export interface DashboardData {
@@ -57,12 +58,15 @@ export interface ExpenseSlice {
   expenses: Expense[];
   categories: AppCategory[];
   pendingNudge: PendingNudge | null;
+  pendingNudges: PendingNudge[];
   triggerNudge: (data: {
+    id?: string;
     amount: number;
     sourceApp: string;
     merchant: string;
     timestamp?: string;
     suggestedCategory: ExpenseCategory;
+    createdAt?: number;
   }) => void;
   saveNudgeExpense: (category: ExpenseCategory, customNote?: string) => Promise<void>;
   dismissNudge: () => void;

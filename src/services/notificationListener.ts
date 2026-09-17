@@ -1,16 +1,73 @@
 import { Platform, Linking, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import RNAndroidNotificationListener from 'react-native-android-notification-listener';
 import { parseNotification } from './notificationParser';
 import { useAppStore } from '../store/useAppStore';
 
 export const PENDING_NUDGE_STORAGE_KEY = '@capitrack_pending_nudge';
+export const PENDING_NUDGES_QUEUE_KEY = '@capitrack_pending_nudges';
+
+// Configure foreground notification presentation
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    priority: Notifications.AndroidNotificationPriority.MAX,
+  }),
+});
+
+/**
+ * Post a high-priority local status-bar Heads-Up Notification on Android.
+ * Pops down from the top of the screen immediately when PhonePe/GPay completes.
+ */
+export async function postLocalPaymentAlert(amount: number, merchant: string, sourceApp: string) {
+  try {
+    if (Platform.OS !== 'android') return;
+
+    // Check notification permission
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') {
+      const req = await Notifications.requestPermissionsAsync();
+      if (req.status !== 'granted') return;
+    }
+
+    // Set high-importance channel for Android heads-up popup
+    await Notifications.setNotificationChannelAsync('payment_alerts', {
+      name: 'Payment Alerts',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#2C5E3B',
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      sound: 'default',
+      enableVibrate: true,
+      showBadge: true,
+    });
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `💸 ₹${amount.toLocaleString()} Paid to ${merchant || sourceApp}`,
+        body: `Tap to categorize (Food, Grocery, Travel...) in CapiTrack`,
+        data: { amount, merchant, sourceApp },
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.MAX,
+      },
+      trigger: { channelId: 'payment_alerts' },
+    });
+  } catch (err) {
+    console.warn('[CapiTrack] Failed to schedule local payment alert:', err);
+  }
+}
 
 class NotificationListenerService {
   private isListening = false;
+  private responseSubscription: Notifications.Subscription | null = null;
 
   /**
-   * Initialize listener and rehydrate any pending nudge from AsyncStorage.
+   * Initialize listener and rehydrate any pending nudges from AsyncStorage.
    */
   public async init() {
     if (Platform.OS !== 'android') {
@@ -19,14 +76,41 @@ class NotificationListenerService {
 
     this.start();
 
-    // Check if background headless task recorded a pending nudge while app was closed
+    // 1. Request POST_NOTIFICATIONS permission for local alerts
     try {
-      const cached = await AsyncStorage.getItem(PENDING_NUDGE_STORAGE_KEY);
-      if (cached) {
-        const nudge = JSON.parse(cached);
+      await Notifications.requestPermissionsAsync();
+    } catch {}
+
+    // 2. Listen to notification click events to bring up the categorization nudge
+    if (!this.responseSubscription) {
+      this.responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+        const data = response.notification.request.content.data;
+        if (data && data.amount) {
+          const state = useAppStore.getState();
+          if (state.autoCaptureEnabled) {
+            state.triggerNudge({
+              amount: Number(data.amount),
+              sourceApp: String(data.sourceApp || 'UPI'),
+              merchant: String(data.merchant || 'Merchant'),
+              suggestedCategory: 'Food',
+              timestamp: 'Just now',
+            });
+          }
+        }
+      });
+    }
+
+    // 3. Rehydrate queue of unconfirmed payments recorded while app was closed
+    try {
+      const queueStr = await AsyncStorage.getItem(PENDING_NUDGES_QUEUE_KEY);
+      const queue = queueStr ? JSON.parse(queueStr) : [];
+      if (Array.isArray(queue) && queue.length > 0) {
         const state = useAppStore.getState();
-        if (state.autoCaptureEnabled && !state.pendingNudge) {
-          state.triggerNudge(nudge);
+        if (state.autoCaptureEnabled) {
+          useAppStore.setState({
+            pendingNudges: queue,
+            pendingNudge: queue[0],
+          });
         }
       }
     } catch {}
@@ -124,13 +208,11 @@ class NotificationListenerService {
       timestamp: 'Just now',
     };
 
-    // Cache to AsyncStorage so app displays it when opened
-    try {
-      await AsyncStorage.setItem(PENDING_NUDGE_STORAGE_KEY, JSON.stringify(nudgeData));
-    } catch {}
-
-    // Trigger the auto-capture nudge bottom sheet
+    // 1. Add to store queue (never overwrites previous payment)
     state.triggerNudge(nudgeData);
+
+    // 2. Post immediate local heads-up alert on the phone
+    await postLocalPaymentAlert(parsed.amount, parsed.merchant, parsed.sourceApp);
   }
 
   /**

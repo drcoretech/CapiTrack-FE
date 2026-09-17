@@ -163,10 +163,11 @@ export function inferCategory(
 // Regex patterns to extract amounts from notification text
 // Matches: "Paid ₹50", "Paid ₹1 to Self", "debited by Rs 150.00", "sent INR 250", "Payment of ₹1,400 to..."
 const AMOUNT_REGEX = /(?:₹|rs\.?|inr)\s*([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)/i;
-const DEBIT_REGEX = /(?:paid|debited|sent|transferred|spent|payment of|transfer of)\s+(?:to\s+|by\s+|with\s+|for\s+)?(?:₹|rs\.?|inr)?\s*([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)/i;
+const REVERSE_AMOUNT_REGEX = /([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)\s*(?:₹|rs\.?|inr)\b/i;
+const DEBIT_REGEX = /(?:paid|debited|sent|transferred|spent|payment of|transfer of|withdrawn|dr)\s*(?::|-)?\s*(?:to\s+|by\s+|with\s+|for\s+)?(?:₹|rs\.?|inr)?\s*([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)/i;
 
 // Regex patterns to extract merchant/payee name
-const MERCHANT_REGEX = /(?:to|at|towards)\s+([A-Za-z0-9\s&'.]+?)(?:\s+successful|\s+using|\s+from|\s+on|\s+ref|\s+upi|\.|$)/i;
+const MERCHANT_REGEX = /(?:to|at|towards|vpa\s+)\s*([A-Za-z0-9\s&'.@_-]+?)(?:\s+successful|\s+using|\s+from|\s+on|\s+ref|\s+upi|\.|\,|$)/i;
 
 export function parseNotification(
   title: string,
@@ -188,13 +189,13 @@ export function parseNotification(
     sourceApp = 'CRED';
   } else if (packageName.includes('npci.upiapp') || /bhim/i.test(combined)) {
     sourceApp = 'BHIM';
-  } else if (/bank|debited|a\/c|acct|sms|vpa/i.test(combined)) {
+  } else if (/bank|debited|a\/c|acct|sms|vpa|baroda|sbi|hdfc|icici/i.test(combined)) {
     sourceApp = 'Bank SMS';
   }
 
   // Filter out credit/refund/received payments: we strictly want outgoing expenses
   const isStrictCredit = /(?:credited to your|received from|added to (?:your )?wallet|refund received|cashback received|money received)/i.test(combined);
-  const isDebit = /(?:paid|debited|sent|transferred|payment of|spent)/i.test(combined);
+  const isDebit = /(?:paid|debited|sent|transferred|payment of|spent|dr\b|withdrawn)/i.test(combined);
 
   if (isStrictCredit && !isDebit) {
     return null; // Received money, not an expense
@@ -209,6 +210,11 @@ export function parseNotification(
     const amountMatch = combined.match(AMOUNT_REGEX);
     if (amountMatch && amountMatch[1]) {
       amount = parseFloat(amountMatch[1].replace(/,/g, ''));
+    } else {
+      const reverseMatch = combined.match(REVERSE_AMOUNT_REGEX);
+      if (reverseMatch && reverseMatch[1]) {
+        amount = parseFloat(reverseMatch[1].replace(/,/g, ''));
+      }
     }
   }
 
@@ -221,9 +227,15 @@ export function parseNotification(
   const merchantMatch = combined.match(MERCHANT_REGEX);
   if (merchantMatch && merchantMatch[1]) {
     merchant = merchantMatch[1].trim();
+    // Clean UPI handles (e.g. rohan@okaxis -> Rohan)
+    if (merchant.includes('@')) {
+      merchant = merchant.split('@')[0].replace(/[._0-9]/g, ' ').trim();
+    }
     // Filter out common false positives
     if (merchant.length < 2 || /^(upi|bank|account|your|ref|payment)$/i.test(merchant)) {
       merchant = '';
+    } else if (/^self$/i.test(merchant)) {
+      merchant = 'Self Transfer';
     }
   }
 

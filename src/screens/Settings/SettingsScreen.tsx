@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { useTranslation } from '../../i18n/translations';
+import { notificationListener } from '../../services/notificationListener';
 
 export const SettingsScreen: React.FC = () => {
   const autoCaptureEnabled = useAppStore((state) => state.autoCaptureEnabled);
@@ -27,10 +28,6 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
-  const handleExport = () => {
-    Alert.alert(t('exportAlertTitle'), t('exportAlertMsg'));
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -49,28 +46,15 @@ export const SettingsScreen: React.FC = () => {
             </View>
             <Switch
               value={autoCaptureEnabled}
-              onValueChange={() => {
-                toggleAutoCapture();
-                if (!autoCaptureEnabled) {
-                  openModal('v2_automation');
+              onValueChange={async () => {
+                const nextVal = !autoCaptureEnabled;
+                await toggleAutoCapture();
+                if (nextVal) {
+                  await notificationListener.openSettings();
                 }
               }}
               trackColor={{ false: Colors.line, true: Colors.moss }}
               thumbColor="#FFFFFF"
-            />
-          </View>
-
-          {/* Dark Mode Toggle (Disabled for now) */}
-          <View style={[styles.item, styles.disabledItem]}>
-            <View style={styles.itemLeft}>
-              <Text style={[styles.itemName, styles.disabledText]}>{t('darkModeTitle')}</Text>
-              <Text style={styles.itemSub}>{t('darkModeSub')}</Text>
-            </View>
-            <Switch
-              value={false}
-              disabled={true}
-              trackColor={{ false: Colors.line, true: Colors.moss }}
-              thumbColor="#E0E0E0"
             />
           </View>
 
@@ -87,15 +71,6 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <Text style={styles.ghostBtnText}>{t('editGhost')}</Text>
-          </TouchableOpacity>
-
-          {/* Export Data */}
-          <TouchableOpacity activeOpacity={0.7} onPress={handleExport} style={styles.item}>
-            <View style={styles.itemLeft}>
-              <Text style={styles.itemName}>{t('exportDataTitle')}</Text>
-              <Text style={styles.itemSub}>{t('exportDataSub')}</Text>
-            </View>
-            <Text style={styles.ghostBtnText}>{t('exportGhost')}</Text>
           </TouchableOpacity>
 
           {/* App Language */}

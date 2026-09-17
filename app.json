@@ -28,7 +28,14 @@
     },
     "plugins": [
       "expo-font",
-      "./plugins/withNotificationListener.js"
+      "./plugins/withNotificationListener.js",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-foreground.png",
+          "color": "#2C5E3B"
+        }
+      ]
     ],
     "extra": {
       "apiUrl": "https://capitrack-be.vercel.app/api",

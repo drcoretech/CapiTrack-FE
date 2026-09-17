@@ -16,12 +16,14 @@ import { AnimatedPressable } from './AnimatedPressable';
 
 export const AutoCaptureNudge: React.FC = () => {
   const pendingNudge = useAppStore((state) => state.pendingNudge);
+  const pendingNudges = useAppStore((state) => state.pendingNudges || []);
   const categories = useAppStore((state) => state.categories);
   const saveNudgeExpense = useAppStore((state) => state.saveNudgeExpense);
   const dismissNudge = useAppStore((state) => state.dismissNudge);
   const { getCategoryName } = useTranslation();
 
   const activeCategories = categories.filter((c) => c.enabled);
+  const queueCount = pendingNudges.length;
 
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>('Food');
 
@@ -66,6 +68,7 @@ export const AutoCaptureNudge: React.FC = () => {
             </View>
             <Text style={styles.sourceText}>
               {pendingNudge.sourceApp.toUpperCase()} · {pendingNudge.timestamp.toUpperCase()}
+              {queueCount > 1 ? ` · (1 OF ${queueCount})` : ''}
             </Text>
           </View>
 
@@ -104,12 +107,15 @@ export const AutoCaptureNudge: React.FC = () => {
           </ScrollView>
 
           {/* Primary Amber Action Button */}
+          {/* Primary Action Button */}
           <AnimatedPressable
             style={styles.primaryBtn}
             onPress={handleSave}
           >
             <Text style={styles.primaryBtnText}>
-              Save as {getCategoryName(selectedCategory)}
+              {queueCount > 1
+                ? `Save as ${getCategoryName(selectedCategory)} & Next (${queueCount - 1} more)`
+                : `Save as ${getCategoryName(selectedCategory)}`}
             </Text>
           </AnimatedPressable>
 
@@ -119,7 +125,9 @@ export const AutoCaptureNudge: React.FC = () => {
             onPress={dismissNudge}
             style={styles.ghostBtn}
           >
-            <Text style={styles.ghostBtnText}>Skip this one</Text>
+            <Text style={styles.ghostBtnText}>
+              {queueCount > 1 ? `Skip (${queueCount - 1} more waiting)` : 'Skip this one'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

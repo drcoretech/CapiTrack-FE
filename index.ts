@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RNAndroidNotificationListenerHeadlessJsName } from 'react-native-android-notification-listener';
 import { parseNotification } from './src/services/notificationParser';
 import { useAppStore } from './src/store/useAppStore';
-import { PENDING_NUDGE_STORAGE_KEY } from './src/services/notificationListener';
+import { PENDING_NUDGE_STORAGE_KEY, PENDING_NUDGES_QUEUE_KEY, postLocalPaymentAlert } from './src/services/notificationListener';
 import App from './App';
 
 /**
@@ -32,18 +32,36 @@ const headlessNotificationListener = async ({ notification }: { notification?: s
     const parsed = parseNotification(title, text, packageName);
     if (parsed && parsed.isPayment && parsed.amount > 0) {
       const nudgeData = {
+        id: 'nudge_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
         amount: parsed.amount,
         sourceApp: parsed.sourceApp,
         merchant: parsed.merchant,
         suggestedCategory: parsed.suggestedCategory,
         timestamp: 'Just now',
+        createdAt: Date.now(),
       };
 
-      // Persist to AsyncStorage so when user opens CapiTrack, it immediately presents the nudge
-      await AsyncStorage.setItem(PENDING_NUDGE_STORAGE_KEY, JSON.stringify(nudgeData));
+      // 1. Append to pending nudges FIFO queue in AsyncStorage
+      try {
+        const queueStr = await AsyncStorage.getItem(PENDING_NUDGES_QUEUE_KEY);
+        const queue = queueStr ? JSON.parse(queueStr) : [];
+        const isDuplicate = Array.isArray(queue) && queue.some(
+          (n: any) => n.amount === nudgeData.amount && n.merchant === nudgeData.merchant && Date.now() - (n.createdAt || 0) < 5000
+        );
+        if (!isDuplicate) {
+          queue.push(nudgeData);
+          await AsyncStorage.setItem(PENDING_NUDGES_QUEUE_KEY, JSON.stringify(queue));
+          await AsyncStorage.setItem(PENDING_NUDGE_STORAGE_KEY, JSON.stringify(queue[0]));
+        }
+      } catch (qErr) {
+        console.warn('[CapiTrack Headless] Queue save error:', qErr);
+      }
 
-      // Trigger directly if JS engine is running
+      // 2. Trigger active store if JS engine is alive
       storeState.triggerNudge(nudgeData);
+
+      // 3. Post immediate Android Heads-Up notification over PhonePe/GPay
+      await postLocalPaymentAlert(parsed.amount, parsed.merchant, parsed.sourceApp);
     }
   } catch (err) {
     console.warn('[CapiTrack Headless] Notification processing error:', err);

@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppState, ExpenseSlice } from '../types';
+import { AppState, ExpenseSlice, PendingNudge } from '../types';
 import { Expense, AppCategory } from '../../types';
 import { api } from '../../services/api';
 import { INITIAL_CATEGORIES, INITIAL_EXPENSES } from '../initialData';
@@ -30,22 +30,39 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
   expenses: INITIAL_EXPENSES,
   categories: INITIAL_CATEGORIES,
   pendingNudge: null,
+  pendingNudges: [],
 
   triggerNudge: (data) => {
     if (!get().autoCaptureEnabled) {
       return;
     }
+    const newNudge: PendingNudge = {
+      ...data,
+      id: data.id || ('nudge_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6)),
+      timestamp: data.timestamp || 'Just now',
+      createdAt: data.createdAt || Date.now(),
+    };
+    const currentQueue = get().pendingNudges || [];
+    // Only prevent rapid duplicate events (same amount & merchant within 5 seconds)
+    const isDuplicate = currentQueue.some(
+      (n) =>
+        n.amount === newNudge.amount &&
+        n.merchant === newNudge.merchant &&
+        Math.abs((newNudge.createdAt || Date.now()) - (n.createdAt || 0)) < 5000
+    );
+    const updatedQueue = isDuplicate ? currentQueue : [...currentQueue, newNudge];
+
     set({
-      pendingNudge: {
-        ...data,
-        id: 'nudge_' + Date.now(),
-        timestamp: data.timestamp || 'Just now',
-      },
+      pendingNudges: updatedQueue,
+      pendingNudge: updatedQueue[0] || null,
     });
+
+    AsyncStorage.setItem('@capitrack_pending_nudges', JSON.stringify(updatedQueue)).catch(() => {});
   },
 
   saveNudgeExpense: async (category, customNote) => {
-    const nudge = get().pendingNudge;
+    const queue = get().pendingNudges || [];
+    const nudge = queue[0] || get().pendingNudge;
     if (!nudge) return;
 
     const matchedCategory = get().categories.find(
@@ -64,8 +81,11 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
       createdAt: new Date().toISOString(),
     };
 
+    const remainingQueue = queue.slice(1);
+
     set((state) => ({
-      pendingNudge: null,
+      pendingNudges: remainingQueue,
+      pendingNudge: remainingQueue[0] || null,
       expenses: [newExpense, ...state.expenses],
       dashboardData: state.dashboardData
         ? {
@@ -75,6 +95,7 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
         : null,
     }));
 
+    AsyncStorage.setItem('@capitrack_pending_nudges', JSON.stringify(remainingQueue)).catch(() => {});
     AsyncStorage.removeItem('@capitrack_pending_nudge').catch(() => {});
 
     try {
@@ -94,8 +115,14 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
   },
 
   dismissNudge: () => {
+    const queue = get().pendingNudges || [];
+    const remainingQueue = queue.slice(1);
+    set({
+      pendingNudges: remainingQueue,
+      pendingNudge: remainingQueue[0] || null,
+    });
+    AsyncStorage.setItem('@capitrack_pending_nudges', JSON.stringify(remainingQueue)).catch(() => {});
     AsyncStorage.removeItem('@capitrack_pending_nudge').catch(() => {});
-    set({ pendingNudge: null });
   },
 
   toggleCategory: (id: string) => {

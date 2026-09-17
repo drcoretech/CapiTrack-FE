@@ -1,4 +1,5 @@
 import { StateCreator } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, SyncSlice } from '../types';
 import { api } from '../../services/api';
 
@@ -10,11 +11,12 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
   loadInitialData: async () => {
     set({ isSyncing: true });
     try {
-      const [dashRes, expRes, contactRes, userRes] = await Promise.allSettled([
+      const [dashRes, expRes, contactRes, userRes, localAutoCapture] = await Promise.allSettled([
         api.getDashboardSummary(),
         api.getExpenses(),
         api.getContacts(),
         api.getUserProfile(),
+        AsyncStorage.getItem('@capitrack_auto_capture_enabled'),
       ]);
 
       set((state) => {
@@ -71,7 +73,9 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
             }
           }
           if (userRes.value.user.preferences) {
-            nextState.autoCaptureEnabled = userRes.value.user.preferences.autoCaptureEnabled ?? state.autoCaptureEnabled;
+            const isAutoCaptureOnLocally =
+              localAutoCapture.status === 'fulfilled' && localAutoCapture.value === 'true';
+            nextState.autoCaptureEnabled = isAutoCaptureOnLocally;
             nextState.darkModeEnabled = userRes.value.user.preferences.darkMode ?? state.darkModeEnabled;
           }
         }
