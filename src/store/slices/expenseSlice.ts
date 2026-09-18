@@ -43,14 +43,14 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
       createdAt: data.createdAt || Date.now(),
     };
     const currentQueue = get().pendingNudges || [];
-    // Only prevent rapid duplicate events (same amount & merchant within 5 seconds)
+    // Prevent duplicate events for same amount and merchant within 15 seconds
     const isDuplicate = currentQueue.some(
       (n) =>
         n.amount === newNudge.amount &&
         n.merchant === newNudge.merchant &&
-        Math.abs((newNudge.createdAt || Date.now()) - (n.createdAt || 0)) < 5000
+        Math.abs((newNudge.createdAt || Date.now()) - (n.createdAt || 0)) < 15000
     );
-    const updatedQueue = isDuplicate ? currentQueue : [...currentQueue, newNudge];
+    const updatedQueue = isDuplicate ? currentQueue : [...currentQueue, newNudge].slice(-10);
 
     set({
       pendingNudges: updatedQueue,

@@ -2,7 +2,7 @@ import { registerRootComponent } from 'expo';
 import { AppRegistry, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RNAndroidNotificationListenerHeadlessJsName } from 'react-native-android-notification-listener';
-import { parseNotification } from './src/services/notificationParser';
+import { parseNotification, isDuplicateTransaction } from './src/services/notificationParser';
 import { useAppStore } from './src/store/useAppStore';
 import { PENDING_NUDGE_STORAGE_KEY, PENDING_NUDGES_QUEUE_KEY, postLocalPaymentAlert } from './src/services/notificationListener';
 import App from './App';
@@ -18,7 +18,12 @@ const headlessNotificationListener = async ({ notification }: { notification?: s
     const raw = typeof notification === 'string' ? JSON.parse(notification) : notification;
     const title = raw.title || raw.titleBig || '';
     const text = raw.text || raw.bigText || raw.subText || '';
-    const packageName = raw.app || '';
+    const packageName = (raw.app || raw.package_name || '').toLowerCase();
+
+    // HARD STOP: Never process notifications posted by CapiTrack itself
+    if (packageName.includes('capitrack') || packageName.includes('capitech')) {
+      return;
+    }
 
     // Verify autoCaptureEnabled from persistent storage or active store
     const storedAutoCapture = await AsyncStorage.getItem('@capitrack_auto_capture_enabled');
@@ -31,6 +36,9 @@ const headlessNotificationListener = async ({ notification }: { notification?: s
 
     const parsed = parseNotification(title, text, packageName);
     if (parsed && parsed.isPayment && parsed.amount > 0) {
+      if (isDuplicateTransaction(parsed.amount, parsed.merchant, packageName)) {
+        return;
+      }
       const nudgeData = {
         id: 'nudge_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
         amount: parsed.amount,

@@ -2,7 +2,7 @@ import { Platform, Linking, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import RNAndroidNotificationListener from 'react-native-android-notification-listener';
-import { parseNotification } from './notificationParser';
+import { parseNotification, isDuplicateTransaction } from './notificationParser';
 import { useAppStore } from '../store/useAppStore';
 
 export const PENDING_NUDGE_STORAGE_KEY = '@capitrack_pending_nudge';
@@ -48,6 +48,7 @@ export async function postLocalPaymentAlert(amount: number, merchant: string, so
     });
 
     await Notifications.scheduleNotificationAsync({
+      identifier: 'capitrack_payment_alert',
       content: {
         title: `💸 ₹${amount.toLocaleString()} Paid to ${merchant || sourceApp}`,
         body: `Tap to categorize (Food, Grocery, Travel...) in CapiTrack`,
@@ -182,6 +183,11 @@ class NotificationListenerService {
    * STRICT SETTINGS GATING: Exits immediately if autoCaptureEnabled is false.
    */
   public async handleRawNotification(payload: { title: string; text: string; package_name?: string }) {
+    const pkg = (payload.package_name || '').toLowerCase();
+    if (pkg.includes('com.capitrack') || pkg.includes('capitrack') || pkg.includes('capitech')) {
+      return;
+    }
+
     const state = useAppStore.getState();
     const storedAutoCapture = await AsyncStorage.getItem('@capitrack_auto_capture_enabled');
     const isEnabled = state.autoCaptureEnabled || storedAutoCapture === 'true';
@@ -197,6 +203,10 @@ class NotificationListenerService {
     );
 
     if (!parsed || !parsed.isPayment || parsed.amount <= 0) {
+      return;
+    }
+
+    if (isDuplicateTransaction(parsed.amount, parsed.merchant, payload.package_name || '')) {
       return;
     }
 

@@ -10,11 +10,21 @@ module.exports = function withNotificationListener(config) {
     }
 
     const permissions = [
-      'android.permission.BIND_NOTIFICATION_LISTENER_SERVICE',
       'android.permission.RECEIVE_BOOT_COMPLETED',
       'android.permission.WAKE_LOCK',
       'android.permission.FOREGROUND_SERVICE',
     ];
+
+    // Strip out BIND_NOTIFICATION_LISTENER_SERVICE and READ_PHONE_STATE from uses-permission
+    // (BIND_NOTIFICATION_LISTENER_SERVICE belongs strictly on the <service> tag, NOT <uses-permission>)
+    // (READ_PHONE_STATE is an unused sensitive permission that triggers Google Play Protect fraud blocks)
+    androidManifest['uses-permission'] = androidManifest['uses-permission'].filter((p) => {
+      const name = p.$ && p.$['android:name'];
+      return (
+        name !== 'android.permission.BIND_NOTIFICATION_LISTENER_SERVICE' &&
+        name !== 'android.permission.READ_PHONE_STATE'
+      );
+    });
 
     permissions.forEach((perm) => {
       const exists = androidManifest['uses-permission'].some(

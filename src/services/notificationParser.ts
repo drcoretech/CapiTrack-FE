@@ -169,6 +169,94 @@ const DEBIT_REGEX = /(?:paid|debited|sent|transferred|spent|payment of|transfer 
 // Regex patterns to extract merchant/payee name
 const MERCHANT_REGEX = /(?:to|at|towards|vpa\s+)\s*([A-Za-z0-9\s&'.@_-]+?)(?:\s+successful|\s+using|\s+from|\s+on|\s+ref|\s+upi|\.|\,|$)/i;
 
+// In-memory cache of recent transactions to prevent duplicates from notification updates
+const processedTransactions = new Map<string, number>();
+
+export function isDuplicateTransaction(amount: number, merchant: string, packageName: string): boolean {
+  const cleanMerchant = (merchant || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const key = `${packageName}_${amount}_${cleanMerchant}`;
+  const now = Date.now();
+  const lastSeen = processedTransactions.get(key);
+
+  // Ignore exact same transaction event if received within 30 seconds
+  if (lastSeen && now - lastSeen < 30000) {
+    return true;
+  }
+
+  processedTransactions.set(key, now);
+
+  // Clean old entries
+  if (processedTransactions.size > 100) {
+    for (const [k, time] of processedTransactions.entries()) {
+      if (now - time > 60000) {
+        processedTransactions.delete(k);
+      }
+    }
+  }
+
+  return false;
+}
+
+export function isAllowedPaymentApp(packageName: string, text: string): boolean {
+  const pkg = (packageName || '').toLowerCase();
+  const lowerText = text.toLowerCase();
+
+  // STRICT BLOCKLIST: Ignore CapiTrack itself
+  if (
+    pkg.includes('com.capitrack') ||
+    pkg.includes('capitrack') ||
+    pkg.includes('capitech')
+  ) {
+    return false;
+  }
+
+  // Known UPI apps
+  const isUpi =
+    pkg.includes('phonepe') ||
+    pkg.includes('nbu.paisa') || // Google Pay
+    pkg.includes('paytm') ||
+    pkg.includes('dreamplug') || // CRED
+    pkg.includes('npci.upiapp') || // BHIM
+    pkg.includes('amazon') ||
+    pkg.includes('freecharge') ||
+    pkg.includes('mobikwik') ||
+    pkg.includes('navi') ||
+    pkg.includes('whatsapp') ||
+    pkg.includes('cred');
+
+  // Known SMS and Messaging apps
+  const isSms =
+    pkg.includes('messaging') ||
+    pkg.includes('mms') ||
+    pkg.includes('sms') ||
+    pkg.includes('com.google.android.apps.messaging') ||
+    pkg.includes('com.samsung.android.messaging') ||
+    pkg.includes('com.android.mms') ||
+    pkg.includes('com.oneplus.mms') ||
+    pkg.includes('com.coloros.mms') ||
+    pkg.includes('com.vivo.mms');
+
+  // Known Banking apps
+  const isBank =
+    pkg.includes('bank') ||
+    pkg.includes('baroda') ||
+    pkg.includes('sbi') ||
+    pkg.includes('hdfc') ||
+    pkg.includes('icici') ||
+    pkg.includes('axis') ||
+    pkg.includes('kotak') ||
+    pkg.includes('pnb');
+
+  if (isUpi || isSms || isBank) return true;
+
+  // Fallback: If text contains strong banking keywords and package is an SMS or payment tool
+  if (/bank|debited|a\/c|acct|vpa/i.test(lowerText) && /msg|sms|mms|pay/i.test(pkg)) {
+    return true;
+  }
+
+  return false;
+}
+
 export function parseNotification(
   title: string,
   body: string,
@@ -176,6 +264,33 @@ export function parseNotification(
 ): ParsedPayment | null {
   const combined = `${title} ${body}`.trim();
   if (!combined) return null;
+
+  const pkg = (packageName || '').toLowerCase();
+
+  // 1. HARD STOP: Never process notifications from CapiTrack itself!
+  if (
+    pkg.includes('com.capitrack') ||
+    pkg.includes('capitrack') ||
+    pkg.includes('capitech')
+  ) {
+    return null;
+  }
+
+  // 2. HARD STOP: Never process notifications containing CapiTrack's alert signature!
+  if (
+    combined.includes('in CapiTrack') ||
+    combined.includes('Tap to categorize') ||
+    title.includes('💸') ||
+    combined.includes('Paid to Bank SMS Payment') ||
+    combined.includes('Paid to UPI Payment')
+  ) {
+    return null;
+  }
+
+  // 3. ALLOWED APPS ONLY: Only process notifications from UPI, SMS, or Bank apps
+  if (packageName && !isAllowedPaymentApp(packageName, combined)) {
+    return null;
+  }
 
   // Determine source app
   let sourceApp: ParsedPayment['sourceApp'] = 'UPI';
