@@ -133,7 +133,7 @@ export const HomeScreen: React.FC = () => {
         >
           <HomeHeader
             userName={userName}
-            onPressEditName={() => setIsEditingName(true)}
+            onPressProfile={() => openModal('profile_details')}
           />
         </Animated.View>
 

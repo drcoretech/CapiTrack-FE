@@ -26,7 +26,8 @@ export type ModalType =
   | 'language_select'
   | 'v2_automation'
   | 'manage_categories'
-  | 'edit_expense';
+  | 'edit_expense'
+  | 'profile_details';
 
 export interface UserSlice {
   userName: string;

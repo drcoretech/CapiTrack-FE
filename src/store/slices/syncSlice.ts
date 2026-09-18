@@ -127,6 +127,6 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
           };
         }),
       }));
-    } catch {}
+    } catch { }
   },
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, BackHandler, AppState as RNAppState } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -42,6 +42,7 @@ import { AddLedgerEntryModal } from './src/screens/Ledger/AddLedgerEntryModal';
 import { PersonDetailModal } from './src/screens/Ledger/PersonDetailModal';
 import { AutomationModal } from './src/screens/Automation/AutomationModal';
 import { ManageCategoriesModal } from './src/screens/Settings/ManageCategoriesModal';
+import { ProfileDetailsModal } from './src/screens/Home/components/ProfileDetailsModal';
 import { AutoCaptureNudge } from './src/components/AutoCaptureNudge';
 import { notificationListener } from './src/services/notificationListener';
 
@@ -66,6 +67,44 @@ export default function App() {
   React.useEffect(() => {
     loadInitialData();
     notificationListener.init();
+  }, []);
+
+  // Hardware Back button handling on Android:
+  // If a modal is open, close the modal.
+  // If on another tab (Settings/Ledger/Insights/Expenses), return to Home instead of exiting!
+  React.useEffect(() => {
+    const onBackPress = () => {
+      const state = useAppStore.getState();
+      if (state.activeModal) {
+        state.closeModal();
+        return true;
+      }
+      if (state.activeTab !== 'home') {
+        state.setActiveTab('home');
+        return true;
+      }
+      return false; // Exit app from Home
+    };
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, []);
+
+  // AppState monitoring: if the app is put in background and reopened after >3 minutes,
+  // gracefully return to the Home screen rather than remaining trapped on Settings.
+  const lastBackgroundTime = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    const sub = RNAppState.addEventListener('change', (nextState) => {
+      if (nextState === 'background') {
+        lastBackgroundTime.current = Date.now();
+      } else if (nextState === 'active') {
+        if (lastBackgroundTime.current && Date.now() - lastBackgroundTime.current > 3 * 60 * 1000) {
+          useAppStore.getState().setActiveTab('home');
+        }
+        lastBackgroundTime.current = null;
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   if (!fontsLoaded) {
@@ -136,6 +175,7 @@ export default function App() {
         <PersonDetailModal />
         <AutomationModal />
         <ManageCategoriesModal />
+        <ProfileDetailsModal />
         <AutoCaptureNudge />
 
         {/* Modal-mode Language selector if opened from Settings */}

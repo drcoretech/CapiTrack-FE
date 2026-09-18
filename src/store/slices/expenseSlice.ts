@@ -77,7 +77,7 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
       pendingNudge: updatedQueue[0] || null,
     });
 
-    AsyncStorage.setItem('@capitrack_pending_nudges', JSON.stringify(updatedQueue)).catch(() => {});
+    AsyncStorage.setItem('@capitrack_pending_nudges', JSON.stringify(updatedQueue)).catch(() => { });
   },
 
   saveNudgeExpense: async (category, customNote) => {
@@ -109,14 +109,14 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
       expenses: [newExpense, ...state.expenses],
       dashboardData: state.dashboardData
         ? {
-            ...state.dashboardData,
-            spentToday: (state.dashboardData.spentToday || 0) + nudge.amount,
-          }
+          ...state.dashboardData,
+          spentToday: (state.dashboardData.spentToday || 0) + nudge.amount,
+        }
         : null,
     }));
 
-    AsyncStorage.setItem('@capitrack_pending_nudges', JSON.stringify(remainingQueue)).catch(() => {});
-    AsyncStorage.removeItem('@capitrack_pending_nudge').catch(() => {});
+    AsyncStorage.setItem('@capitrack_pending_nudges', JSON.stringify(remainingQueue)).catch(() => { });
+    AsyncStorage.removeItem('@capitrack_pending_nudge').catch(() => { });
 
     try {
       const res = await api.createExpense({
@@ -131,7 +131,7 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
           expenses: state.expenses.map((e) => (e.id === tempId ? { ...e, id: res.expense.id } : e)),
         }));
       }
-    } catch {}
+    } catch { }
   },
 
   dismissNudge: () => {
@@ -141,8 +141,8 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
       pendingNudges: remainingQueue,
       pendingNudge: remainingQueue[0] || null,
     });
-    AsyncStorage.setItem('@capitrack_pending_nudges', JSON.stringify(remainingQueue)).catch(() => {});
-    AsyncStorage.removeItem('@capitrack_pending_nudge').catch(() => {});
+    AsyncStorage.setItem('@capitrack_pending_nudges', JSON.stringify(remainingQueue)).catch(() => { });
+    AsyncStorage.removeItem('@capitrack_pending_nudge').catch(() => { });
   },
 
   toggleCategory: (id: string) => {
@@ -195,9 +195,9 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
       activeModal: null,
       dashboardData: state.dashboardData && dayGroup === 'Today'
         ? {
-            ...state.dashboardData,
-            spentToday: (state.dashboardData.spentToday || 0) + amount,
-          }
+          ...state.dashboardData,
+          spentToday: (state.dashboardData.spentToday || 0) + amount,
+        }
         : state.dashboardData,
     }));
 
@@ -216,7 +216,7 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
         }));
       }
       get().refreshDashboard();
-    } catch {}
+    } catch { }
   },
 
   updateExpense: async (id, updates) => {

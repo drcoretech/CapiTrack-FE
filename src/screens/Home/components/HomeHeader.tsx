@@ -7,10 +7,10 @@ import { AnimatedPressable } from '../../../components/AnimatedPressable';
 
 interface HomeHeaderProps {
   userName: string;
-  onPressEditName: () => void;
+  onPressProfile: () => void;
 }
 
-export const HomeHeader: React.FC<HomeHeaderProps> = ({ userName, onPressEditName }) => {
+export const HomeHeader: React.FC<HomeHeaderProps> = ({ userName, onPressProfile }) => {
   const { t } = useTranslation();
 
   const todayFormatted = new Date().toLocaleDateString('en-US', {
@@ -21,7 +21,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({ userName, onPressEditNam
 
   return (
     <View style={styles.header}>
-      <TouchableOpacity activeOpacity={0.7} onPress={onPressEditName}>
+      <TouchableOpacity activeOpacity={0.7} onPress={onPressProfile}>
         <Text style={styles.eyebrow}>{t(getGreetingKey())}</Text>
         <View style={styles.nameRow}>
           <Text style={styles.userName}>{userName}</Text>
@@ -31,7 +31,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({ userName, onPressEditNam
 
       <AnimatedPressable
         scaleTo={0.9}
-        onPress={onPressEditName}
+        onPress={onPressProfile}
         style={styles.avatarBadge}
       >
         <Text style={styles.avatarText}>{userName ? userName[0].toUpperCase() : 'U'}</Text>
