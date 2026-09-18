@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Check, Briefcase, User, Sparkles } from 'lucide-react-native';
+import { Check, Briefcase, User } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
@@ -29,7 +29,7 @@ export const OnboardingScreen: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const userName = useAppStore((state) => state.userName);
   const [inputName, setInputName] = useState(userName || 'Digvijay');
-  const [selectedMode, setSelectedMode] = useState<'both' | 'personal'>('both');
+  const [selectedMode, setSelectedMode] = useState<'both' | 'personal'>('personal');
   const autoCaptureEnabled = useAppStore((state) => state.autoCaptureEnabled);
   const toggleAutoCapture = useAppStore((state) => state.toggleAutoCapture);
   const setFirstRunStep = useAppStore((state) => state.setFirstRunStep);
@@ -141,41 +141,7 @@ export const OnboardingScreen: React.FC = () => {
 
               {/* Mode Selection Cards */}
               <View style={styles.modeContainer}>
-                {/* Option 1: Both Personal & Freelance (Recommended) */}
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => setSelectedMode('both')}
-                  style={[
-                    styles.modeCard,
-                    selectedMode === 'both' && styles.modeCardActive,
-                  ]}
-                >
-                  <View style={styles.modeCardTop}>
-                    <View style={styles.modeIconCircle}>
-                      <Briefcase size={20} color={selectedMode === 'both' ? Colors.moss : Colors.inkSoft} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <View style={styles.modeTitleRow}>
-                        <Text style={styles.modeTitle}>{t('modeBothTitle')}</Text>
-                        <View style={styles.recommendedBadge}>
-                          <Sparkles size={10} color="#FFFFFF" style={{ marginRight: 3 }} />
-                          <Text style={styles.recommendedBadgeText}>{t('modeBothBadge')}</Text>
-                        </View>
-                      </View>
-                      <Text style={styles.modeDesc}>{t('modeBothDesc')}</Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.radioCircle,
-                        selectedMode === 'both' && styles.radioCircleActive,
-                      ]}
-                    >
-                      {selectedMode === 'both' && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
-                    </View>
-                  </View>
-                </TouchableOpacity>
-
-                {/* Option 2: Personal Expenses Only */}
+                {/* Option 1: Personal Expenses Only (Default) */}
                 <TouchableOpacity
                   activeOpacity={0.85}
                   onPress={() => setSelectedMode('personal')}
@@ -199,6 +165,34 @@ export const OnboardingScreen: React.FC = () => {
                       ]}
                     >
                       {selectedMode === 'personal' && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Option 2: Personal + Freelance Projects */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setSelectedMode('both')}
+                  style={[
+                    styles.modeCard,
+                    selectedMode === 'both' && styles.modeCardActive,
+                  ]}
+                >
+                  <View style={styles.modeCardTop}>
+                    <View style={styles.modeIconCircle}>
+                      <Briefcase size={20} color={selectedMode === 'both' ? Colors.moss : Colors.inkSoft} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.modeTitle}>{t('modeBothTitle')}</Text>
+                      <Text style={styles.modeDesc}>{t('modeBothDesc')}</Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.radioCircle,
+                        selectedMode === 'both' && styles.radioCircleActive,
+                      ]}
+                    >
+                      {selectedMode === 'both' && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -393,30 +387,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modeTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
   modeTitle: {
     fontFamily: Fonts.sansSemiBold,
     fontSize: 14.5,
     color: Colors.ink,
-  },
-  recommendedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.moss,
-    borderRadius: 100,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  recommendedBadgeText: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 8.5,
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
   },
   modeDesc: {
     fontFamily: Fonts.sansRegular,

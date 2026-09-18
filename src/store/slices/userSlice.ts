@@ -10,7 +10,7 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
   firstRunStep: 'splash',
   autoCaptureEnabled: false,
   darkModeEnabled: false,
-  businessTrackingEnabled: true,
+  businessTrackingEnabled: false,
 
   setFirstRunStep: (step) => set({ firstRunStep: step }),
 
