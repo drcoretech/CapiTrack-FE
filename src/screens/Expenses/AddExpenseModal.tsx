@@ -67,25 +67,10 @@ export const AddExpenseModal: React.FC = () => {
   const handleModeSwitch = (mode: 'single' | 'month_total') => {
     setEntryMode(mode);
     Keyboard.dismiss();
-    if (mode === 'month_total') {
-      if (!note || note.trim() === '') {
-        setNote(`${selectedMonthYear.label} Total (Manual Notes)`);
-      }
-      // If category is Food, recommend 'Other' or let user decide
-      if (selectedCategory === 'Food') {
-        const otherCat = activeCategories.find((c) => c.name === 'Other');
-        if (otherCat) setSelectedCategory('Other');
-      }
-    } else {
-      if (note.includes('Total (Manual Notes)')) {
-        setNote('');
-      }
-    }
   };
 
   const handleMonthSelected = (year: number, month: number, label: string) => {
     setSelectedMonthYear({ year, month, label });
-    setNote(`${label} Total (Manual Notes)`);
   };
 
   const handleSave = () => {
@@ -94,8 +79,10 @@ export const AddExpenseModal: React.FC = () => {
 
     let targetDate: string | undefined = undefined;
     let finalNote = note.trim();
+    let targetCategory = selectedCategory;
 
     if (entryMode === 'month_total') {
+      targetCategory = 'Other';
       // Set date to the final second of the chosen month so it strictly falls inside it
       targetDate = getMonthEndISOString(selectedMonthYear.year, selectedMonthYear.month);
       const cleanNoteText = finalNote.replace(/\[Monthly Total\]\s*/g, '');
@@ -115,7 +102,7 @@ export const AddExpenseModal: React.FC = () => {
       }
     }
 
-    addExpense(num, selectedCategory, finalNote, targetDate);
+    addExpense(num, targetCategory, finalNote, targetDate);
     setAmountStr('150');
     setNote('');
     setDateChoice('today');
@@ -266,35 +253,35 @@ export const AddExpenseModal: React.FC = () => {
               </View>
             ) : null}
 
-            {/* Category Grid */}
-            <View>
-              <Text style={styles.sectionHeader}>
-                {entryMode === 'month_total' ? 'PRIMARY CATEGORY' : 'CATEGORY'}
-              </Text>
-              <View style={styles.categoryGrid}>
-                {activeCategories.map((cat) => {
-                  const isSelected = selectedCategory === cat.name;
-                  const localizedLabel = getCategoryName(cat.name);
+            {/* Category Grid (Only for Single Spend mode) */}
+            {entryMode === 'single' && (
+              <View>
+                <Text style={styles.sectionHeader}>CATEGORY</Text>
+                <View style={styles.categoryGrid}>
+                  {activeCategories.map((cat) => {
+                    const isSelected = selectedCategory === cat.name;
+                    const localizedLabel = getCategoryName(cat.name);
 
-                  return (
-                    <AnimatedPressable
-                      key={cat.id}
-                      scaleTo={0.91}
-                      onPress={() => {
-                        setSelectedCategory(cat.name);
-                        Keyboard.dismiss();
-                      }}
-                      style={[styles.catChip, isSelected && styles.catChipSelected]}
-                    >
-                      <Text style={styles.catIcon}>{cat.icon}</Text>
-                      <Text style={[styles.catLabel, isSelected && styles.catLabelSelected]}>
-                        {localizedLabel}
-                      </Text>
-                    </AnimatedPressable>
-                  );
-                })}
+                    return (
+                      <AnimatedPressable
+                        key={cat.id}
+                        scaleTo={0.91}
+                        onPress={() => {
+                          setSelectedCategory(cat.name);
+                          Keyboard.dismiss();
+                        }}
+                        style={[styles.catChip, isSelected && styles.catChipSelected]}
+                      >
+                        <Text style={styles.catIcon}>{cat.icon}</Text>
+                        <Text style={[styles.catLabel, isSelected && styles.catLabelSelected]}>
+                          {localizedLabel}
+                        </Text>
+                      </AnimatedPressable>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
+            )}
 
             {/* Note Field */}
             <View style={styles.fieldContainer}>
@@ -304,7 +291,7 @@ export const AddExpenseModal: React.FC = () => {
                 onChangeText={setNote}
                 placeholder={
                   entryMode === 'month_total'
-                    ? `${selectedMonthYear.label} Total (from notes)`
+                    ? `${selectedMonthYear.label} Total (optional note)`
                     : t('noteExpensePlaceholder')
                 }
                 placeholderTextColor={Colors.inkSoft}

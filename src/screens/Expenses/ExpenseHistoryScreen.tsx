@@ -21,12 +21,27 @@ export const ExpenseHistoryScreen: React.FC = () => {
     return group;
   };
 
-  // Group expenses by dayGroup
-  const groupedExpenses = expenses.reduce((acc, exp) => {
+  // 1. Sort all expenses chronologically descending by date
+  const sortedExpenses = [...expenses].sort((a, b) => {
+    const timeA = new Date(a.date || a.createdAt).getTime() || 0;
+    const timeB = new Date(b.date || b.createdAt).getTime() || 0;
+    return timeB - timeA;
+  });
+
+  // 2. Group expenses while tracking each group's latest timestamp
+  interface ExpenseGroup {
+    groupName: string;
+    maxTimestamp: number;
+    items: Expense[];
+  }
+
+  const groupMap = new Map<string, ExpenseGroup>();
+
+  for (const exp of sortedExpenses) {
     const isMonthlyTotal = exp.note?.includes('[Monthly Total]');
     let group = exp.dayGroup || 'Today';
+    const itemTime = new Date(exp.date || exp.createdAt).getTime() || 0;
 
-    // If it is a monthly lump sum, group under Month Name (e.g. August 2026)
     if (isMonthlyTotal) {
       const d = new Date(exp.date || exp.createdAt);
       if (!isNaN(d.getTime())) {
@@ -38,12 +53,28 @@ export const ExpenseHistoryScreen: React.FC = () => {
       }
     }
 
-    if (!acc[group]) {
-      acc[group] = [];
+    if (!groupMap.has(group)) {
+      groupMap.set(group, {
+        groupName: group,
+        maxTimestamp: itemTime,
+        items: [],
+      });
     }
-    acc[group].push(exp);
-    return acc;
-  }, {} as Record<string, Expense[]>);
+    const g = groupMap.get(group)!;
+    g.items.push(exp);
+    if (itemTime > g.maxTimestamp) {
+      g.maxTimestamp = itemTime;
+    }
+  }
+
+  // 3. Sort groups chronologically descending (latest date at top, e.g. July before June)
+  const orderedGroups = Array.from(groupMap.values()).sort((a, b) => {
+    if (a.groupName === 'Today') return -1;
+    if (b.groupName === 'Today') return 1;
+    if (a.groupName === 'Yesterday') return -1;
+    if (b.groupName === 'Yesterday') return 1;
+    return b.maxTimestamp - a.maxTimestamp;
+  });
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -63,7 +94,7 @@ export const ExpenseHistoryScreen: React.FC = () => {
           <Text style={styles.title}>{t('expensesTitle')}</Text>
         </View>
 
-        {Object.entries(groupedExpenses).map(([dayGroup, items]) => {
+        {orderedGroups.map(({ groupName: dayGroup, items }) => {
           const groupTotal = items.reduce((sum, item) => sum + item.amount, 0);
 
           return (

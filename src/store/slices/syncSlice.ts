@@ -43,6 +43,7 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
             note: e.note,
             time: e.time,
             dayGroup: e.dayGroup || 'Today',
+            date: e.date,
             createdAt: e.date,
           }));
         }
@@ -112,6 +113,7 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
           note: e.note,
           time: e.time,
           dayGroup: e.dayGroup || 'Today',
+          date: e.date,
           createdAt: e.date,
         })),
         contacts: contactRes.contacts.map((c) => {

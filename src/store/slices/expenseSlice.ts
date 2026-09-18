@@ -212,11 +212,15 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
 
       if (res.success && res.expense) {
         set((state) => ({
-          expenses: state.expenses.map((e) => (e.id === tempId ? { ...e, id: res.expense.id } : e)),
+          expenses: state.expenses.map((e) =>
+            e.id === tempId ? { ...e, id: res.expense.id, date: res.expense.date || e.date } : e
+          ),
         }));
       }
       get().refreshDashboard();
-    } catch { }
+    } catch (err) {
+      console.warn('Backend createExpense failed, expense saved locally:', err);
+    }
   },
 
   updateExpense: async (id, updates) => {
