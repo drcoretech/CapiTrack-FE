@@ -11,16 +11,31 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
   loadInitialData: async () => {
     set({ isSyncing: true });
     try {
-      const [dashRes, expRes, contactRes, userRes, localAutoCapture] = await Promise.allSettled([
+      const [dashRes, expRes, contactRes, userRes, localAutoCapture, localProjects, localBusiness] = await Promise.allSettled([
         api.getDashboardSummary(),
         api.getExpenses(),
         api.getContacts(),
         api.getUserProfile(),
         AsyncStorage.getItem('@capitrack_auto_capture_enabled'),
+        AsyncStorage.getItem('@capitrack_client_projects'),
+        AsyncStorage.getItem('@capitrack_business_tracking_enabled'),
       ]);
 
       set((state) => {
         const nextState: Partial<AppState> = { isSyncing: false, lastSyncedAt: new Date() };
+
+        if (localProjects.status === 'fulfilled' && localProjects.value) {
+          try {
+            const parsed = JSON.parse(localProjects.value);
+            if (Array.isArray(parsed)) {
+              nextState.clientProjects = parsed;
+            }
+          } catch {}
+        }
+
+        if (localBusiness.status === 'fulfilled' && localBusiness.value !== null) {
+          nextState.businessTrackingEnabled = localBusiness.value === 'true';
+        }
 
         if (dashRes.status === 'fulfilled' && dashRes.value.success) {
           nextState.dashboardData = {

@@ -10,6 +10,8 @@ import { notificationListener } from '../../services/notificationListener';
 export const SettingsScreen: React.FC = () => {
   const autoCaptureEnabled = useAppStore((state) => state.autoCaptureEnabled);
   const toggleAutoCapture = useAppStore((state) => state.toggleAutoCapture);
+  const businessTrackingEnabled = useAppStore((state) => state.businessTrackingEnabled);
+  const toggleBusinessTracking = useAppStore((state) => state.toggleBusinessTracking);
   const selectedLanguage = useAppStore((state) => state.selectedLanguage);
   const categories = useAppStore((state) => state.categories);
   const openModal = useAppStore((state) => state.openModal);
@@ -36,6 +38,22 @@ export const SettingsScreen: React.FC = () => {
         </View>
 
         <View style={styles.settingsGroup}>
+          {/* Freelance & Client Projects Tracking */}
+          <View style={styles.item}>
+            <View style={styles.itemLeft}>
+              <Text style={styles.itemName}>Freelance & Client Projects</Text>
+              <Text style={[styles.itemSub, { color: businessTrackingEnabled ? Colors.moss : Colors.inkSoft }]}>
+                {businessTrackingEnabled ? 'Active (Website deals, milestones & dues)' : 'Disabled'}
+              </Text>
+            </View>
+            <Switch
+              value={businessTrackingEnabled}
+              onValueChange={toggleBusinessTracking}
+              trackColor={{ false: Colors.line, true: Colors.moss }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
           {/* Auto-Capture Toggle */}
           <View style={styles.item}>
             <View style={styles.itemLeft}>

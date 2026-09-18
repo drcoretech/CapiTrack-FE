@@ -40,6 +40,8 @@ import { AddExpenseModal } from './src/screens/Expenses/AddExpenseModal';
 import { EditExpenseModal } from './src/screens/Expenses/EditExpenseModal';
 import { AddLedgerEntryModal } from './src/screens/Ledger/AddLedgerEntryModal';
 import { PersonDetailModal } from './src/screens/Ledger/PersonDetailModal';
+import { AddProjectModal } from './src/screens/Ledger/components/AddProjectModal';
+import { ProjectDetailModal } from './src/screens/Ledger/components/ProjectDetailModal';
 import { AutomationModal } from './src/screens/Automation/AutomationModal';
 import { ManageCategoriesModal } from './src/screens/Settings/ManageCategoriesModal';
 import { ProfileDetailsModal } from './src/screens/Home/components/ProfileDetailsModal';
@@ -173,6 +175,8 @@ export default function App() {
         <EditExpenseModal />
         <AddLedgerEntryModal />
         <PersonDetailModal />
+        <AddProjectModal />
+        <ProjectDetailModal />
         <AutomationModal />
         <ManageCategoriesModal />
         <ProfileDetailsModal />

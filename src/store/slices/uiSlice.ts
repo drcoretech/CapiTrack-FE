@@ -5,18 +5,25 @@ export const createUiSlice: StateCreator<AppState, [], [], UiSlice> = (set, get)
   activeTab: 'home',
   activeModal: null,
   selectedPersonId: null,
+  selectedProjectId: null,
+  ledgerSubTab: 'personal',
   editingExpense: null,
 
   setActiveTab: (tab) => set({ activeTab: tab }),
+  setLedgerSubTab: (tab) => set({ ledgerSubTab: tab }),
 
-  openModal: (modal, personId) => {
-    set({ activeModal: modal, selectedPersonId: personId || null });
-    if (modal === 'person_detail' && personId) {
-      get().loadPersonDetail(personId);
+  openModal: (modal, entityId) => {
+    if (modal === 'project_detail') {
+      set({ activeModal: modal, selectedProjectId: entityId || null, selectedPersonId: null });
+    } else {
+      set({ activeModal: modal, selectedPersonId: entityId || null, selectedProjectId: null });
+      if (modal === 'person_detail' && entityId) {
+        get().loadPersonDetail(entityId);
+      }
     }
   },
 
-  closeModal: () => set({ activeModal: null, selectedPersonId: null }),
+  closeModal: () => set({ activeModal: null, selectedPersonId: null, selectedProjectId: null }),
 
   setEditingExpense: (expense) =>
     set({

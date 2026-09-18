@@ -1,9 +1,18 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { Colors } from '../../../theme/colors';
+import { useAppStore } from '../../../store/useAppStore';
 
-export const LedgerSkeleton: React.FC = () => {
+interface LedgerSkeletonProps {
+  subTab?: 'personal' | 'projects';
+}
+
+export const LedgerSkeleton: React.FC<LedgerSkeletonProps> = ({ subTab: propSubTab }) => {
   const pulseAnim = useRef(new Animated.Value(0.35)).current;
+  const storeSubTab = useAppStore((state) => state.ledgerSubTab);
+  const businessTrackingEnabled = useAppStore((state) => state.businessTrackingEnabled);
+
+  const activeSubTab = propSubTab || (businessTrackingEnabled ? storeSubTab : 'personal');
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -26,41 +35,213 @@ export const LedgerSkeleton: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header Skeleton */}
       <View style={styles.header}>
-        <Animated.View style={[styles.shimmerBox, { width: 95, height: 10, marginBottom: 8, opacity: pulseAnim }]} />
-        <Animated.View style={[styles.shimmerBox, { width: 130, height: 28, borderRadius: 6, opacity: pulseAnim }]} />
+        <Animated.View
+          style={[
+            styles.shimmerBox,
+            { width: activeSubTab === 'projects' ? 140 : 95, height: 10, marginBottom: 8, opacity: pulseAnim },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.shimmerBox,
+            { width: activeSubTab === 'projects' ? 200 : 130, height: 28, borderRadius: 6, opacity: pulseAnim },
+          ]}
+        />
       </View>
 
-      {/* Summary Row */}
-      <View style={styles.summaryRow}>
-        <View style={styles.summaryCard}>
-          <Animated.View style={[styles.shimmerBox, { width: 85, height: 26, borderRadius: 6, opacity: pulseAnim }]} />
-          <Animated.View style={[styles.shimmerBox, { width: 95, height: 11, marginTop: 8, opacity: pulseAnim }]} />
+      {/* Segmented Sub-Tab Switcher Skeleton */}
+      {businessTrackingEnabled && (
+        <View style={styles.segmentContainer}>
+          <View
+            style={[
+              styles.segmentBtn,
+              activeSubTab === 'personal' && styles.segmentBtnActive,
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.shimmerBox,
+                { width: 110, height: 13, borderRadius: 4, opacity: pulseAnim },
+              ]}
+            />
+          </View>
+          <View
+            style={[
+              styles.segmentBtn,
+              activeSubTab === 'projects' && styles.segmentBtnActive,
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.shimmerBox,
+                { width: 115, height: 13, borderRadius: 4, opacity: pulseAnim },
+              ]}
+            />
+          </View>
         </View>
-        <View style={styles.summaryCard}>
-          <Animated.View style={[styles.shimmerBox, { width: 75, height: 26, borderRadius: 6, opacity: pulseAnim }]} />
-          <Animated.View style={[styles.shimmerBox, { width: 80, height: 11, marginTop: 8, opacity: pulseAnim }]} />
-        </View>
-      </View>
+      )}
 
-      {/* Person Items List */}
-      <View style={styles.list}>
-        {[1, 2, 3, 4].map((i) => (
-          <View key={i} style={styles.personItem}>
-            <View style={styles.personLeft}>
-              <Animated.View style={[styles.avatar, { opacity: pulseAnim }]} />
-              <View style={styles.personDetails}>
-                <Animated.View style={[styles.shimmerBox, { width: 120, height: 16, borderRadius: 4, marginBottom: 6, opacity: pulseAnim }]} />
-                <Animated.View style={[styles.shimmerBox, { width: 80, height: 11, borderRadius: 3, opacity: pulseAnim }]} />
-              </View>
+      {/* Conditional Sub-Tab Skeleton */}
+      {activeSubTab === 'projects' ? (
+        <View style={{ gap: 16 }}>
+          {/* 3 Metric Cards (Total Invoiced, Received, Pending Due) */}
+          <View style={styles.metricsGrid}>
+            <View style={styles.metricCard}>
+              <Animated.View
+                style={[styles.shimmerBox, { width: 65, height: 18, borderRadius: 4, opacity: pulseAnim }]}
+              />
+              <Animated.View
+                style={[styles.shimmerBox, { width: 75, height: 9, marginTop: 6, opacity: pulseAnim }]}
+              />
             </View>
-            <View style={styles.personRight}>
-              <Animated.View style={[styles.shimmerBox, { width: 70, height: 22, borderRadius: 6, opacity: pulseAnim }]} />
+            <View style={styles.metricCard}>
+              <Animated.View
+                style={[styles.shimmerBox, { width: 65, height: 18, borderRadius: 4, opacity: pulseAnim }]}
+              />
+              <Animated.View
+                style={[styles.shimmerBox, { width: 55, height: 9, marginTop: 6, opacity: pulseAnim }]}
+              />
+            </View>
+            <View style={styles.metricCard}>
+              <Animated.View
+                style={[styles.shimmerBox, { width: 65, height: 18, borderRadius: 4, opacity: pulseAnim }]}
+              />
+              <Animated.View
+                style={[styles.shimmerBox, { width: 68, height: 9, marginTop: 6, opacity: pulseAnim }]}
+              />
             </View>
           </View>
-        ))}
-      </View>
+
+          {/* Active Contracts Header */}
+          <View style={styles.sectionHeaderRow}>
+            <Animated.View
+              style={[styles.shimmerBox, { width: 135, height: 12, borderRadius: 4, opacity: pulseAnim }]}
+            />
+            <Animated.View
+              style={[styles.shimmerBox, { width: 90, height: 26, borderRadius: 8, opacity: pulseAnim }]}
+            />
+          </View>
+
+          {/* Project Cards */}
+          {[1, 2].map((idx) => (
+            <View key={idx} style={styles.projectCard}>
+              {/* Card Header */}
+              <View style={styles.projectCardTop}>
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Animated.View
+                    style={[styles.shimmerBox, { width: 110, height: 15, borderRadius: 4, opacity: pulseAnim }]}
+                  />
+                  <Animated.View
+                    style={[styles.shimmerBox, { width: 160, height: 12, borderRadius: 3, opacity: pulseAnim }]}
+                  />
+                </View>
+                <Animated.View
+                  style={[styles.shimmerBox, { width: 85, height: 22, borderRadius: 100, opacity: pulseAnim }]}
+                />
+              </View>
+
+              {/* Deal Numbers Bar */}
+              <View style={styles.dealBar}>
+                <View style={{ gap: 4 }}>
+                  <Animated.View
+                    style={[styles.shimmerBox, { width: 60, height: 9, opacity: pulseAnim }]}
+                  />
+                  <Animated.View
+                    style={[styles.shimmerBox, { width: 50, height: 14, borderRadius: 3, opacity: pulseAnim }]}
+                  />
+                </View>
+                <View style={{ alignItems: 'center', gap: 4 }}>
+                  <Animated.View
+                    style={[styles.shimmerBox, { width: 55, height: 9, opacity: pulseAnim }]}
+                  />
+                  <Animated.View
+                    style={[styles.shimmerBox, { width: 50, height: 14, borderRadius: 3, opacity: pulseAnim }]}
+                  />
+                </View>
+                <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                  <Animated.View
+                    style={[styles.shimmerBox, { width: 50, height: 9, opacity: pulseAnim }]}
+                  />
+                  <Animated.View
+                    style={[styles.shimmerBox, { width: 50, height: 14, borderRadius: 3, opacity: pulseAnim }]}
+                  />
+                </View>
+              </View>
+
+              {/* Progress Bar */}
+              <View style={styles.progressRow}>
+                <Animated.View
+                  style={[styles.progressTrack, { opacity: pulseAnim }]}
+                />
+                <Animated.View
+                  style={[styles.shimmerBox, { width: 32, height: 10, opacity: pulseAnim }]}
+                />
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.btnRow}>
+                <Animated.View
+                  style={[styles.shimmerBtn, { flex: 1, opacity: pulseAnim }]}
+                />
+                <Animated.View
+                  style={[styles.shimmerBtn, { width: 110, opacity: pulseAnim }]}
+                />
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <>
+          {/* Summary Row (Personal Udhar) */}
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryCard}>
+              <Animated.View
+                style={[styles.shimmerBox, { width: 85, height: 26, borderRadius: 6, opacity: pulseAnim }]}
+              />
+              <Animated.View
+                style={[styles.shimmerBox, { width: 95, height: 11, marginTop: 8, opacity: pulseAnim }]}
+              />
+            </View>
+            <View style={styles.summaryCard}>
+              <Animated.View
+                style={[styles.shimmerBox, { width: 75, height: 26, borderRadius: 6, opacity: pulseAnim }]}
+              />
+              <Animated.View
+                style={[styles.shimmerBox, { width: 80, height: 11, marginTop: 8, opacity: pulseAnim }]}
+              />
+            </View>
+          </View>
+
+          {/* Person Items List */}
+          <View style={styles.list}>
+            {[1, 2, 3, 4].map((i) => (
+              <View key={i} style={styles.personItem}>
+                <View style={styles.personLeft}>
+                  <Animated.View style={[styles.avatar, { opacity: pulseAnim }]} />
+                  <View style={styles.personDetails}>
+                    <Animated.View
+                      style={[
+                        styles.shimmerBox,
+                        { width: 120, height: 16, borderRadius: 4, marginBottom: 6, opacity: pulseAnim },
+                      ]}
+                    />
+                    <Animated.View
+                      style={[styles.shimmerBox, { width: 80, height: 11, borderRadius: 3, opacity: pulseAnim }]}
+                    />
+                  </View>
+                </View>
+                <View style={styles.personRight}>
+                  <Animated.View
+                    style={[styles.shimmerBox, { width: 70, height: 22, borderRadius: 6, opacity: pulseAnim }]}
+                  />
+                </View>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
     </View>
   );
 };
@@ -76,6 +257,90 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.line,
     borderRadius: 4,
   },
+  segmentContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+  },
+  segmentBtnActive: {
+    backgroundColor: Colors.mist,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  metricCard: {
+    flex: 1,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    alignItems: 'center',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+    marginTop: 2,
+  },
+  projectCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    padding: 16,
+    gap: 12,
+  },
+  projectCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  dealBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.mist,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  progressTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.line,
+  },
+  btnRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 2,
+  },
+  shimmerBtn: {
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: Colors.line,
+  },
   summaryRow: {
     flexDirection: 'row',
     gap: 12,
@@ -84,40 +349,39 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.card,
     borderRadius: 16,
-    padding: 16,
+    paddingVertical: 14,
     borderWidth: 1,
     borderColor: Colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   list: {
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    overflow: 'hidden',
+    gap: 9,
   },
   personItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.line,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    borderRadius: 15,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
   },
   personLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    flex: 1,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.line,
   },
   personDetails: {
-    flex: 1,
+    gap: 4,
   },
   personRight: {
     alignItems: 'flex-end',

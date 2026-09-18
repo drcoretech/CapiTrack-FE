@@ -50,3 +50,25 @@ export interface LanguageOption {
 
 export type TabScreen = 'home' | 'expenses' | 'ledger' | 'insights' | 'settings';
 
+export interface ProjectPayment {
+  id: string;
+  amount: number;
+  date: string;
+  note?: string;
+  method?: 'UPI' | 'Bank Transfer' | 'Cash' | 'Cheque';
+  recordedAsIncome?: boolean;
+}
+
+export interface ClientProject {
+  id: string;
+  clientName: string;
+  clientPhone?: string;
+  projectTitle: string;
+  totalValue: number;
+  payments: ProjectPayment[];
+  status: 'in_progress' | 'payment_pending' | 'completed';
+  dueDate?: string;
+  createdAt: string;
+  notes?: string;
+}
+

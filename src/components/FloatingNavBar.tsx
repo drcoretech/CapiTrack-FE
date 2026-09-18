@@ -24,6 +24,7 @@ const NAV_ITEMS: NavItemConfig[] = [
 export const FloatingNavBar: React.FC = () => {
   const insets = useSafeAreaInsets();
   const activeTab = useAppStore((state) => state.activeTab);
+  const ledgerSubTab = useAppStore((state) => state.ledgerSubTab);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const openModal = useAppStore((state) => state.openModal);
 
@@ -78,7 +79,11 @@ export const FloatingNavBar: React.FC = () => {
         scaleTo={0.9}
         onPress={() => {
           if (activeTab === 'ledger') {
-            openModal('add_ledger');
+            if (ledgerSubTab === 'projects') {
+              openModal('add_project');
+            } else {
+              openModal('add_ledger');
+            }
           } else {
             openModal('add_expense');
           }

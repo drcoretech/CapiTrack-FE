@@ -1,4 +1,4 @@
-import { Expense, Person, TabScreen, AppCategory, ExpenseCategory } from '../types';
+import { Expense, Person, TabScreen, AppCategory, ExpenseCategory, ClientProject, ProjectPayment } from '../types';
 
 export interface PendingNudge {
   id: string;
@@ -27,7 +27,9 @@ export type ModalType =
   | 'v2_automation'
   | 'manage_categories'
   | 'edit_expense'
-  | 'profile_details';
+  | 'profile_details'
+  | 'add_project'
+  | 'project_detail';
 
 export interface UserSlice {
   userName: string;
@@ -36,11 +38,13 @@ export interface UserSlice {
   firstRunStep: 'splash' | 'language' | 'onboarding' | 'main';
   autoCaptureEnabled: boolean;
   darkModeEnabled: boolean;
+  businessTrackingEnabled: boolean;
   setFirstRunStep: (step: 'splash' | 'language' | 'onboarding' | 'main') => void;
   setUserName: (name: string) => Promise<void>;
   setSelectedLanguage: (lang: 'en' | 'hi' | 'mr') => Promise<void>;
   toggleAutoCapture: () => Promise<void>;
   toggleDarkMode: () => Promise<void>;
+  toggleBusinessTracking: () => Promise<void>;
   resetOnboarding: () => void;
 }
 
@@ -48,9 +52,12 @@ export interface UiSlice {
   activeTab: TabScreen;
   activeModal: ModalType | null;
   selectedPersonId: string | null;
+  selectedProjectId: string | null;
+  ledgerSubTab: 'personal' | 'projects';
+  setLedgerSubTab: (tab: 'personal' | 'projects') => void;
   editingExpense: Expense | null;
   setActiveTab: (tab: TabScreen) => void;
-  openModal: (modal: ModalType, personId?: string) => void;
+  openModal: (modal: ModalType, entityId?: string) => void;
   closeModal: () => void;
   setEditingExpense: (expense: Expense | null) => void;
 }
@@ -80,9 +87,23 @@ export interface ExpenseSlice {
 
 export interface LedgerSlice {
   contacts: Person[];
+  clientProjects: ClientProject[];
   addLedgerEntry: (personName: string, amount: number, direction: 'LENT' | 'BORROWED', note: string) => Promise<void>;
   settlePerson: (personId: string) => Promise<void>;
   loadPersonDetail: (personId: string) => Promise<void>;
+  addClientProject: (
+    project: { clientName: string; clientPhone?: string; projectTitle: string; totalValue: number; notes?: string },
+    initialPayment?: number,
+    addToIncome?: boolean
+  ) => Promise<void>;
+  addProjectPayment: (
+    projectId: string,
+    amount: number,
+    note?: string,
+    method?: ProjectPayment['method'],
+    addToIncome?: boolean
+  ) => Promise<void>;
+  deleteClientProject: (projectId: string) => Promise<void>;
 }
 
 export interface SyncSlice {

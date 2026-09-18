@@ -10,6 +10,7 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
   firstRunStep: 'splash',
   autoCaptureEnabled: false,
   darkModeEnabled: false,
+  businessTrackingEnabled: true,
 
   setFirstRunStep: (step) => set({ firstRunStep: step }),
 
@@ -48,6 +49,12 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
     try {
       await api.updatePreferences({ darkMode: nextVal });
     } catch {}
+  },
+
+  toggleBusinessTracking: async () => {
+    const nextVal = !get().businessTrackingEnabled;
+    set({ businessTrackingEnabled: nextVal });
+    AsyncStorage.setItem('@capitrack_business_tracking_enabled', nextVal ? 'true' : 'false').catch(() => {});
   },
 
   resetOnboarding: () => set({ firstRunStep: 'splash' }),
