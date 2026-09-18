@@ -290,10 +290,12 @@ export const OnboardingScreen: React.FC = () => {
             <Text style={styles.primaryBtnText}>{getButtonText()}</Text>
           </AnimatedPressable>
 
-          {currentIndex > 0 && !isNameStep && (
+          {currentIndex > 0 && !isNameStep ? (
             <TouchableOpacity activeOpacity={0.7} onPress={handleSkip} style={styles.ghostBtn}>
               <Text style={styles.ghostBtnText}>{t('skipBtn')}</Text>
             </TouchableOpacity>
+          ) : (
+            <View style={styles.ghostBtnPlaceholder} />
           )}
         </View>
       </KeyboardAvoidingView>
@@ -553,5 +555,8 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansMedium,
     fontSize: 14,
     color: Colors.inkSoft,
+  },
+  ghostBtnPlaceholder: {
+    height: 34,
   },
 });
