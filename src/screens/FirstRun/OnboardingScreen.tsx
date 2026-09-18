@@ -68,12 +68,13 @@ export const OnboardingScreen: React.FC = () => {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentIndex < totalPages - 1) {
       goToPage(currentIndex + 1);
     } else {
-      // Final Name step
-      setUserName(inputName.trim() || 'Digvijay');
+      // Final Name step: Await user setting and cloud data loading before entering main dashboard
+      const targetName = inputName.trim() || 'Digvijay';
+      await setUserName(targetName);
       setFirstRunStep('main');
     }
   };

@@ -1,49 +1,50 @@
 import { Platform, NativeModules } from 'react-native';
 import Constants from 'expo-constants';
 
-// Automatically detect host IP so real phones, Expo Go, and emulators all connect seamlessly.
-// In production builds, connects directly to your deployed backend URL.
+export const CLOUD_API_URL = 'https://capitrack-be.vercel.app/api';
+
+// Automatically detect host IP in local dev mode, or connect to cloud backend in standalone APKs.
 export const getBaseUrl = () => {
-  // 0. Production deployed URL from environment variable (.env) or app.json
+  // 1. Production deployed URL from environment variable (.env) or EAS env
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
   }
 
-  const extraApiUrl = (Constants.expoConfig as any)?.extra?.apiUrl;
+  // 2. Extra apiUrl from app.json across all Expo runtimes
+  const extraApiUrl =
+    (Constants.expoConfig as any)?.extra?.apiUrl ||
+    (Constants as any).manifest?.extra?.apiUrl ||
+    (Constants as any).manifest2?.extra?.expoClient?.extra?.apiUrl;
   if (extraApiUrl) {
     return extraApiUrl.replace(/\/+$/, '');
   }
 
-  // 1. Check Expo hostUri (contains the IP of your computer running Expo/Metro)
-  const hostUri =
-    Constants.expoConfig?.hostUri ||
-    (Constants as any).manifest?.debuggerHost ||
-    (Constants as any).manifest2?.extra?.expoGo?.debuggerHost;
+  // 3. In local development with Metro (__DEV__), detect local machine IP
+  if (__DEV__) {
+    const hostUri =
+      Constants.expoConfig?.hostUri ||
+      (Constants as any).manifest?.debuggerHost ||
+      (Constants as any).manifest2?.extra?.expoGo?.debuggerHost;
 
-  if (hostUri) {
-    const ip = hostUri.split(':')[0];
-    if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
-      return `http://${ip}:5001/api`;
+    if (hostUri) {
+      const ip = hostUri.split(':')[0];
+      if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
+        return `http://${ip}:5001/api`;
+      }
+    }
+
+    const scriptURL = NativeModules.SourceCode?.scriptURL;
+    if (scriptURL) {
+      const match = scriptURL.match(/:\/\/([^:/]+)/);
+      const ip = match ? match[1] : null;
+      if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
+        return `http://${ip}:5001/api`;
+      }
     }
   }
 
-  // 2. Check NativeModules scriptURL
-  const scriptURL = NativeModules.SourceCode?.scriptURL;
-  if (scriptURL) {
-    const match = scriptURL.match(/:\/\/([^:/]+)/);
-    const ip = match ? match[1] : null;
-    if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
-      return `http://${ip}:5001/api`;
-    }
-  }
-
-  // 3. Fallback for Android Emulator
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:5001/api';
-  }
-
-  // 4. Default for iOS simulator / web
-  return 'http://localhost:5001/api';
+  // 4. Default for all standalone builds, APKs, and production: always live cloud backend!
+  return CLOUD_API_URL;
 };
 
 export const API_BASE_URL = getBaseUrl();
