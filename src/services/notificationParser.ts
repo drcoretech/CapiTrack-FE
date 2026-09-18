@@ -181,6 +181,9 @@ const MERCHANT_REGEX = /(?:to|at|towards|vpa\s+)\s*([A-Za-z0-9\s&'.@_-]+?)(?:\s+
 // Strictly block promotional, marketing, investment, loan, and spam notifications from banks
 const PROMOTIONAL_OR_SPAM_REGEX = /(?:invest|investing|mutual funds?|sip\b|pre-approved|apply for|loan\b|quick loan|instant loan|start with just|starting at|terms and conditions|\bt&c\b|t&c apply|scratch card|cashback of up to|win up to|save up to|congratulations|reward points?|voucher|coupon|gift card|hurry\b|limited period|due date|bill generated|statement for|statement generated|otp\b|one time password|verification code|credit limit)/i;
 
+// Strictly block UPI mandate requests, IPO block requests, collect requests, and conditional/future debits
+const MANDATE_OR_REQUEST_REGEX = /(?:approve\b|mandate request|block request|collect request|payment request|has requested|requested by|requested from|on approval|will be debited|to be debited|would be debited|scheduled to be debited|to be deducted|will be deducted)/i;
+
 // Detect explicit debit actions - a notification MUST confirm an actual payment/debit to be recorded as an expense
 const DEBIT_ACTION_REGEX = /(?:paid|debited|sent|transferred|spent|payment of|transfer of|withdrawn|\bdr\.?\b)/i;
 
@@ -363,13 +366,19 @@ export function parseNotification(
     return null;
   }
 
-  // 4. HARD STOP: Ignore incoming credit/deposit/refund/cashback notifications (income is not an expense)
+  // 4. HARD STOP: Strictly ignore UPI mandate requests, IPO block requests, collect requests, and future debit notifications
+  // E.g. "Approve your IPO mandate", "UPI mandate request of ₹14973", "will be debited upon approval" -> ignore!
+  if (MANDATE_OR_REQUEST_REGEX.test(combined)) {
+    return null;
+  }
+
+  // 5. HARD STOP: Ignore incoming credit/deposit/refund/cashback notifications (income is not an expense)
   // E.g. "A/c credited with INR 2.00 by transfer from DIGVIJAY" -> ignore!
   if (INCOMING_CREDIT_REGEX.test(combined) && !EXPLICIT_DEBIT_CONFIRMATION.test(combined)) {
     return null;
   }
 
-  // 5. HARD STOP: Must contain a genuine debit/payment confirmation action
+  // 6. HARD STOP: Must contain a genuine debit/payment confirmation action
   if (!DEBIT_ACTION_REGEX.test(combined)) {
     return null;
   }
