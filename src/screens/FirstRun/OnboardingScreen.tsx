@@ -290,7 +290,7 @@ export const OnboardingScreen: React.FC = () => {
             <Text style={styles.primaryBtnText}>{getButtonText()}</Text>
           </AnimatedPressable>
 
-          {!isNameStep && (
+          {currentIndex > 0 && !isNameStep && (
             <TouchableOpacity activeOpacity={0.7} onPress={handleSkip} style={styles.ghostBtn}>
               <Text style={styles.ghostBtnText}>{t('skipBtn')}</Text>
             </TouchableOpacity>
