@@ -55,6 +55,8 @@ export interface UiSlice {
   selectedProjectId: string | null;
   ledgerSubTab: 'personal' | 'projects';
   setLedgerSubTab: (tab: 'personal' | 'projects') => void;
+  insightsSubTab: 'personal' | 'revenue';
+  setInsightsSubTab: (tab: 'personal' | 'revenue') => void;
   editingExpense: Expense | null;
   setActiveTab: (tab: TabScreen) => void;
   openModal: (modal: ModalType, entityId?: string) => void;

@@ -1,9 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { Colors } from '../../../theme/colors';
+import { useAppStore } from '../../../store/useAppStore';
 
 export const InsightsSkeleton: React.FC = () => {
   const pulseAnim = useRef(new Animated.Value(0.35)).current;
+  const businessTrackingEnabled = useAppStore((state) => state.businessTrackingEnabled);
+  const insightsSubTab = useAppStore((state) => state.insightsSubTab);
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -31,6 +34,32 @@ export const InsightsSkeleton: React.FC = () => {
         <Animated.View style={[styles.shimmerBox, { width: 110, height: 10, marginBottom: 8, opacity: pulseAnim }]} />
         <Animated.View style={[styles.shimmerBox, { width: 160, height: 28, borderRadius: 6, opacity: pulseAnim }]} />
       </View>
+
+      {/* Segmented Sub-Tab Switcher Skeleton */}
+      {businessTrackingEnabled && (
+        <View style={styles.segmentContainer}>
+          <View
+            style={[
+              styles.segmentBtn,
+              insightsSubTab === 'personal' && styles.segmentBtnActive,
+            ]}
+          >
+            <Animated.View
+              style={[styles.shimmerBox, { width: 90, height: 14, opacity: pulseAnim }]}
+            />
+          </View>
+          <View
+            style={[
+              styles.segmentBtn,
+              insightsSubTab === 'revenue' && styles.segmentBtnActive,
+            ]}
+          >
+            <Animated.View
+              style={[styles.shimmerBox, { width: 100, height: 14, opacity: pulseAnim }]}
+            />
+          </View>
+        </View>
+      )}
 
       {/* Month Selector Bar */}
       <View style={styles.monthBar}>
@@ -193,5 +222,25 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.line,
+  },
+  segmentContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+  },
+  segmentBtnActive: {
+    backgroundColor: Colors.mist,
+    borderWidth: 1,
+    borderColor: Colors.line,
   },
 });

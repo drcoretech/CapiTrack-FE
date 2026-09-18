@@ -7,10 +7,12 @@ export const createUiSlice: StateCreator<AppState, [], [], UiSlice> = (set, get)
   selectedPersonId: null,
   selectedProjectId: null,
   ledgerSubTab: 'personal',
+  insightsSubTab: 'personal',
   editingExpense: null,
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   setLedgerSubTab: (tab) => set({ ledgerSubTab: tab }),
+  setInsightsSubTab: (tab) => set({ insightsSubTab: tab }),
 
   openModal: (modal, entityId) => {
     if (modal === 'project_detail') {
