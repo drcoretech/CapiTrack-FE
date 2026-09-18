@@ -152,7 +152,17 @@ export function inferCategory(
   const normalized = merchantOrText.toLowerCase();
 
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (keywords.some((kw) => normalized.includes(kw))) {
+    if (
+      keywords.some((kw) => {
+        if (kw.length <= 3) {
+          // Strict word boundary check for short words (e.g. \bvi\b, \bgas\b, \btea\b)
+          // Prevents 'Digvijay' from matching 'vi' (Vodafone Idea under Bills)
+          const regex = new RegExp(`\\b${kw}\\b`, 'i');
+          return regex.test(merchantOrText);
+        }
+        return normalized.includes(kw);
+      })
+    ) {
       return category as any;
     }
   }
@@ -161,38 +171,99 @@ export function inferCategory(
 }
 
 // Regex patterns to extract amounts from notification text
-// Matches: "Paid ₹50", "Paid ₹1 to Self", "debited by Rs 150.00", "sent INR 250", "Payment of ₹1,400 to..."
 const AMOUNT_REGEX = /(?:₹|rs\.?|inr)\s*([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)/i;
 const REVERSE_AMOUNT_REGEX = /([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)\s*(?:₹|rs\.?|inr)\b/i;
 const DEBIT_REGEX = /(?:paid|debited|sent|transferred|spent|payment of|transfer of|withdrawn|dr)\s*(?::|-)?\s*(?:to\s+|by\s+|with\s+|for\s+)?(?:₹|rs\.?|inr)?\s*([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)/i;
 
-// Regex patterns to extract merchant/payee name
+// Regex to extract merchant/payee name
 const MERCHANT_REGEX = /(?:to|at|towards|vpa\s+)\s*([A-Za-z0-9\s&'.@_-]+?)(?:\s+successful|\s+using|\s+from|\s+on|\s+ref|\s+upi|\.|\,|$)/i;
 
-// In-memory cache of recent transactions to prevent duplicates from notification updates
-const processedTransactions = new Map<string, number>();
+// Strictly block promotional, marketing, investment, loan, and spam notifications from banks
+const PROMOTIONAL_OR_SPAM_REGEX = /(?:invest|investing|mutual funds?|sip\b|pre-approved|apply for|loan\b|quick loan|instant loan|start with just|starting at|terms and conditions|\bt&c\b|t&c apply|scratch card|cashback of up to|win up to|save up to|congratulations|reward points?|voucher|coupon|gift card|hurry\b|limited period|due date|bill generated|statement for|statement generated|otp\b|one time password|verification code|credit limit)/i;
 
-export function isDuplicateTransaction(amount: number, merchant: string, packageName: string): boolean {
-  const cleanMerchant = (merchant || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const key = `${packageName}_${amount}_${cleanMerchant}`;
-  const now = Date.now();
-  const lastSeen = processedTransactions.get(key);
+// Detect explicit debit actions - a notification MUST confirm an actual payment/debit to be recorded as an expense
+const DEBIT_ACTION_REGEX = /(?:paid|debited|sent|transferred|spent|payment of|transfer of|withdrawn|\bdr\.?\b)/i;
 
-  // Ignore exact same transaction event if received within 30 seconds
-  if (lastSeen && now - lastSeen < 30000) {
-    return true;
-  }
+// Detect incoming credit/deposit/income notifications
+const INCOMING_CREDIT_REGEX = /(?:credited|credit\b|deposited|received|refund|cashback|added to (?:wallet|a\/c|account))/i;
+const EXPLICIT_DEBIT_CONFIRMATION = /(?:debited|paid|spent|withdrawn|\bdr\.?\b)/i;
 
-  processedTransactions.set(key, now);
+// Indian Telecom Regulatory Authority (TRAI) SMS sender pattern (e.g. JK-BOBSMS-S, AX-KOTAKB-S, VK-HDFCBK)
+const TELECOM_HEADER_REGEX = /^[A-Z]{2}-?[A-Z0-9]{4,10}(?:-[A-Z])?$/i;
 
-  // Clean old entries
-  if (processedTransactions.size > 100) {
-    for (const [k, time] of processedTransactions.entries()) {
-      if (now - time > 60000) {
-        processedTransactions.delete(k);
+const BANK_SENDER_NAMES: Record<string, string> = {
+  BOB: 'Bank of Baroda',
+  BARODA: 'Bank of Baroda',
+  KOTAK: 'Kotak Bank',
+  HDFC: 'HDFC Bank',
+  SBI: 'State Bank of India',
+  ICICI: 'ICICI Bank',
+  AXIS: 'Axis Bank',
+  PNB: 'Punjab National Bank',
+  CANARA: 'Canara Bank',
+  CANBNK: 'Canara Bank',
+  UNION: 'Union Bank',
+  IDFC: 'IDFC FIRST Bank',
+  PAYTM: 'Paytm Payments Bank',
+  AIRTEL: 'Airtel Payments Bank',
+  JIO: 'Jio Payments Bank',
+  YES: 'Yes Bank',
+  INDUS: 'IndusInd Bank',
+};
+
+export function cleanTelecomSender(header: string): string {
+  if (!header) return '';
+  const trimmed = header.trim();
+  if (TELECOM_HEADER_REGEX.test(trimmed)) {
+    const upper = trimmed.toUpperCase();
+    for (const [key, bankName] of Object.entries(BANK_SENDER_NAMES)) {
+      if (upper.includes(key)) {
+        return bankName;
       }
     }
+    return 'Bank SMS';
   }
+  return trimmed;
+}
+
+// In-memory cache of recent transactions across all packages for 15-second cross-app deduplication
+interface RecentTx {
+  amount: number;
+  merchant: string;
+  packageName: string;
+  timestamp: number;
+}
+const recentTransactions: RecentTx[] = [];
+
+export function isDuplicateTransaction(amount: number, merchant: string, packageName: string): boolean {
+  const now = Date.now();
+
+  // 1. Prune records older than 30 seconds
+  for (let i = recentTransactions.length - 1; i >= 0; i--) {
+    if (now - recentTransactions[i].timestamp > 30000) {
+      recentTransactions.splice(i, 1);
+    }
+  }
+
+  // 2. Cross-app 15-second deduplication:
+  // When a user pays via UPI, PhonePe/GPay sends a notification and the bank sends an SMS within 1-5 seconds.
+  // Both contain the exact same amount. A user cannot make two separate valid payments for the exact same amount in < 15 seconds.
+  const duplicate = recentTransactions.find((tx) => {
+    const isSameAmount = Math.abs(tx.amount - amount) < 0.01;
+    const isRecent = now - tx.timestamp < 15000;
+    return isSameAmount && isRecent;
+  });
+
+  if (duplicate) {
+    return true; // Duplicate suppressed!
+  }
+
+  recentTransactions.push({
+    amount,
+    merchant,
+    packageName,
+    timestamp: now,
+  });
 
   return false;
 }
@@ -287,7 +358,23 @@ export function parseNotification(
     return null;
   }
 
-  // 3. ALLOWED APPS ONLY: Only process notifications from UPI, SMS, or Bank apps
+  // 3. HARD STOP: Strictly ignore promotional ads, mutual fund marketing, loans, offers, and T&C alerts
+  if (PROMOTIONAL_OR_SPAM_REGEX.test(combined)) {
+    return null;
+  }
+
+  // 4. HARD STOP: Ignore incoming credit/deposit/refund/cashback notifications (income is not an expense)
+  // E.g. "A/c credited with INR 2.00 by transfer from DIGVIJAY" -> ignore!
+  if (INCOMING_CREDIT_REGEX.test(combined) && !EXPLICIT_DEBIT_CONFIRMATION.test(combined)) {
+    return null;
+  }
+
+  // 5. HARD STOP: Must contain a genuine debit/payment confirmation action
+  if (!DEBIT_ACTION_REGEX.test(combined)) {
+    return null;
+  }
+
+  // 6. ALLOWED APPS ONLY: Only process notifications from UPI, SMS, or Bank apps
   if (packageName && !isAllowedPaymentApp(packageName, combined)) {
     return null;
   }
@@ -300,20 +387,13 @@ export function parseNotification(
     sourceApp = 'Google Pay';
   } else if (packageName.includes('paytm') || /paytm/i.test(combined)) {
     sourceApp = 'Paytm';
-  } else if (packageName.includes('dreamplug') || /cred/i.test(combined)) {
+  } else if (packageName.includes('dreamplug') || /\bcred\b/i.test(combined)) {
+    // Strict word boundary ensures 'credited' is not treated as 'CRED' app
     sourceApp = 'CRED';
   } else if (packageName.includes('npci.upiapp') || /bhim/i.test(combined)) {
     sourceApp = 'BHIM';
-  } else if (/bank|debited|a\/c|acct|sms|vpa|baroda|sbi|hdfc|icici/i.test(combined)) {
+  } else if (/bank|debited|a\/c|acct|sms|vpa|baroda|sbi|hdfc|icici|kotak|axis/i.test(combined)) {
     sourceApp = 'Bank SMS';
-  }
-
-  // Filter out credit/refund/received payments: we strictly want outgoing expenses
-  const isStrictCredit = /(?:credited to your|received from|added to (?:your )?wallet|refund received|cashback received|money received)/i.test(combined);
-  const isDebit = /(?:paid|debited|sent|transferred|payment of|spent|dr\b|withdrawn)/i.test(combined);
-
-  if (isStrictCredit && !isDebit) {
-    return null; // Received money, not an expense
   }
 
   // Extract amount
@@ -354,8 +434,14 @@ export function parseNotification(
     }
   }
 
+  // Clean and sanitize telecom sender IDs (e.g. JK-BOBSMS-S -> Bank of Baroda, AX-KOTAKB-S -> Kotak Bank)
+  if (merchant && TELECOM_HEADER_REGEX.test(merchant)) {
+    merchant = cleanTelecomSender(merchant);
+  }
+
   if (!merchant) {
-    merchant = title && !title.toLowerCase().includes('paid') ? title.trim() : `${sourceApp} Payment`;
+    const cleanTitle = cleanTelecomSender(title);
+    merchant = cleanTitle && !cleanTitle.toLowerCase().includes('paid') ? cleanTitle : `${sourceApp} Payment`;
   }
 
   const suggestedCategory = inferCategory(`${merchant} ${combined}`);

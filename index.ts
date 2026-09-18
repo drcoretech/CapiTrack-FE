@@ -53,10 +53,23 @@ const headlessNotificationListener = async ({ notification }: { notification?: s
       try {
         const queueStr = await AsyncStorage.getItem(PENDING_NUDGES_QUEUE_KEY);
         const queue = queueStr ? JSON.parse(queueStr) : [];
-        const isDuplicate = Array.isArray(queue) && queue.some(
-          (n: any) => n.amount === nudgeData.amount && n.merchant === nudgeData.merchant && Date.now() - (n.createdAt || 0) < 5000
-        );
-        if (!isDuplicate) {
+        const existingIdx = Array.isArray(queue)
+          ? queue.findIndex(
+              (n: any) =>
+                Math.abs(n.amount - nudgeData.amount) < 0.01 &&
+                Date.now() - (n.createdAt || 0) < 15000
+            )
+          : -1;
+
+        if (existingIdx >= 0) {
+          if (queue[existingIdx].sourceApp === 'Bank SMS' && nudgeData.sourceApp !== 'Bank SMS') {
+            queue[existingIdx].merchant = nudgeData.merchant;
+            queue[existingIdx].sourceApp = nudgeData.sourceApp;
+            queue[existingIdx].suggestedCategory = nudgeData.suggestedCategory;
+            await AsyncStorage.setItem(PENDING_NUDGES_QUEUE_KEY, JSON.stringify(queue));
+            await AsyncStorage.setItem(PENDING_NUDGE_STORAGE_KEY, JSON.stringify(queue[0]));
+          }
+        } else {
           queue.push(nudgeData);
           await AsyncStorage.setItem(PENDING_NUDGES_QUEUE_KEY, JSON.stringify(queue));
           await AsyncStorage.setItem(PENDING_NUDGE_STORAGE_KEY, JSON.stringify(queue[0]));

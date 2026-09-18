@@ -43,14 +43,34 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
       createdAt: data.createdAt || Date.now(),
     };
     const currentQueue = get().pendingNudges || [];
-    // Prevent duplicate events for same amount and merchant within 15 seconds
-    const isDuplicate = currentQueue.some(
+
+    // Check for existing pending nudge for same amount within 15 seconds
+    const existingIdx = currentQueue.findIndex(
       (n) =>
-        n.amount === newNudge.amount &&
-        n.merchant === newNudge.merchant &&
+        Math.abs(n.amount - newNudge.amount) < 0.01 &&
         Math.abs((newNudge.createdAt || Date.now()) - (n.createdAt || 0)) < 15000
     );
-    const updatedQueue = isDuplicate ? currentQueue : [...currentQueue, newNudge].slice(-10);
+
+    let updatedQueue: PendingNudge[];
+    if (existingIdx >= 0) {
+      // If the existing nudge was from Bank SMS and the new one is from a UPI app (PhonePe/GPay/Paytm),
+      // seamlessly upgrade the payee and sourceApp without creating a duplicate!
+      if (currentQueue[existingIdx].sourceApp === 'Bank SMS' && newNudge.sourceApp !== 'Bank SMS') {
+        const upgraded = [...currentQueue];
+        upgraded[existingIdx] = {
+          ...upgraded[existingIdx],
+          merchant: newNudge.merchant,
+          sourceApp: newNudge.sourceApp,
+          suggestedCategory: newNudge.suggestedCategory,
+        };
+        updatedQueue = upgraded;
+      } else {
+        // Drop duplicate identical payment event
+        return;
+      }
+    } else {
+      updatedQueue = [...currentQueue, newNudge].slice(-10);
+    }
 
     set({
       pendingNudges: updatedQueue,
