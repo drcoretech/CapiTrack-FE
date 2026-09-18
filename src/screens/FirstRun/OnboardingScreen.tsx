@@ -14,6 +14,8 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Check, Briefcase, User, Sparkles } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
@@ -27,6 +29,7 @@ export const OnboardingScreen: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const userName = useAppStore((state) => state.userName);
   const [inputName, setInputName] = useState(userName || 'Digvijay');
+  const [selectedMode, setSelectedMode] = useState<'both' | 'personal'>('both');
   const autoCaptureEnabled = useAppStore((state) => state.autoCaptureEnabled);
   const toggleAutoCapture = useAppStore((state) => state.toggleAutoCapture);
   const setFirstRunStep = useAppStore((state) => state.setFirstRunStep);
@@ -35,12 +38,13 @@ export const OnboardingScreen: React.FC = () => {
 
   const scrollRef = useRef<ScrollView>(null);
 
-  // Exactly 3 pages total:
+  // Exactly 4 pages total:
   // Page 0: Combined Expenses & Khata
-  // Page 1: Auto-Capture (with Settings redirect on enable)
-  // Page 2: Name Input Step
-  const totalPages = 3;
-  const isNameStep = currentIndex === 2;
+  // Page 1: Choose Tracking Mode (Personal Only vs Both Personal & Freelance Projects)
+  // Page 2: Auto-Capture (with Settings redirect on enable)
+  // Page 3: Name Input Step
+  const totalPages = 4;
+  const isNameStep = currentIndex === 3;
 
   const handleToggleAutoCapture = async () => {
     const nextVal = !autoCaptureEnabled;
@@ -72,21 +76,28 @@ export const OnboardingScreen: React.FC = () => {
     if (currentIndex < totalPages - 1) {
       goToPage(currentIndex + 1);
     } else {
-      // Immediate instant navigation to dashboard without waiting for network calls
+      // Final Step: Complete Onboarding
       const targetName = inputName.trim() || 'Digvijay';
+      const isBusinessActive = selectedMode === 'both';
+
+      // Persist chosen workflow mode
+      useAppStore.setState({ businessTrackingEnabled: isBusinessActive });
+      AsyncStorage.setItem('@capitrack_business_tracking_enabled', isBusinessActive ? 'true' : 'false').catch(() => {});
+
+      // Immediate instant navigation to dashboard
       setFirstRunStep('main');
-      // Fire name update and persistence asynchronously in background
+      // Fire name update and persistence in background
       setUserName(targetName).catch(() => {});
     }
   };
 
   const handleSkip = () => {
-    goToPage(2); // Jump directly to Name step
+    goToPage(3); // Jump directly to Name step
   };
 
   const getButtonText = () => {
     if (isNameStep) return t('getStartedBtn');
-    if (currentIndex === 1) return t('continueBtn');
+    if (currentIndex === 2) return t('continueBtn');
     return t('nextBtn');
   };
 
@@ -118,7 +129,84 @@ export const OnboardingScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Screen 2: Smart Auto-Capture with Settings Redirect */}
+          {/* Screen 2: Choose Workflow Mode (Personal vs Both) */}
+          <View style={styles.page}>
+            <View style={styles.pageInner}>
+              <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
+                <Text style={styles.heroEmoji}>🎯</Text>
+              </View>
+
+              <Text style={styles.title}>{t('onboardingModeTitle')}</Text>
+              <Text style={styles.desc}>{t('onboardingModeDesc')}</Text>
+
+              {/* Mode Selection Cards */}
+              <View style={styles.modeContainer}>
+                {/* Option 1: Both Personal & Freelance (Recommended) */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setSelectedMode('both')}
+                  style={[
+                    styles.modeCard,
+                    selectedMode === 'both' && styles.modeCardActive,
+                  ]}
+                >
+                  <View style={styles.modeCardTop}>
+                    <View style={styles.modeIconCircle}>
+                      <Briefcase size={20} color={selectedMode === 'both' ? Colors.moss : Colors.inkSoft} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.modeTitleRow}>
+                        <Text style={styles.modeTitle}>{t('modeBothTitle')}</Text>
+                        <View style={styles.recommendedBadge}>
+                          <Sparkles size={10} color="#FFFFFF" style={{ marginRight: 3 }} />
+                          <Text style={styles.recommendedBadgeText}>{t('modeBothBadge')}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.modeDesc}>{t('modeBothDesc')}</Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.radioCircle,
+                        selectedMode === 'both' && styles.radioCircleActive,
+                      ]}
+                    >
+                      {selectedMode === 'both' && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Option 2: Personal Expenses Only */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setSelectedMode('personal')}
+                  style={[
+                    styles.modeCard,
+                    selectedMode === 'personal' && styles.modeCardActive,
+                  ]}
+                >
+                  <View style={styles.modeCardTop}>
+                    <View style={styles.modeIconCircle}>
+                      <User size={20} color={selectedMode === 'personal' ? Colors.moss : Colors.inkSoft} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.modeTitle}>{t('modePersonalTitle')}</Text>
+                      <Text style={styles.modeDesc}>{t('modePersonalDesc')}</Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.radioCircle,
+                        selectedMode === 'personal' && styles.radioCircleActive,
+                      ]}
+                    >
+                      {selectedMode === 'personal' && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* Screen 3: Smart Auto-Capture with Settings Redirect */}
           <View style={styles.page}>
             <View style={styles.pageInner}>
               <View style={[styles.heroIcon, { backgroundColor: Colors.amberLight }]}>
@@ -155,7 +243,7 @@ export const OnboardingScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Screen 3: Name Customization Step */}
+          {/* Screen 4: Name Customization Step */}
           <View style={styles.page}>
             <View style={styles.pageInner}>
               <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
@@ -181,7 +269,7 @@ export const OnboardingScreen: React.FC = () => {
           </View>
         </ScrollView>
 
-        {/* Paging Dots (3 dots) */}
+        {/* Paging Dots (4 dots) */}
         <View style={styles.dotsContainer}>
           {Array.from({ length: totalPages }).map((_, i) => {
             const isActive = i === currentIndex;
@@ -236,12 +324,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   heroIcon: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 28,
+    marginBottom: 20,
     shadowColor: Colors.ink,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -249,24 +337,105 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   heroEmoji: {
-    fontSize: 44,
+    fontSize: 38,
   },
   title: {
     fontFamily: Fonts.serifMedium,
-    fontSize: 24,
+    fontSize: 22,
     color: Colors.ink,
     textAlign: 'center',
-    marginBottom: 12,
-    lineHeight: 32,
+    marginBottom: 8,
+    lineHeight: 28,
   },
   desc: {
     fontFamily: Fonts.sansRegular,
-    fontSize: 14.5,
+    fontSize: 13.5,
     color: Colors.inkSoft,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
     marginBottom: 16,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
+  },
+  modeContainer: {
+    width: '100%',
+    gap: 12,
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  modeCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.line,
+    padding: 16,
+  },
+  modeCardActive: {
+    borderColor: Colors.moss,
+    backgroundColor: '#F7FAF7',
+    shadowColor: Colors.moss,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  modeCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modeIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.mist,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  modeTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 14.5,
+    color: Colors.ink,
+  },
+  recommendedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.moss,
+    borderRadius: 100,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  recommendedBadgeText: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 8.5,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  modeDesc: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 12,
+    color: Colors.inkSoft,
+    marginTop: 3,
+    lineHeight: 16,
+  },
+  radioCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: Colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  radioCircleActive: {
+    backgroundColor: Colors.moss,
+    borderColor: Colors.moss,
   },
   autoCaptureCard: {
     width: '100%',
@@ -382,7 +551,7 @@ const styles = StyleSheet.create({
   },
   ghostBtnText: {
     fontFamily: Fonts.sansMedium,
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.inkSoft,
   },
 });

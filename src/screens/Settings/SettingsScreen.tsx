@@ -15,6 +15,7 @@ export const SettingsScreen: React.FC = () => {
   const selectedLanguage = useAppStore((state) => state.selectedLanguage);
   const categories = useAppStore((state) => state.categories);
   const openModal = useAppStore((state) => state.openModal);
+  const setFirstRunStep = useAppStore((state) => state.setFirstRunStep);
   const { t } = useTranslation();
 
   const activeCategoriesCount = categories.filter((c) => c.enabled).length;
@@ -95,13 +96,28 @@ export const SettingsScreen: React.FC = () => {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => openModal('language_select')}
-            style={[styles.item, styles.lastItem]}
+            style={styles.item}
           >
             <View style={styles.itemLeft}>
               <Text style={styles.itemName}>{t('appLanguageTitle')}</Text>
               <Text style={styles.itemSub}>{getLanguageLabel(selectedLanguage)}</Text>
             </View>
             <Text style={styles.ghostBtnText}>{t('changeGhost')}</Text>
+          </TouchableOpacity>
+
+          {/* App Onboarding & Mode Setup Wizard */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setFirstRunStep('onboarding')}
+            style={[styles.item, styles.lastItem]}
+          >
+            <View style={styles.itemLeft}>
+              <Text style={styles.itemName}>Onboarding & Mode Wizard</Text>
+              <Text style={styles.itemSub}>
+                {businessTrackingEnabled ? 'Personal + Freelance Mode' : 'Personal Only Mode'} • Re-run setup
+              </Text>
+            </View>
+            <Text style={styles.ghostBtnText}>Replay ›</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
