@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
@@ -10,10 +10,13 @@ import { MonthHeroCard } from './components/MonthHeroCard';
 import { SpendChartsCard } from './components/SpendChartsCard';
 import { CategoryBreakdownCard } from './components/CategoryBreakdownCard';
 import { MonthActivityLog } from './components/MonthActivityLog';
+import { InsightsSkeleton } from './components/InsightsSkeleton';
 
 export const InsightsScreen: React.FC = () => {
   const { t } = useTranslation();
   const expenses = useAppStore((state) => state.expenses);
+  const isSyncing = useAppStore((state) => state.isSyncing);
+  const refreshDashboard = useAppStore((state) => state.refreshDashboard);
   const currencySymbol = useAppStore((state) => state.currencySymbol) || '₹';
   const openModal = useAppStore((state) => state.openModal);
 
@@ -200,86 +203,101 @@ export const InsightsScreen: React.FC = () => {
     return '#8A9A86';
   };
 
+  const isInitialLoading = isSyncing && expenses.length === 0;
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isSyncing}
+            onRefresh={refreshDashboard}
+            tintColor={Colors.moss}
+          />
+        }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>{t('monthlyTracker')}</Text>
-          <Text style={styles.title}>{t('insightsTitle')}</Text>
-        </View>
-
-        {/* Month Selector Bar */}
-        <MonthSelectorBar
-          selectedMonth={selectedMonth}
-          selectedYear={selectedYear}
-          isCurrentMonth={isCurrentMonth}
-          onPrevMonth={handlePrevMonth}
-          onNextMonth={handleNextMonth}
-          onSelectMonth={(m, y) => {
-            setSelectedMonth(m);
-            setSelectedYear(y);
-          }}
-        />
-
-        {/* Lump-Sum Monthly Total Banner (if present for this month) */}
-        {monthlyTotalExpense && (
-          <View style={styles.lumpSumBanner}>
-            <View style={styles.lumpSumIconCircle}>
-              <Text style={{ fontSize: 18 }}>📅</Text>
+        {isInitialLoading ? (
+          <InsightsSkeleton />
+        ) : (
+          <>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.eyebrow}>{t('monthlyTracker')}</Text>
+              <Text style={styles.title}>{t('insightsTitle')}</Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <View style={styles.lumpSumTitleRow}>
-                <Text style={styles.lumpSumTitle}>Full Month Lump Sum Recorded</Text>
-                <View style={styles.lumpSumTag}>
-                  <Text style={styles.lumpSumTagText}>Manual Total</Text>
+
+            {/* Month Selector Bar */}
+            <MonthSelectorBar
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+              isCurrentMonth={isCurrentMonth}
+              onPrevMonth={handlePrevMonth}
+              onNextMonth={handleNextMonth}
+              onSelectMonth={(m, y) => {
+                setSelectedMonth(m);
+                setSelectedYear(y);
+              }}
+            />
+
+            {/* Lump-Sum Monthly Total Banner (if present for this month) */}
+            {monthlyTotalExpense && (
+              <View style={styles.lumpSumBanner}>
+                <View style={styles.lumpSumIconCircle}>
+                  <Text style={{ fontSize: 18 }}>📅</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.lumpSumTitleRow}>
+                    <Text style={styles.lumpSumTitle}>Full Month Lump Sum Recorded</Text>
+                    <View style={styles.lumpSumTag}>
+                      <Text style={styles.lumpSumTagText}>Manual Total</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.lumpSumSub}>
+                    Includes {currencySymbol}{monthlyTotalExpense.amount.toLocaleString()} logged as your full month total from notes ({monthlyTotalExpense.note?.replace(/\[Monthly Total\]\s*/g, '').trim() || 'Manual Record'}).
+                  </Text>
                 </View>
               </View>
-              <Text style={styles.lumpSumSub}>
-                Includes {currencySymbol}{monthlyTotalExpense.amount.toLocaleString()} logged as your full month total from notes ({monthlyTotalExpense.note?.replace(/\[Monthly Total\]\s*/g, '').trim() || 'Manual Record'}).
-              </Text>
-            </View>
-          </View>
+            )}
+
+            {/* Monthly Summary Hero Card */}
+            <MonthHeroCard
+              totalSpent={totalSpent}
+              currencySymbol={currencySymbol}
+              momDelta={momDelta}
+              dailyAverage={dailyAverage}
+              topCategory={topCategory}
+              transactionCount={monthExpenses.length}
+            />
+
+            {/* Visual Analytics Charts Card */}
+            <SpendChartsCard
+              chartMode={chartMode}
+              onChangeChartMode={setChartMode}
+              sixMonthsTrend={sixMonthsTrend}
+              weeklyFlowData={weeklyFlowData}
+              onSelectTrendMonth={(m, y) => {
+                setSelectedMonth(m);
+                setSelectedYear(y);
+              }}
+            />
+
+            {/* Dynamic Category Breakdown Card */}
+            <CategoryBreakdownCard
+              categoryBreakdown={categoryBreakdown}
+              currencySymbol={currencySymbol}
+              getCategoryColor={getCategoryColor}
+            />
+
+            {/* Month's Expense Activity Log */}
+            <MonthActivityLog
+              monthExpenses={monthExpenses}
+              currencySymbol={currencySymbol}
+              onPressAddExpense={() => openModal('add_expense')}
+            />
+          </>
         )}
-
-        {/* Monthly Summary Hero Card */}
-        <MonthHeroCard
-          totalSpent={totalSpent}
-          currencySymbol={currencySymbol}
-          momDelta={momDelta}
-          dailyAverage={dailyAverage}
-          topCategory={topCategory}
-          transactionCount={monthExpenses.length}
-        />
-
-        {/* Visual Analytics Charts Card */}
-        <SpendChartsCard
-          chartMode={chartMode}
-          onChangeChartMode={setChartMode}
-          sixMonthsTrend={sixMonthsTrend}
-          weeklyFlowData={weeklyFlowData}
-          onSelectTrendMonth={(m, y) => {
-            setSelectedMonth(m);
-            setSelectedYear(y);
-          }}
-        />
-
-        {/* Dynamic Category Breakdown Card */}
-        <CategoryBreakdownCard
-          categoryBreakdown={categoryBreakdown}
-          currencySymbol={currencySymbol}
-          getCategoryColor={getCategoryColor}
-        />
-
-        {/* Month's Expense Activity Log */}
-        <MonthActivityLog
-          monthExpenses={monthExpenses}
-          currencySymbol={currencySymbol}
-          onPressAddExpense={() => openModal('add_expense')}
-        />
       </ScrollView>
     </SafeAreaView>
   );

@@ -6,6 +6,7 @@ import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { useTranslation } from '../../i18n/translations';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
+import { LedgerSkeleton } from './components/LedgerSkeleton';
 
 export const LedgerListScreen: React.FC = () => {
   const contacts = useAppStore((state) => state.contacts);
@@ -33,6 +34,8 @@ export const LedgerListScreen: React.FC = () => {
     0
   );
 
+  const isInitialLoading = isSyncing && contacts.length === 0;
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -46,13 +49,16 @@ export const LedgerListScreen: React.FC = () => {
           />
         }
       >
-        <Animated.View
-          style={{
-            gap: 16,
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }}
-        >
+        {isInitialLoading ? (
+          <LedgerSkeleton />
+        ) : (
+          <Animated.View
+            style={{
+              gap: 16,
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
+          >
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.eyebrow}>{t('udhaarKhata')}</Text>
@@ -133,8 +139,9 @@ export const LedgerListScreen: React.FC = () => {
               </AnimatedPressable>
             );
           })}
-        </View>
-        </Animated.View>
+          </View>
+          </Animated.View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

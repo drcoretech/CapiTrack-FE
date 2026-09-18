@@ -4,8 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
-import { Expense } from '../../types';
 import { useTranslation } from '../../i18n/translations';
+import { Expense } from '../../types';
+import { ExpenseSkeleton } from './components/ExpenseSkeleton';
 
 export const ExpenseHistoryScreen: React.FC = () => {
   const expenses = useAppStore((state) => state.expenses);
@@ -76,6 +77,8 @@ export const ExpenseHistoryScreen: React.FC = () => {
     return b.maxTimestamp - a.maxTimestamp;
   });
 
+  const isInitialLoading = isSyncing && expenses.length === 0;
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -89,71 +92,77 @@ export const ExpenseHistoryScreen: React.FC = () => {
           />
         }
       >
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>{t('thisMonth')}</Text>
-          <Text style={styles.title}>{t('expensesTitle')}</Text>
-        </View>
-
-        {orderedGroups.map(({ groupName: dayGroup, items }) => {
-          const groupTotal = items.reduce((sum, item) => sum + item.amount, 0);
-
-          return (
-            <View key={dayGroup} style={styles.groupContainer}>
-              <View style={styles.groupHeader}>
-                <Text style={styles.dayLabel}>
-                  {getLocalizedDayGroup(dayGroup)} · ₹{groupTotal.toLocaleString()}
-                </Text>
-              </View>
-
-              <View style={styles.list}>
-                {items.map((item) => {
-                  const isMonthlyTotal = item.note?.includes('[Monthly Total]');
-                  const cleanNote = isMonthlyTotal
-                    ? item.note.replace(/\[Monthly Total\]\s*/g, '').trim() || 'Full Month Total'
-                    : item.note;
-
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      activeOpacity={0.75}
-                      onPress={() => setEditingExpense(item)}
-                      style={[styles.expItem, isMonthlyTotal && styles.expItemMonthlyTotal]}
-                    >
-                      <View style={styles.left}>
-                        <View
-                          style={[
-                            styles.iconContainer,
-                            isMonthlyTotal && styles.iconContainerMonthlyTotal,
-                          ]}
-                        >
-                          <Text style={styles.iconText}>{isMonthlyTotal ? '📅' : item.icon}</Text>
-                        </View>
-                        <View style={styles.details}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
-                              {cleanNote}
-                            </Text>
-                            {isMonthlyTotal && (
-                              <View style={styles.lumpSumPill}>
-                                <Text style={styles.lumpSumPillText}>Lump Sum</Text>
-                              </View>
-                            )}
-                          </View>
-                          <Text style={styles.meta} numberOfLines={1} ellipsizeMode="tail">
-                            {isMonthlyTotal
-                              ? `Full Month Total · ${getCategoryName(item.category)}`
-                              : `${getCategoryName(item.category)} · ${item.time}`}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={styles.amount}>₹{item.amount.toLocaleString()}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+        {isInitialLoading ? (
+          <ExpenseSkeleton />
+        ) : (
+          <>
+            <View style={styles.header}>
+              <Text style={styles.eyebrow}>{t('thisMonth')}</Text>
+              <Text style={styles.title}>{t('expensesTitle')}</Text>
             </View>
-          );
-        })}
+
+            {orderedGroups.map(({ groupName: dayGroup, items }) => {
+              const groupTotal = items.reduce((sum, item) => sum + item.amount, 0);
+
+              return (
+                <View key={dayGroup} style={styles.groupContainer}>
+                  <View style={styles.groupHeader}>
+                    <Text style={styles.dayLabel}>
+                      {getLocalizedDayGroup(dayGroup)} · ₹{groupTotal.toLocaleString()}
+                    </Text>
+                  </View>
+
+                  <View style={styles.list}>
+                    {items.map((item) => {
+                      const isMonthlyTotal = item.note?.includes('[Monthly Total]');
+                      const cleanNote = isMonthlyTotal
+                        ? item.note.replace(/\[Monthly Total\]\s*/g, '').trim() || 'Full Month Total'
+                        : item.note;
+
+                      return (
+                        <TouchableOpacity
+                          key={item.id}
+                          activeOpacity={0.75}
+                          onPress={() => setEditingExpense(item)}
+                          style={[styles.expItem, isMonthlyTotal && styles.expItemMonthlyTotal]}
+                        >
+                          <View style={styles.left}>
+                            <View
+                              style={[
+                                styles.iconContainer,
+                                isMonthlyTotal && styles.iconContainerMonthlyTotal,
+                              ]}
+                            >
+                              <Text style={styles.iconText}>{isMonthlyTotal ? '📅' : item.icon}</Text>
+                            </View>
+                            <View style={styles.details}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+                                  {cleanNote}
+                                </Text>
+                                {isMonthlyTotal && (
+                                  <View style={styles.lumpSumPill}>
+                                    <Text style={styles.lumpSumPillText}>Lump Sum</Text>
+                                  </View>
+                                )}
+                              </View>
+                              <Text style={styles.meta} numberOfLines={1} ellipsizeMode="tail">
+                                {isMonthlyTotal
+                                  ? `Full Month Total · ${getCategoryName(item.category)}`
+                                  : `${getCategoryName(item.category)} · ${item.time}`}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text style={styles.amount}>₹{item.amount.toLocaleString()}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              );
+            })}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
