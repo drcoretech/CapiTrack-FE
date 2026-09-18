@@ -15,6 +15,7 @@ import { AiInsightCard } from './components/AiInsightCard';
 import { LedgerSummaryCards } from './components/LedgerSummaryCards';
 import { TodaysActivityList } from './components/TodaysActivityList';
 import { EditNameModal } from './components/EditNameModal';
+import { HomeSkeleton } from './components/HomeSkeleton';
 
 export const HomeScreen: React.FC = () => {
   const userName = useAppStore((state) => state.userName);
@@ -111,6 +112,8 @@ export const HomeScreen: React.FC = () => {
   const owedToYou = dashboardData?.owedToYou ?? calculatedOwedToYou;
   const youOwe = dashboardData?.youOwe ?? calculatedYouOwe;
 
+  const isInitialLoading = isSyncing && !dashboardData && expenses.length === 0;
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -124,61 +127,67 @@ export const HomeScreen: React.FC = () => {
           />
         }
       >
-        {/* Header with animated entrance */}
-        <Animated.View
-          style={{
-            opacity: headerFade,
-            transform: [{ translateY: headerSlide }],
-          }}
-        >
-          <HomeHeader
-            userName={userName}
-            onPressProfile={() => openModal('profile_details')}
-          />
-        </Animated.View>
+        {isInitialLoading ? (
+          <HomeSkeleton />
+        ) : (
+          <>
+            {/* Header with animated entrance */}
+            <Animated.View
+              style={{
+                opacity: headerFade,
+                transform: [{ translateY: headerSlide }],
+              }}
+            >
+              <HomeHeader
+                userName={userName}
+                onPressProfile={() => openModal('profile_details')}
+              />
+            </Animated.View>
 
-        {/* Big Stat (Spent Today) with scale-in animation */}
-        <Animated.View
-          style={{
-            opacity: bigStatFade,
-            transform: [{ scale: bigStatScale }],
-          }}
-        >
-          <SpentTodayCard
-            spentToday={spentToday}
-            deltaText={deltaText}
-          />
-        </Animated.View>
+            {/* Big Stat (Spent Today) with scale-in animation */}
+            <Animated.View
+              style={{
+                opacity: bigStatFade,
+                transform: [{ scale: bigStatScale }],
+              }}
+            >
+              <SpentTodayCard
+                spentToday={spentToday}
+                deltaText={deltaText}
+              />
+            </Animated.View>
 
-        {/* Cards Section with slide-up animation */}
-        <Animated.View
-          style={{
-            gap: 16,
-            opacity: cardsFade,
-            transform: [{ translateY: cardsSlide }],
-          }}
-        >
-          {/* AI Insight Card */}
-          <AiInsightCard
-            insightText={insightText}
-            onSeeBreakdown={() => setActiveTab('insights')}
-          />
+            {/* Cards Section with slide-up animation */}
+            <Animated.View
+              style={{
+                gap: 16,
+                opacity: cardsFade,
+                transform: [{ translateY: cardsSlide }],
+              }}
+            >
+              {/* AI Insight Card */}
+              <AiInsightCard
+                insightText={insightText}
+                onSeeBreakdown={() => setActiveTab('insights')}
+              />
 
-          {/* Ledger Summary Cards */}
-          <LedgerSummaryCards
-            owedToYou={owedToYou}
-            youOwe={youOwe}
-            onPressCard={() => setActiveTab('ledger')}
-          />
+              {/* Ledger Summary Cards */}
+              <LedgerSummaryCards
+                owedToYou={owedToYou}
+                youOwe={youOwe}
+                onPressCard={() => setActiveTab('ledger')}
+              />
 
-          {/* Quick Recent Activity preview */}
-          <TodaysActivityList
-            expenses={todayExpenses}
-            onPressExpense={(exp) => setEditingExpense(exp)}
-            onPressEmptyCard={() => openModal('add_expense')}
-            onPressViewAll={() => setActiveTab('expenses')}
-          />
-        </Animated.View>
+              {/* Quick Recent Activity preview */}
+              <TodaysActivityList
+                expenses={todayExpenses}
+                onPressExpense={(exp) => setEditingExpense(exp)}
+                onPressEmptyCard={() => openModal('add_expense')}
+                onPressViewAll={() => setActiveTab('expenses')}
+              />
+            </Animated.View>
+          </>
+        )}
       </ScrollView>
 
       {/* Edit Name Modal */}

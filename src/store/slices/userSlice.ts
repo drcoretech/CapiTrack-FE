@@ -17,9 +17,9 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
     const trimmed = name.trim() || 'You';
     set({ userName: trimmed });
     setCurrentApiUser(trimmed);
+    AsyncStorage.setItem('@capitrack_user_name', trimmed).catch(() => {});
     try {
       await api.updatePreferences({ name: trimmed });
-      await get().loadInitialData();
     } catch {}
   },
 

@@ -68,14 +68,15 @@ export const OnboardingScreen: React.FC = () => {
     }
   };
 
-  const handleNext = async () => {
+  const handleNext = () => {
     if (currentIndex < totalPages - 1) {
       goToPage(currentIndex + 1);
     } else {
-      // Final Name step: Await user setting and cloud data loading before entering main dashboard
+      // Immediate instant navigation to dashboard without waiting for network calls
       const targetName = inputName.trim() || 'Digvijay';
-      await setUserName(targetName);
       setFirstRunStep('main');
+      // Fire name update and persistence asynchronously in background
+      setUserName(targetName).catch(() => {});
     }
   };
 
