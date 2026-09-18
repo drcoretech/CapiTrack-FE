@@ -9,16 +9,20 @@ export const PENDING_NUDGE_STORAGE_KEY = '@capitrack_pending_nudge';
 export const PENDING_NUDGES_QUEUE_KEY = '@capitrack_pending_nudges';
 
 // Configure foreground notification presentation
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    priority: Notifications.AndroidNotificationPriority.MAX,
-  }),
-});
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      priority: Notifications.AndroidNotificationPriority.MAX,
+    }),
+  });
+} catch {
+  // Ignored in environments where push notifications are restricted (e.g. Expo Go)
+}
 
 /**
  * Post a high-priority local status-bar Heads-Up Notification on Android.
@@ -84,21 +88,25 @@ class NotificationListenerService {
 
     // 2. Listen to notification click events to bring up the categorization nudge
     if (!this.responseSubscription) {
-      this.responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
-        const data = response.notification.request.content.data;
-        if (data && data.amount) {
-          const state = useAppStore.getState();
-          if (state.autoCaptureEnabled) {
-            state.triggerNudge({
-              amount: Number(data.amount),
-              sourceApp: String(data.sourceApp || 'UPI'),
-              merchant: String(data.merchant || 'Merchant'),
-              suggestedCategory: 'Food',
-              timestamp: 'Just now',
-            });
+      try {
+        this.responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+          const data = response.notification.request.content.data;
+          if (data && data.amount) {
+            const state = useAppStore.getState();
+            if (state.autoCaptureEnabled) {
+              state.triggerNudge({
+                amount: Number(data.amount),
+                sourceApp: String(data.sourceApp || 'UPI'),
+                merchant: String(data.merchant || 'Merchant'),
+                suggestedCategory: 'Food',
+                timestamp: 'Just now',
+              });
+            }
           }
-        }
-      });
+        });
+      } catch {
+        // Ignored in environments where push notification listeners are restricted (e.g. Expo Go)
+      }
     }
 
     // 3. Rehydrate queue of unconfirmed payments recorded while app was closed
