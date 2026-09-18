@@ -94,9 +94,9 @@ export const LedgerListScreen: React.FC = () => {
                   <View style={styles.avatar}>
                     <Text style={styles.avatarText}>{person.initial}</Text>
                   </View>
-                  <View>
-                    <Text style={styles.name}>{person.name}</Text>
-                    <Text style={styles.meta}>
+                  <View style={styles.personDetails}>
+                    <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">{person.name}</Text>
+                    <Text style={styles.meta} numberOfLines={1} ellipsizeMode="tail">
                       {t('lastPrefix')} {dateStr}
                     </Text>
                   </View>
@@ -206,9 +206,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   personLeft: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginRight: 12,
+  },
+  personDetails: {
+    flex: 1,
   },
   avatar: {
     width: 40,
@@ -217,6 +222,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.mossLight,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   avatarText: {
     fontFamily: Fonts.serifMedium,
@@ -237,6 +243,7 @@ const styles = StyleSheet.create({
   personRight: {
     alignItems: 'flex-end',
     gap: 3,
+    flexShrink: 0,
   },
   amount: {
     fontFamily: Fonts.serifMedium,

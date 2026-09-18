@@ -50,14 +50,16 @@ export const TodaysActivityList: React.FC<TodaysActivityListProps> = ({
               <View style={styles.expIconContainer}>
                 <Text style={styles.expIcon}>{exp.icon}</Text>
               </View>
-              <View>
-                <Text style={styles.expName}>{exp.note}</Text>
-                <Text style={styles.expMeta}>
+              <View style={styles.expDetails}>
+                <Text style={styles.expName} numberOfLines={1} ellipsizeMode="tail">
+                  {exp.note}
+                </Text>
+                <Text style={styles.expMeta} numberOfLines={1} ellipsizeMode="tail">
                   {getCategoryName(exp.category)} · {exp.time}
                 </Text>
               </View>
             </View>
-            <Text style={styles.expAmount}>₹{exp.amount}</Text>
+            <Text style={styles.expAmount}>₹{exp.amount.toLocaleString()}</Text>
           </TouchableOpacity>
         ))
       )}
@@ -112,9 +114,14 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   expLeft: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginRight: 12,
+  },
+  expDetails: {
+    flex: 1,
   },
   expIconContainer: {
     width: 38,
@@ -123,6 +130,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.mossLight,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   expIcon: {
     fontSize: 18,
@@ -142,5 +150,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.serifMedium,
     fontSize: 15,
     color: Colors.ink,
+    flexShrink: 0,
+    textAlign: 'right',
   },
 });

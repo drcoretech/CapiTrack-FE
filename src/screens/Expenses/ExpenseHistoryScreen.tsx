@@ -72,14 +72,16 @@ export const ExpenseHistoryScreen: React.FC = () => {
                       <View style={styles.iconContainer}>
                         <Text style={styles.iconText}>{item.icon}</Text>
                       </View>
-                      <View>
-                        <Text style={styles.name}>{item.note}</Text>
-                        <Text style={styles.meta}>
+                      <View style={styles.details}>
+                        <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+                          {item.note}
+                        </Text>
+                        <Text style={styles.meta} numberOfLines={1} ellipsizeMode="tail">
                           {getCategoryName(item.category)} · {item.time}
                         </Text>
                       </View>
                     </View>
-                    <Text style={styles.amount}>₹{item.amount}</Text>
+                    <Text style={styles.amount}>₹{item.amount.toLocaleString()}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -146,9 +148,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   left: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginRight: 12,
+  },
+  details: {
+    flex: 1,
   },
   iconContainer: {
     width: 38,
@@ -157,6 +164,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.mossLight,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   iconText: {
     fontSize: 18,
@@ -176,5 +184,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.serifMedium,
     fontSize: 16,
     color: Colors.ink,
+    flexShrink: 0,
+    textAlign: 'right',
   },
 });
