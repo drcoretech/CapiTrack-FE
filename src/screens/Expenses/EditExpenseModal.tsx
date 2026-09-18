@@ -10,15 +10,18 @@ import {
   Platform,
   ScrollView,
   Alert,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Trash2 } from 'lucide-react-native';
+import { X, Trash2, Calendar as CalendarIcon } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { ExpenseCategory } from '../../types';
 import { useTranslation } from '../../i18n/translations';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
+import { CalendarDatePickerModal, formatHumanDate } from '../../components/CalendarDatePickerModal';
 
 export const EditExpenseModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -36,6 +39,8 @@ export const EditExpenseModal: React.FC = () => {
   const [note, setNote] = useState('');
   const [dateChoice, setDateChoice] = useState<'today' | 'yesterday' | 'custom'>('today');
   const [customDateStr, setCustomDateStr] = useState('');
+  const [customDateLabel, setCustomDateLabel] = useState('');
+  const [showCalendar, setShowCalendar] = useState(false);
 
   const isVisible = activeModal === 'edit_expense' && editingExpense !== null;
 
@@ -52,13 +57,19 @@ export const EditExpenseModal: React.FC = () => {
 
       if (expDate.toDateString() === today.toDateString()) {
         setDateChoice('today');
-        setCustomDateStr(today.toISOString().split('T')[0]);
+        const iso = today.toISOString().split('T')[0];
+        setCustomDateStr(iso);
+        setCustomDateLabel('Today');
       } else if (expDate.toDateString() === yesterday.toDateString()) {
         setDateChoice('yesterday');
-        setCustomDateStr(yesterday.toISOString().split('T')[0]);
+        const iso = yesterday.toISOString().split('T')[0];
+        setCustomDateStr(iso);
+        setCustomDateLabel('Yesterday');
       } else {
         setDateChoice('custom');
-        setCustomDateStr(expDate.toISOString().split('T')[0]);
+        const iso = expDate.toISOString().split('T')[0];
+        setCustomDateStr(iso);
+        setCustomDateLabel(formatHumanDate(iso));
       }
     }
   }, [editingExpense]);
@@ -88,6 +99,7 @@ export const EditExpenseModal: React.FC = () => {
       note: note.trim(),
       date: targetDate,
     });
+    Keyboard.dismiss();
   };
 
   const handleDelete = () => {
@@ -115,22 +127,25 @@ export const EditExpenseModal: React.FC = () => {
     >
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.avoidingView}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-          {/* Top Bar with Dismiss */}
+          {/* Top Bar */}
           <View style={styles.topBar}>
-            <View>
-              <Text style={styles.eyebrow}>EDIT ENTRY</Text>
-              <Text style={styles.title}>Edit Expense</Text>
-            </View>
+            <Text style={styles.title}>Edit Expense</Text>
             <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.closeBtn}>
               <X size={20} color={Colors.inkSoft} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {/* Amount Section */}
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
+            {/* Amount Box */}
             <View style={styles.amountContainer}>
               <Text style={styles.curLabel}>{t('amountLabel')}</Text>
               <TextInput
@@ -138,7 +153,7 @@ export const EditExpenseModal: React.FC = () => {
                 onChangeText={setAmountStr}
                 keyboardType="numeric"
                 style={styles.amountInput}
-                placeholder="150"
+                placeholder="0"
                 placeholderTextColor={Colors.line}
               />
             </View>
@@ -153,7 +168,10 @@ export const EditExpenseModal: React.FC = () => {
                   <AnimatedPressable
                     key={cat.id}
                     scaleTo={0.91}
-                    onPress={() => setSelectedCategory(cat.name)}
+                    onPress={() => {
+                      setSelectedCategory(cat.name);
+                      Keyboard.dismiss();
+                    }}
                     style={[styles.catBtn, isSelected && styles.catBtnSelected]}
                   >
                     <Text style={styles.catIcon}>{cat.icon}</Text>
@@ -167,7 +185,6 @@ export const EditExpenseModal: React.FC = () => {
 
             {/* Note Input */}
             <View style={styles.noteContainer}>
-              <Text style={styles.sectionLabel}>{t('noteOptional') || 'NOTE'}</Text>
               <TextInput
                 value={note}
                 onChangeText={setNote}
@@ -183,7 +200,10 @@ export const EditExpenseModal: React.FC = () => {
               <View style={styles.dateChipsRow}>
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => setDateChoice('today')}
+                  onPress={() => {
+                    setDateChoice('today');
+                    Keyboard.dismiss();
+                  }}
                   style={[styles.dateChip, dateChoice === 'today' && styles.dateChipActive]}
                 >
                   <Text style={[styles.dateChipText, dateChoice === 'today' && styles.dateChipTextActive]}>
@@ -193,7 +213,10 @@ export const EditExpenseModal: React.FC = () => {
 
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => setDateChoice('yesterday')}
+                  onPress={() => {
+                    setDateChoice('yesterday');
+                    Keyboard.dismiss();
+                  }}
                   style={[styles.dateChip, dateChoice === 'yesterday' && styles.dateChipActive]}
                 >
                   <Text style={[styles.dateChipText, dateChoice === 'yesterday' && styles.dateChipTextActive]}>
@@ -204,33 +227,27 @@ export const EditExpenseModal: React.FC = () => {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => {
-                    setDateChoice('custom');
-                    if (!customDateStr) {
-                      const d = new Date();
-                      d.setDate(d.getDate() - 2);
-                      setCustomDateStr(d.toISOString().split('T')[0]);
-                    }
+                    Keyboard.dismiss();
+                    setShowCalendar(true);
                   }}
-                  style={[styles.dateChip, dateChoice === 'custom' && styles.dateChipActive]}
+                  style={[
+                    styles.dateChip,
+                    styles.dateChipCustom,
+                    dateChoice === 'custom' && styles.dateChipActive,
+                  ]}
                 >
+                  <CalendarIcon
+                    size={14}
+                    color={dateChoice === 'custom' ? '#ffffff' : Colors.moss}
+                    style={{ marginRight: 6 }}
+                  />
                   <Text style={[styles.dateChipText, dateChoice === 'custom' && styles.dateChipTextActive]}>
-                    {dateChoice === 'custom' && customDateStr ? customDateStr : 'Custom Date'}
+                    {dateChoice === 'custom' && customDateLabel
+                      ? customDateLabel
+                      : 'Choose Date...'}
                   </Text>
                 </TouchableOpacity>
               </View>
-
-              {dateChoice === 'custom' && (
-                <View style={styles.customDateBox}>
-                  <Text style={styles.customDateHint}>Enter date (YYYY-MM-DD):</Text>
-                  <TextInput
-                    value={customDateStr}
-                    onChangeText={setCustomDateStr}
-                    placeholder="2026-09-14"
-                    placeholderTextColor={Colors.line}
-                    style={styles.customDateInput}
-                  />
-                </View>
-              )}
             </View>
           </ScrollView>
 
@@ -246,6 +263,18 @@ export const EditExpenseModal: React.FC = () => {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
+
+        {/* Visual Interactive Calendar Modal */}
+        <CalendarDatePickerModal
+          visible={showCalendar}
+          selectedDateStr={customDateStr}
+          onSelectDate={(isoStr, label) => {
+            setCustomDateStr(isoStr);
+            setCustomDateLabel(label);
+            setDateChoice('custom');
+          }}
+          onClose={() => setShowCalendar(false)}
+        />
       </SafeAreaView>
     </Modal>
   );
@@ -399,25 +428,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  customDateBox: {
-    marginTop: 10,
-    backgroundColor: Colors.card,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.line,
-  },
-  customDateHint: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 10,
-    color: Colors.inkSoft,
-    marginBottom: 6,
-  },
-  customDateInput: {
-    fontFamily: Fonts.monoRegular,
-    fontSize: 14,
-    color: Colors.ink,
-    paddingVertical: 4,
+  dateChipCustom: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   footer: {
     paddingHorizontal: 22,

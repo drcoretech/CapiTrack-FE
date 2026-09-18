@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
@@ -46,6 +47,7 @@ export const AddLedgerEntryModal: React.FC = () => {
     setPersonName('');
     setAmountStr('1400');
     setNote('');
+    Keyboard.dismiss();
   };
 
   return (
@@ -57,8 +59,9 @@ export const AddLedgerEntryModal: React.FC = () => {
     >
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.avoidingView}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
           {/* Top Bar */}
           <View style={styles.topBar}>
@@ -71,7 +74,12 @@ export const AddLedgerEntryModal: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
             {/* Person Input */}
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>{t('personLabel')}</Text>
