@@ -1,6 +1,6 @@
 import { Platform, Linking, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import RNAndroidNotificationListener from 'react-native-android-notification-listener';
 import { parseNotification, isDuplicateTransaction, isBlockedNonPaymentApp } from './notificationParser';
 import { useAppStore } from '../store/useAppStore';
@@ -8,20 +8,36 @@ import { useAppStore } from '../store/useAppStore';
 export const PENDING_NUDGE_STORAGE_KEY = '@capitrack_pending_nudge';
 export const PENDING_NUDGES_QUEUE_KEY = '@capitrack_pending_nudges';
 
-// Configure foreground notification presentation
-try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true,
-      priority: Notifications.AndroidNotificationPriority.MAX,
-    }),
-  });
-} catch {
-  // Ignored in environments where push notifications are restricted (e.g. Expo Go)
+const isExpoGo =
+  Constants.appOwnership === 'expo' ||
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+// Safely lazy-load expo-notifications only in standalone/dev builds, NEVER in Expo Go sandbox
+let Notifications: any = null;
+if (!isExpoGo) {
+  try {
+    Notifications = require('expo-notifications');
+  } catch (err) {
+    console.warn('[CapiTrack] expo-notifications native module not available:', err);
+  }
+}
+
+// Configure foreground notification presentation (standalone/dev build only)
+if (Notifications && typeof Notifications.setNotificationHandler === 'function') {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+        priority: Notifications.AndroidNotificationPriority?.MAX,
+      }),
+    });
+  } catch {
+    // Ignored in environments where push notifications are restricted
+  }
 }
 
 /**
@@ -29,9 +45,9 @@ try {
  * Pops down from the top of the screen immediately when PhonePe/GPay completes.
  */
 export async function postLocalPaymentAlert(amount: number, merchant: string, sourceApp: string) {
-  try {
-    if (Platform.OS !== 'android') return;
+  if (!Notifications || Platform.OS !== 'android') return;
 
+  try {
     // Check notification permission
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') {
@@ -69,7 +85,7 @@ export async function postLocalPaymentAlert(amount: number, merchant: string, so
 
 class NotificationListenerService {
   private isListening = false;
-  private responseSubscription: Notifications.Subscription | null = null;
+  private responseSubscription: any = null;
 
   /**
    * Initialize listener and rehydrate any pending nudges from AsyncStorage.
@@ -82,30 +98,32 @@ class NotificationListenerService {
     this.start();
 
     // 1. Request POST_NOTIFICATIONS permission for local alerts
-    try {
-      await Notifications.requestPermissionsAsync();
-    } catch {}
-
-    // 2. Listen to notification click events to bring up the categorization nudge
-    if (!this.responseSubscription) {
+    if (Notifications) {
       try {
-        this.responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
-          const data = response.notification.request.content.data;
-          if (data && data.amount) {
-            const state = useAppStore.getState();
-            if (state.autoCaptureEnabled) {
-              state.triggerNudge({
-                amount: Number(data.amount),
-                sourceApp: String(data.sourceApp || 'UPI'),
-                merchant: String(data.merchant || 'Merchant'),
-                suggestedCategory: 'Food',
-                timestamp: 'Just now',
-              });
+        await Notifications.requestPermissionsAsync();
+      } catch {}
+
+      // 2. Listen to notification click events to bring up the categorization nudge
+      if (!this.responseSubscription && typeof Notifications.addNotificationResponseReceivedListener === 'function') {
+        try {
+          this.responseSubscription = Notifications.addNotificationResponseReceivedListener((response: any) => {
+            const data = response?.notification?.request?.content?.data;
+            if (data && data.amount) {
+              const state = useAppStore.getState();
+              if (state.autoCaptureEnabled) {
+                state.triggerNudge({
+                  amount: Number(data.amount),
+                  sourceApp: String(data.sourceApp || 'UPI'),
+                  merchant: String(data.merchant || 'Merchant'),
+                  suggestedCategory: 'Food',
+                  timestamp: 'Just now',
+                });
+              }
             }
-          }
-        });
-      } catch {
-        // Ignored in environments where push notification listeners are restricted (e.g. Expo Go)
+          });
+        } catch {
+          // Ignored in restricted environments
+        }
       }
     }
 
