@@ -178,8 +178,8 @@ const DEBIT_REGEX = /(?:paid|debited|sent|transferred|spent|payment of|transfer 
 // Regex to extract merchant/payee name
 const MERCHANT_REGEX = /(?:to|at|towards|vpa\s+)\s*([A-Za-z0-9\s&'.@_-]+?)(?:\s+successful|\s+using|\s+from|\s+on|\s+ref|\s+upi|\.|\,|$)/i;
 
-// Strictly block promotional, marketing, investment, loan, and spam notifications from banks
-const PROMOTIONAL_OR_SPAM_REGEX = /(?:invest|investing|mutual funds?|sip\b|pre-approved|apply for|loan\b|quick loan|instant loan|start with just|starting at|terms and conditions|\bt&c\b|t&c apply|scratch card|cashback of up to|win up to|save up to|congratulations|reward points?|voucher|coupon|gift card|hurry\b|limited period|due date|bill generated|statement for|statement generated|otp\b|one time password|verification code|credit limit)/i;
+// Strictly block promotional, marketing, investment, loan, deals, and spam notifications
+const PROMOTIONAL_OR_SPAM_REGEX = /(?:invest|investing|mutual funds?|sip\b|pre-approved|apply for|loan\b|quick loan|instant loan|start with just|starting at|terms and conditions|\bt&c\b|t&c apply|scratch card|cashback of up to|win up to|save up to|congratulations|reward points?|voucher|coupon|gift card|hurry\b|limited period|due date|bill generated|statement for|statement generated|otp\b|one time password|verification code|credit limit|buy\s*\d+.*get\s*\d+|get\s*\d+\s*free|offer is live|exclusive offer|special offer|discount|sale is live|flash sale|flat\s*\d+%\s*off|\b\d+%\s*off\b|just\s*(?:₹|rs\.?|inr)|only\s*(?:₹|rs\.?|inr)|use code\b|promo code|coupon code)/i;
 
 // Strictly block UPI mandate requests, IPO block requests, collect requests, and conditional/future debits
 const MANDATE_OR_REQUEST_REGEX = /(?:approve\b|mandate request|block request|collect request|payment request|has requested|requested by|requested from|on approval|will be debited|to be debited|would be debited|scheduled to be debited|to be deducted|will be deducted)/i;
@@ -271,31 +271,63 @@ export function isDuplicateTransaction(amount: number, merchant: string, package
   return false;
 }
 
+/**
+ * Hard blocklist for apps that must NEVER be processed as financial payment sources.
+ * Includes CapiTrack itself, chat/messaging apps (WhatsApp, Telegram, etc.),
+ * social media platforms, e-commerce shopping apps, and food delivery apps.
+ */
+export function isBlockedNonPaymentApp(packageName: string): boolean {
+  if (!packageName) return false;
+  const pkg = packageName.toLowerCase();
+
+  return (
+    pkg.includes('com.capitrack') ||
+    pkg.includes('capitrack') ||
+    pkg.includes('capitech') ||
+    pkg.includes('whatsapp') ||
+    pkg.includes('amazon') ||
+    pkg.includes('telegram') ||
+    pkg.includes('instagram') ||
+    pkg.includes('facebook') ||
+    pkg.includes('messenger') ||
+    pkg.includes('discord') ||
+    pkg.includes('slack') ||
+    pkg.includes('twitter') ||
+    pkg.includes('reddit') ||
+    pkg.includes('linkedin') ||
+    pkg.includes('snapchat') ||
+    pkg.includes('truecaller') ||
+    pkg.includes('flipkart') ||
+    pkg.includes('myntra') ||
+    pkg.includes('meesho') ||
+    pkg.includes('ajio') ||
+    pkg.includes('swiggy') ||
+    pkg.includes('zomato') ||
+    pkg.includes('zepto') ||
+    pkg.includes('blinkit')
+  );
+}
+
 export function isAllowedPaymentApp(packageName: string, text: string): boolean {
+  if (!packageName) return false;
   const pkg = (packageName || '').toLowerCase();
   const lowerText = text.toLowerCase();
 
-  // STRICT BLOCKLIST: Ignore CapiTrack itself
-  if (
-    pkg.includes('com.capitrack') ||
-    pkg.includes('capitrack') ||
-    pkg.includes('capitech')
-  ) {
+  // STRICT BLOCKLIST: Ignore CapiTrack itself, chat, social, and shopping apps
+  if (isBlockedNonPaymentApp(pkg)) {
     return false;
   }
 
-  // Known UPI apps
+  // Known UPI apps - ONLY genuine payment applications
   const isUpi =
     pkg.includes('phonepe') ||
     pkg.includes('nbu.paisa') || // Google Pay
     pkg.includes('paytm') ||
     pkg.includes('dreamplug') || // CRED
     pkg.includes('npci.upiapp') || // BHIM
-    pkg.includes('amazon') ||
     pkg.includes('freecharge') ||
     pkg.includes('mobikwik') ||
     pkg.includes('navi') ||
-    pkg.includes('whatsapp') ||
     pkg.includes('cred');
 
   // Known SMS and Messaging apps
@@ -341,12 +373,8 @@ export function parseNotification(
 
   const pkg = (packageName || '').toLowerCase();
 
-  // 1. HARD STOP: Never process notifications from CapiTrack itself!
-  if (
-    pkg.includes('com.capitrack') ||
-    pkg.includes('capitrack') ||
-    pkg.includes('capitech')
-  ) {
+  // 1. HARD STOP: Never process notifications from CapiTrack itself or non-payment apps (WhatsApp, Amazon, etc.)!
+  if (isBlockedNonPaymentApp(pkg)) {
     return null;
   }
 

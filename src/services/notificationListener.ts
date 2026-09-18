@@ -2,7 +2,7 @@ import { Platform, Linking, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import RNAndroidNotificationListener from 'react-native-android-notification-listener';
-import { parseNotification, isDuplicateTransaction } from './notificationParser';
+import { parseNotification, isDuplicateTransaction, isBlockedNonPaymentApp } from './notificationParser';
 import { useAppStore } from '../store/useAppStore';
 
 export const PENDING_NUDGE_STORAGE_KEY = '@capitrack_pending_nudge';
@@ -184,7 +184,7 @@ class NotificationListenerService {
    */
   public async handleRawNotification(payload: { title: string; text: string; package_name?: string }) {
     const pkg = (payload.package_name || '').toLowerCase();
-    if (pkg.includes('com.capitrack') || pkg.includes('capitrack') || pkg.includes('capitech')) {
+    if (isBlockedNonPaymentApp(pkg)) {
       return;
     }
 

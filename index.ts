@@ -2,7 +2,7 @@ import { registerRootComponent } from 'expo';
 import { AppRegistry, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RNAndroidNotificationListenerHeadlessJsName } from 'react-native-android-notification-listener';
-import { parseNotification, isDuplicateTransaction } from './src/services/notificationParser';
+import { parseNotification, isDuplicateTransaction, isBlockedNonPaymentApp } from './src/services/notificationParser';
 import { useAppStore } from './src/store/useAppStore';
 import { PENDING_NUDGE_STORAGE_KEY, PENDING_NUDGES_QUEUE_KEY, postLocalPaymentAlert } from './src/services/notificationListener';
 import App from './App';
@@ -20,8 +20,8 @@ const headlessNotificationListener = async ({ notification }: { notification?: s
     const text = raw.text || raw.bigText || raw.subText || '';
     const packageName = (raw.app || raw.package_name || '').toLowerCase();
 
-    // HARD STOP: Never process notifications posted by CapiTrack itself
-    if (packageName.includes('capitrack') || packageName.includes('capitech')) {
+    // HARD STOP: Never process notifications posted by CapiTrack itself or non-payment apps (WhatsApp, Amazon, etc.)
+    if (isBlockedNonPaymentApp(packageName)) {
       return;
     }
 
