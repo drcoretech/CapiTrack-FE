@@ -7,14 +7,13 @@ import {
   Modal,
   ScrollView,
   TextInput,
-  Linking,
   Alert,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Trash2, MessageSquare, Check, Plus, Briefcase, ArrowUpRight, DollarSign } from 'lucide-react-native';
+import { X, Trash2, Check, Plus, Briefcase, ArrowUpRight, DollarSign } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useAppStore } from '../../../store/useAppStore';
@@ -47,26 +46,6 @@ export const ProjectDetailModal: React.FC = () => {
       ? Math.min(100, Math.round((totalReceived / project.totalValue) * 100))
       : 100;
   const isCompleted = pendingDue === 0;
-
-  const handleSendWhatsApp = async () => {
-    const cleanPhone = (project.clientPhone || '').replace(/[^0-9]/g, '');
-    const message = `Hi ${project.clientName} team, hope you are doing well!\n\nThis is a friendly update regarding your project "${project.projectTitle}".\n\n• Agreed Deal Value: ₹${project.totalValue.toLocaleString()}\n• Balance Pending: ₹${pendingDue.toLocaleString()}\n\nPlease transfer at your convenience and share the confirmation screenshot. Thank you!`;
-    const encoded = encodeURIComponent(message);
-    const url = cleanPhone
-      ? `whatsapp://send?phone=${cleanPhone}&text=${encoded}`
-      : `whatsapp://send?text=${encoded}`;
-
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        await Linking.openURL(`https://wa.me/${cleanPhone}?text=${encoded}`);
-      }
-    } catch {
-      Alert.alert('WhatsApp Error', 'Could not open WhatsApp. Please ensure WhatsApp is installed.');
-    }
-  };
 
   const handleRecordPayment = async () => {
     const amount = parseFloat(payAmountStr);
@@ -141,9 +120,6 @@ export const ProjectDetailModal: React.FC = () => {
               </View>
               <Text style={styles.clientName}>{project.clientName}</Text>
               <Text style={styles.projectTitle}>{project.projectTitle}</Text>
-              {project.clientPhone ? (
-                <Text style={styles.clientPhone}>📞 {project.clientPhone}</Text>
-              ) : null}
 
               <View
                 style={[
@@ -207,17 +183,6 @@ export const ProjectDetailModal: React.FC = () => {
 
             {/* Action Buttons Row */}
             <View style={styles.actionsRow}>
-              {pendingDue > 0 && (
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={handleSendWhatsApp}
-                  style={styles.whatsAppBtn}
-                >
-                  <MessageSquare size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.whatsAppBtnText}>Send WhatsApp Reminder</Text>
-                </TouchableOpacity>
-              )}
-
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => {
@@ -228,7 +193,7 @@ export const ProjectDetailModal: React.FC = () => {
                 }}
                 style={[
                   styles.recordPaymentBtn,
-                  pendingDue === 0 && { flex: 1, backgroundColor: Colors.card, borderColor: Colors.line },
+                  pendingDue === 0 && { backgroundColor: Colors.card, borderColor: Colors.line },
                 ]}
               >
                 <Plus size={16} color={pendingDue === 0 ? Colors.ink : '#FFFFFF'} style={{ marginRight: 6 }} />
@@ -238,7 +203,7 @@ export const ProjectDetailModal: React.FC = () => {
                     pendingDue === 0 && { color: Colors.ink },
                   ]}
                 >
-                  {showPaymentForm ? 'Hide Payment Form' : 'Record Payment'}
+                  {showPaymentForm ? 'Hide Payment Form' : '+ Record Milestone Payment'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -529,22 +494,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
-  whatsAppBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#25D366',
-    borderRadius: 14,
-    paddingVertical: 13,
-    paddingHorizontal: 12,
-  },
-  whatsAppBtnText: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 13,
-    color: '#FFFFFF',
-  },
   recordPaymentBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

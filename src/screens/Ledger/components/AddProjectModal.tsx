@@ -23,7 +23,6 @@ export const AddProjectModal: React.FC = () => {
   const addClientProject = useAppStore((state) => state.addClientProject);
 
   const [clientName, setClientName] = useState('');
-  const [clientPhone, setClientPhone] = useState('');
   const [projectTitle, setProjectTitle] = useState('');
   const [dealValueStr, setDealValueStr] = useState('12000');
   const [advanceStr, setAdvanceStr] = useState('6000');
@@ -40,7 +39,6 @@ export const AddProjectModal: React.FC = () => {
     addClientProject(
       {
         clientName: clientName.trim(),
-        clientPhone: clientPhone.trim(),
         projectTitle: projectTitle.trim() || `${clientName.trim()} Website Project`,
         totalValue: dealVal,
         notes: notes.trim(),
@@ -50,7 +48,6 @@ export const AddProjectModal: React.FC = () => {
     );
 
     setClientName('');
-    setClientPhone('');
     setProjectTitle('');
     setDealValueStr('12000');
     setAdvanceStr('6000');
@@ -108,19 +105,6 @@ export const AddProjectModal: React.FC = () => {
                 onChangeText={setProjectTitle}
                 placeholder="e.g. Website Development & Redesign"
                 placeholderTextColor={Colors.inkSoft}
-                style={styles.input}
-              />
-            </View>
-
-            {/* Client Phone / WhatsApp */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>CLIENT WHATSAPP NUMBER (FOR REMINDERS)</Text>
-              <TextInput
-                value={clientPhone}
-                onChangeText={setClientPhone}
-                placeholder="e.g. +91 98220 12345"
-                placeholderTextColor={Colors.inkSoft}
-                keyboardType="phone-pad"
                 style={styles.input}
               />
             </View>

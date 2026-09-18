@@ -197,6 +197,19 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
       AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(updated)).catch(() => {});
       return { clientProjects: updated, activeModal: null };
     });
+
+    try {
+      const res = await api.createProject(projectData, initialPayment, addToIncome);
+      if (res.success && res.project) {
+        set((state) => {
+          const replaced = state.clientProjects.map((p) =>
+            p.id === newProject.id ? res.project : p
+          );
+          AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(replaced)).catch(() => {});
+          return { clientProjects: replaced };
+        });
+      }
+    } catch {}
   },
 
   addProjectPayment: async (projectId, amount, note = '', method = 'UPI', addToIncome = false) => {
@@ -228,6 +241,19 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
       AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(updated)).catch(() => {});
       return { clientProjects: updated };
     });
+
+    try {
+      const res = await api.addProjectPayment(projectId, amount, note, method, addToIncome);
+      if (res.success && res.project) {
+        set((state) => {
+          const synced = state.clientProjects.map((p) =>
+            p.id === projectId ? res.project : p
+          );
+          AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(synced)).catch(() => {});
+          return { clientProjects: synced };
+        });
+      }
+    } catch {}
   },
 
   deleteClientProject: async (projectId) => {
@@ -236,5 +262,9 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
       AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(updated)).catch(() => {});
       return { clientProjects: updated, activeModal: null, selectedProjectId: null };
     });
+
+    try {
+      await api.deleteProject(projectId);
+    } catch {}
   },
 });

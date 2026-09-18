@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { ClientProject } from '../../../types';
 import { AnimatedPressable } from '../../../components/AnimatedPressable';
-import { MessageSquare, Plus, ChevronRight, Briefcase } from 'lucide-react-native';
+import { Plus, ChevronRight, Briefcase } from 'lucide-react-native';
 
 interface ClientProjectsViewProps {
   projects: ClientProject[];
@@ -25,26 +25,6 @@ export const ClientProjectsView: React.FC<ClientProjectsViewProps> = ({
     return sum + paid;
   }, 0);
   const totalPending = Math.max(0, totalInvoiced - totalReceived);
-
-  const handleSendWhatsApp = async (project: ClientProject, pendingAmount: number) => {
-    const cleanPhone = (project.clientPhone || '').replace(/[^0-9]/g, '');
-    const message = `Hi ${project.clientName} team, hope you are doing well!\n\nThis is a friendly update regarding your project "${project.projectTitle}".\n\n• Agreed Deal Value: ₹${project.totalValue.toLocaleString()}\n• Balance Pending: ₹${pendingAmount.toLocaleString()}\n\nPlease transfer at your convenience and share the confirmation screenshot. Thank you!`;
-    const encoded = encodeURIComponent(message);
-    const url = cleanPhone
-      ? `whatsapp://send?phone=${cleanPhone}&text=${encoded}`
-      : `whatsapp://send?text=${encoded}`;
-
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        await Linking.openURL(`https://wa.me/${cleanPhone}?text=${encoded}`);
-      }
-    } catch {
-      Alert.alert('WhatsApp Error', 'Could not open WhatsApp. Please ensure WhatsApp is installed.');
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -83,7 +63,7 @@ export const ClientProjectsView: React.FC<ClientProjectsViewProps> = ({
           </View>
           <Text style={styles.emptyTitle}>No Client Projects Yet</Text>
           <Text style={styles.emptySub}>
-            Track website development projects, deal totals, advance milestone payments, and pending dues with 1-tap WhatsApp reminders.
+            Track website development contracts, deal totals, milestone payments, and pending dues.
           </Text>
           <TouchableOpacity activeOpacity={0.8} onPress={onNewProject} style={styles.emptyActionBtn}>
             <Text style={styles.emptyActionBtnText}>+ Add First Client Project</Text>
@@ -106,12 +86,7 @@ export const ClientProjectsView: React.FC<ClientProjectsViewProps> = ({
               {/* Top Row: Client & Status */}
               <View style={styles.cardHeader}>
                 <View style={{ flex: 1, marginRight: 8 }}>
-                  <View style={styles.clientTagRow}>
-                    <Text style={styles.clientName}>{project.clientName}</Text>
-                    {project.clientPhone ? (
-                      <Text style={styles.phoneTag}>📞 {project.clientPhone}</Text>
-                    ) : null}
-                  </View>
+                  <Text style={styles.clientName}>{project.clientName}</Text>
                   <Text style={styles.projectTitle} numberOfLines={1}>
                     {project.projectTitle}
                   </Text>
@@ -172,28 +147,17 @@ export const ClientProjectsView: React.FC<ClientProjectsViewProps> = ({
               {/* Card Actions */}
               <View style={styles.actionRow}>
                 {!isCompleted ? (
-                  <>
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      onPress={() => onAddPayment(project.id)}
-                      style={styles.addPaymentBtn}
-                    >
-                      <Plus size={13} color={Colors.moss} style={{ marginRight: 4 }} />
-                      <Text style={styles.addPaymentBtnText}>Add Payment</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      onPress={() => handleSendWhatsApp(project, pendingAmount)}
-                      style={styles.whatsappBtn}
-                    >
-                      <MessageSquare size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
-                      <Text style={styles.whatsappBtnText}>WhatsApp Reminder</Text>
-                    </TouchableOpacity>
-                  </>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => onAddPayment(project.id)}
+                    style={styles.addPaymentBtn}
+                  >
+                    <Plus size={13} color={Colors.moss} style={{ marginRight: 4 }} />
+                    <Text style={styles.addPaymentBtnText}>Record Milestone Payment</Text>
+                  </TouchableOpacity>
                 ) : (
                   <View style={styles.settledRow}>
-                    <Text style={styles.settledText}>Project Completed & Settled</Text>
+                    <Text style={styles.settledText}>Project Completed & Settled ✅</Text>
                   </View>
                 )}
 
@@ -417,30 +381,19 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.line,
   },
   addPaymentBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: Colors.mossLight,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
   },
   addPaymentBtnText: {
     fontFamily: Fonts.sansSemiBold,
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.mossDark,
-  },
-  whatsappBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#25D366',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  whatsappBtnText: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 11,
-    color: '#FFFFFF',
   },
   settledRow: {
     flex: 1,

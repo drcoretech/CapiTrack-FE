@@ -180,13 +180,10 @@ export const LedgerSkeleton: React.FC<LedgerSkeletonProps> = ({ subTab: propSubT
                 />
               </View>
 
-              {/* Action Buttons */}
+              {/* Action Button */}
               <View style={styles.btnRow}>
                 <Animated.View
                   style={[styles.shimmerBtn, { flex: 1, opacity: pulseAnim }]}
-                />
-                <Animated.View
-                  style={[styles.shimmerBtn, { width: 110, opacity: pulseAnim }]}
                 />
               </View>
             </View>

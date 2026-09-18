@@ -11,7 +11,7 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
   loadInitialData: async () => {
     set({ isSyncing: true });
     try {
-      const [dashRes, expRes, contactRes, userRes, localAutoCapture, localProjects, localBusiness] = await Promise.allSettled([
+      const [dashRes, expRes, contactRes, userRes, localAutoCapture, localProjects, localBusiness, projRes] = await Promise.allSettled([
         api.getDashboardSummary(),
         api.getExpenses(),
         api.getContacts(),
@@ -19,6 +19,7 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
         AsyncStorage.getItem('@capitrack_auto_capture_enabled'),
         AsyncStorage.getItem('@capitrack_client_projects'),
         AsyncStorage.getItem('@capitrack_business_tracking_enabled'),
+        api.getProjects(),
       ]);
 
       set((state) => {
@@ -31,6 +32,11 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
               nextState.clientProjects = parsed;
             }
           } catch {}
+        }
+
+        if (projRes.status === 'fulfilled' && projRes.value.success) {
+          nextState.clientProjects = projRes.value.projects;
+          AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(projRes.value.projects)).catch(() => {});
         }
 
         if (localBusiness.status === 'fulfilled' && localBusiness.value !== null) {
@@ -105,10 +111,11 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
 
   refreshDashboard: async () => {
     try {
-      const [dashRes, expRes, contactRes] = await Promise.all([
+      const [dashRes, expRes, contactRes, projRes] = await Promise.all([
         api.getDashboardSummary(),
         api.getExpenses(),
         api.getContacts(),
+        api.getProjects().catch(() => ({ success: false, projects: [] })),
       ]);
 
       set((state) => ({
@@ -143,6 +150,10 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
             transactions: existing ? existing.transactions : [],
           };
         }),
+        clientProjects:
+          projRes.success && projRes.projects.length > 0
+            ? projRes.projects
+            : state.clientProjects,
       }));
     } catch { }
   },

@@ -1,5 +1,6 @@
 import { Platform, NativeModules } from 'react-native';
 import Constants from 'expo-constants';
+import { ClientProject } from '../types';
 
 export const CLOUD_API_URL = 'https://capitrack-be.vercel.app/api';
 
@@ -273,5 +274,48 @@ export const api = {
     }>('/user/preferences', {
       method: 'PUT',
       body: JSON.stringify(data),
+    }),
+
+  // Client Projects (Freelance & Business)
+  getProjects: () =>
+    request<{
+      success: boolean;
+      projects: ClientProject[];
+    }>('/projects'),
+
+  createProject: (
+    project: { clientName: string; projectTitle?: string; totalValue: number; notes?: string },
+    initialPayment?: number,
+    addToIncome?: boolean
+  ) =>
+    request<{
+      success: boolean;
+      project: ClientProject;
+    }>('/projects', {
+      method: 'POST',
+      body: JSON.stringify({ ...project, initialPayment, addToIncome }),
+    }),
+
+  addProjectPayment: (
+    projectId: string,
+    amount: number,
+    note?: string,
+    method?: string,
+    addToIncome?: boolean
+  ) =>
+    request<{
+      success: boolean;
+      project: ClientProject;
+    }>(`/projects/${projectId}/payments`, {
+      method: 'POST',
+      body: JSON.stringify({ amount, note, method, addToIncome }),
+    }),
+
+  deleteProject: (projectId: string) =>
+    request<{
+      success: boolean;
+      message: string;
+    }>(`/projects/${projectId}`, {
+      method: 'DELETE',
     }),
 };
