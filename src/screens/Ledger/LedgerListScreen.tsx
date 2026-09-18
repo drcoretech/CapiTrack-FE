@@ -92,7 +92,7 @@ export const LedgerListScreen: React.FC = () => {
                     ledgerSubTab === 'personal' && styles.segmentTextActive,
                   ]}
                 >
-                  👥 Personal Udhar ({contacts.length})
+                  👥 Personal Expenses ({contacts.length})
                 </Text>
               </TouchableOpacity>
 
@@ -146,7 +146,7 @@ export const LedgerListScreen: React.FC = () => {
               <View style={styles.list}>
                 {contacts.length === 0 ? (
                   <View style={styles.emptyCard}>
-                    <Text style={styles.emptyTitle}>No Personal Udhar Records</Text>
+                    <Text style={styles.emptyTitle}>No Personal Expense Records</Text>
                     <Text style={styles.emptySub}>
                       Tap the "+" button below to track money you lent or borrowed from friends.
                     </Text>
