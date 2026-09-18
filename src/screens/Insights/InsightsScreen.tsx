@@ -17,12 +17,13 @@ export const InsightsScreen: React.FC = () => {
   const currencySymbol = useAppStore((state) => state.currencySymbol) || '₹';
   const openModal = useAppStore((state) => state.openModal);
 
-  // Active Month & Year (defaults to September 2026)
-  const [selectedMonth, setSelectedMonth] = useState<number>(9);
-  const [selectedYear, setSelectedYear] = useState<number>(2026);
+  // Active Month & Year (defaults to current calendar month & year)
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [chartMode, setChartMode] = useState<'trend' | 'weekly'>('trend');
 
-  const isCurrentMonth = selectedMonth === 9 && selectedYear === 2026;
+  const isCurrentMonth = selectedMonth === (now.getMonth() + 1) && selectedYear === now.getFullYear();
 
   // Month navigation handlers
   const handlePrevMonth = () => {
@@ -43,13 +44,18 @@ export const InsightsScreen: React.FC = () => {
     }
   };
 
-  // Filter expenses for selected month
+  // Filter expenses for selected month using transaction date (e.date || e.createdAt)
   const monthExpenses = useMemo(() => {
     return expenses.filter((e) => {
-      const d = new Date(e.createdAt);
+      const d = new Date(e.date || e.createdAt);
       return d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
     });
   }, [expenses, selectedMonth, selectedYear]);
+
+  // Check if there is a manual lump-sum monthly total expense recorded for this month
+  const monthlyTotalExpense = useMemo(() => {
+    return monthExpenses.find((e) => e.note?.includes('[Monthly Total]'));
+  }, [monthExpenses]);
 
   // Total spent in selected month
   const totalSpent = useMemo(() => {
@@ -62,7 +68,7 @@ export const InsightsScreen: React.FC = () => {
 
   const prevMonthTotal = useMemo(() => {
     const pExpenses = expenses.filter((e) => {
-      const d = new Date(e.createdAt);
+      const d = new Date(e.date || e.createdAt);
       return d.getMonth() + 1 === prevMonth && d.getFullYear() === prevYear;
     });
     return pExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -84,8 +90,9 @@ export const InsightsScreen: React.FC = () => {
   // Daily average spend
   const dailyAverage = useMemo(() => {
     const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
-    // For ongoing September 2026, divide by elapsed days (17)
-    const effectiveDays = isCurrentMonth ? 17 : daysInMonth;
+    // For ongoing month, divide by elapsed days
+    const elapsedDays = now.getDate();
+    const effectiveDays = isCurrentMonth ? Math.max(1, elapsedDays) : daysInMonth;
     return Math.round(totalSpent / Math.max(1, effectiveDays));
   }, [totalSpent, selectedMonth, selectedYear, isCurrentMonth]);
 
@@ -115,20 +122,20 @@ export const InsightsScreen: React.FC = () => {
 
   const topCategory = categoryBreakdown[0] || null;
 
-  // 6-Month Trend Data (Apr to Sep 2026)
+  // 6-Month Trend Data
   const sixMonthsTrend = useMemo(() => {
-    const monthsList = [
-      { month: 4, year: 2026 },
-      { month: 5, year: 2026 },
-      { month: 6, year: 2026 },
-      { month: 7, year: 2026 },
-      { month: 8, year: 2026 },
-      { month: 9, year: 2026 },
-    ];
+    const monthsList: { month: number; year: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      monthsList.push({
+        month: targetDate.getMonth() + 1,
+        year: targetDate.getFullYear(),
+      });
+    }
 
     const monthData = monthsList.map((m) => {
       const mExpenses = expenses.filter((e) => {
-        const d = new Date(e.createdAt);
+        const d = new Date(e.date || e.createdAt);
         return d.getMonth() + 1 === m.month && d.getFullYear() === m.year;
       });
       const total = mExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -160,19 +167,27 @@ export const InsightsScreen: React.FC = () => {
     ];
 
     monthExpenses.forEach((e) => {
-      const day = new Date(e.createdAt).getDate();
-      if (day <= 7) weeks[0].total += e.amount;
-      else if (day <= 14) weeks[1].total += e.amount;
-      else if (day <= 21) weeks[2].total += e.amount;
-      else if (day <= 28) weeks[3].total += e.amount;
-      else weeks[4].total += e.amount;
+      if (e.note?.includes('[Monthly Total]')) {
+        // Distribute lump sum evenly so it doesn't create a false week-5 spike
+        const weekPortion = e.amount / 5;
+        weeks.forEach((w) => {
+          w.total += weekPortion;
+        });
+      } else {
+        const day = new Date(e.date || e.createdAt).getDate();
+        if (day <= 7) weeks[0].total += e.amount;
+        else if (day <= 14) weeks[1].total += e.amount;
+        else if (day <= 21) weeks[2].total += e.amount;
+        else if (day <= 28) weeks[3].total += e.amount;
+        else weeks[4].total += e.amount;
+      }
     });
 
     const maxWeek = Math.max(...weeks.map((w) => w.total), 1);
     return weeks.map((w) => ({
       ...w,
       percentage: w.total > 0 ? Math.max(12, Math.round((w.total / maxWeek) * 100)) : 6,
-      label: w.total >= 1000 ? `${currencySymbol}${(w.total / 1000).toFixed(1)}k` : `${currencySymbol}${w.total}`,
+      label: w.total >= 1000 ? `${currencySymbol}${(w.total / 1000).toFixed(1)}k` : `${currencySymbol}${Math.round(w.total)}`,
     }));
   }, [monthExpenses, currencySymbol]);
 
@@ -209,6 +224,26 @@ export const InsightsScreen: React.FC = () => {
             setSelectedYear(y);
           }}
         />
+
+        {/* Lump-Sum Monthly Total Banner (if present for this month) */}
+        {monthlyTotalExpense && (
+          <View style={styles.lumpSumBanner}>
+            <View style={styles.lumpSumIconCircle}>
+              <Text style={{ fontSize: 18 }}>📅</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={styles.lumpSumTitleRow}>
+                <Text style={styles.lumpSumTitle}>Full Month Lump Sum Recorded</Text>
+                <View style={styles.lumpSumTag}>
+                  <Text style={styles.lumpSumTagText}>Manual Total</Text>
+                </View>
+              </View>
+              <Text style={styles.lumpSumSub}>
+                Includes {currencySymbol}{monthlyTotalExpense.amount.toLocaleString()} logged as your full month total from notes ({monthlyTotalExpense.note?.replace(/\[Monthly Total\]\s*/g, '').trim() || 'Manual Record'}).
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Monthly Summary Hero Card */}
         <MonthHeroCard
@@ -276,5 +311,57 @@ const styles = StyleSheet.create({
     fontSize: 26,
     color: Colors.ink,
     marginTop: 2,
+  },
+  lumpSumBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.cardElevated,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.amber,
+    shadowColor: Colors.amber,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  lumpSumIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: Colors.amberLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lumpSumTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  lumpSumTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 13,
+    color: Colors.ink,
+  },
+  lumpSumTag: {
+    backgroundColor: Colors.amberLight,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  lumpSumTagText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.amber,
+    textTransform: 'uppercase',
+  },
+  lumpSumSub: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 11.5,
+    color: Colors.inkSoft,
+    lineHeight: 16,
   },
 });

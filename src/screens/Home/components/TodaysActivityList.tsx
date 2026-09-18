@@ -39,29 +39,43 @@ export const TodaysActivityList: React.FC<TodaysActivityListProps> = ({
           <Text style={styles.emptyText}>{t('noExpensesToday')}</Text>
         </AnimatedPressable>
       ) : (
-        expenses.map((exp) => (
-          <TouchableOpacity
-            key={exp.id}
-            activeOpacity={0.75}
-            onPress={() => onPressExpense(exp)}
-            style={styles.expItem}
-          >
-            <View style={styles.expLeft}>
-              <View style={styles.expIconContainer}>
-                <Text style={styles.expIcon}>{exp.icon}</Text>
+        expenses.map((exp) => {
+          const isMonthlyTotal = exp.note?.includes('[Monthly Total]');
+          const cleanNote = isMonthlyTotal
+            ? exp.note.replace(/\[Monthly Total\]\s*/g, '').trim() || 'Full Month Total'
+            : exp.note;
+
+          return (
+            <TouchableOpacity
+              key={exp.id}
+              activeOpacity={0.75}
+              onPress={() => onPressExpense(exp)}
+              style={styles.expItem}
+            >
+              <View style={styles.expLeft}>
+                <View style={[styles.expIconContainer, isMonthlyTotal && { backgroundColor: Colors.amberLight }]}>
+                  <Text style={styles.expIcon}>{isMonthlyTotal ? '📅' : exp.icon}</Text>
+                </View>
+                <View style={styles.expDetails}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.expName} numberOfLines={1} ellipsizeMode="tail">
+                      {cleanNote}
+                    </Text>
+                    {isMonthlyTotal && (
+                      <View style={{ backgroundColor: Colors.amberLight, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5 }}>
+                        <Text style={{ fontSize: 8.5, fontWeight: '700', color: Colors.amber }}>LUMP SUM</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.expMeta} numberOfLines={1} ellipsizeMode="tail">
+                    {isMonthlyTotal ? 'Full Month Lump Sum' : `${getCategoryName(exp.category)} · ${exp.time}`}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.expDetails}>
-                <Text style={styles.expName} numberOfLines={1} ellipsizeMode="tail">
-                  {exp.note}
-                </Text>
-                <Text style={styles.expMeta} numberOfLines={1} ellipsizeMode="tail">
-                  {getCategoryName(exp.category)} · {exp.time}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.expAmount}>₹{exp.amount.toLocaleString()}</Text>
-          </TouchableOpacity>
-        ))
+              <Text style={styles.expAmount}>₹{exp.amount.toLocaleString()}</Text>
+            </TouchableOpacity>
+          );
+        })
       )}
     </View>
   );

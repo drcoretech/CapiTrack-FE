@@ -30,31 +30,54 @@ export const MonthActivityLog: React.FC<MonthActivityLogProps> = ({
       </View>
 
       {monthExpenses.length > 0 ? (
-        monthExpenses.map((expense) => (
-          <View key={expense.id} style={styles.activityItem}>
-            <View style={styles.activityLeft}>
-              <View style={styles.activityIconCircle}>
-                <Text style={styles.activityIcon}>{expense.icon || '💸'}</Text>
+        monthExpenses.map((expense) => {
+          const isMonthlyTotal = expense.note?.includes('[Monthly Total]');
+          const cleanTitle = isMonthlyTotal
+            ? expense.note?.replace(/\[Monthly Total\]\s*/g, '').trim() || 'Full Month Total'
+            : expense.note || getCategoryName(expense.category);
+
+          const transactionDate = new Date(expense.date || expense.createdAt);
+          const dateLabel = isMonthlyTotal
+            ? 'Monthly Lump Sum'
+            : transactionDate.toLocaleDateString([], {
+                day: 'numeric',
+                month: 'short',
+              });
+
+          return (
+            <View key={expense.id} style={styles.activityItem}>
+              <View style={styles.activityLeft}>
+                <View
+                  style={[
+                    styles.activityIconCircle,
+                    isMonthlyTotal && styles.activityIconCircleLumpSum,
+                  ]}
+                >
+                  <Text style={styles.activityIcon}>{isMonthlyTotal ? '📅' : (expense.icon || '💸')}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.activityTitle} numberOfLines={1}>
+                      {cleanTitle}
+                    </Text>
+                    {isMonthlyTotal && (
+                      <View style={styles.lumpSumPill}>
+                        <Text style={styles.lumpSumPillText}>Lump Sum</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.activitySubtitle}>
+                    {dateLabel} · {isMonthlyTotal ? 'Manual Record' : (expense.time || '12:00pm')}
+                  </Text>
+                </View>
               </View>
-              <View>
-                <Text style={styles.activityTitle} numberOfLines={1}>
-                  {expense.note || getCategoryName(expense.category)}
-                </Text>
-                <Text style={styles.activitySubtitle}>
-                  {new Date(expense.createdAt).toLocaleDateString([], {
-                    day: 'numeric',
-                    month: 'short',
-                  })}{' '}
-                  · {expense.time || '12:00pm'}
-                </Text>
-              </View>
+              <Text style={styles.activityAmount}>
+                - {currencySymbol}
+                {expense.amount.toLocaleString()}
+              </Text>
             </View>
-            <Text style={styles.activityAmount}>
-              - {currencySymbol}
-              {expense.amount.toLocaleString()}
-            </Text>
-          </View>
-        ))
+          );
+        })
       ) : (
         <View style={styles.emptyActivityContainer}>
           <View style={styles.emptyIconCircle}>
@@ -117,6 +140,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     flex: 1,
+    marginRight: 10,
   },
   activityIconCircle: {
     width: 36,
@@ -126,6 +150,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  activityIconCircleLumpSum: {
+    backgroundColor: Colors.amberLight,
+  },
   activityIcon: {
     fontSize: 16,
   },
@@ -133,6 +160,19 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansMedium,
     fontSize: 13.5,
     color: Colors.ink,
+    flexShrink: 1,
+  },
+  lumpSumPill: {
+    backgroundColor: Colors.amberLight,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+  },
+  lumpSumPillText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.amber,
+    textTransform: 'uppercase',
   },
   activitySubtitle: {
     fontFamily: Fonts.monoRegular,
@@ -144,6 +184,8 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.monoMedium,
     fontSize: 13.5,
     color: Colors.brick,
+    flexShrink: 0,
+    textAlign: 'right',
   },
   emptyActivityContainer: {
     paddingVertical: 24,

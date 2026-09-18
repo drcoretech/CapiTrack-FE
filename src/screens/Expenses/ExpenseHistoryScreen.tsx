@@ -4,13 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
+import { Expense } from '../../types';
 import { useTranslation } from '../../i18n/translations';
 
 export const ExpenseHistoryScreen: React.FC = () => {
   const expenses = useAppStore((state) => state.expenses);
   const isSyncing = useAppStore((state) => state.isSyncing);
   const refreshDashboard = useAppStore((state) => state.refreshDashboard);
-  const openModal = useAppStore((state) => state.openModal);
   const setEditingExpense = useAppStore((state) => state.setEditingExpense);
   const { t, getCategoryName } = useTranslation();
 
@@ -22,14 +22,28 @@ export const ExpenseHistoryScreen: React.FC = () => {
   };
 
   // Group expenses by dayGroup
-  const groupedExpenses = expenses.reduce((acc, expense) => {
-    const group = expense.dayGroup || 'Earlier';
+  const groupedExpenses = expenses.reduce((acc, exp) => {
+    const isMonthlyTotal = exp.note?.includes('[Monthly Total]');
+    let group = exp.dayGroup || 'Today';
+
+    // If it is a monthly lump sum, group under Month Name (e.g. August 2026)
+    if (isMonthlyTotal) {
+      const d = new Date(exp.date || exp.createdAt);
+      if (!isNaN(d.getTime())) {
+        const monthNames = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        group = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      }
+    }
+
     if (!acc[group]) {
       acc[group] = [];
     }
-    acc[group].push(expense);
+    acc[group].push(exp);
     return acc;
-  }, {} as Record<string, typeof expenses>);
+  }, {} as Record<string, Expense[]>);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -56,34 +70,55 @@ export const ExpenseHistoryScreen: React.FC = () => {
             <View key={dayGroup} style={styles.groupContainer}>
               <View style={styles.groupHeader}>
                 <Text style={styles.dayLabel}>
-                  {getLocalizedDayGroup(dayGroup)} · ₹{groupTotal}
+                  {getLocalizedDayGroup(dayGroup)} · ₹{groupTotal.toLocaleString()}
                 </Text>
               </View>
 
               <View style={styles.list}>
-                {items.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    activeOpacity={0.75}
-                    onPress={() => setEditingExpense(item)}
-                    style={styles.expItem}
-                  >
-                    <View style={styles.left}>
-                      <View style={styles.iconContainer}>
-                        <Text style={styles.iconText}>{item.icon}</Text>
+                {items.map((item) => {
+                  const isMonthlyTotal = item.note?.includes('[Monthly Total]');
+                  const cleanNote = isMonthlyTotal
+                    ? item.note.replace(/\[Monthly Total\]\s*/g, '').trim() || 'Full Month Total'
+                    : item.note;
+
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      activeOpacity={0.75}
+                      onPress={() => setEditingExpense(item)}
+                      style={[styles.expItem, isMonthlyTotal && styles.expItemMonthlyTotal]}
+                    >
+                      <View style={styles.left}>
+                        <View
+                          style={[
+                            styles.iconContainer,
+                            isMonthlyTotal && styles.iconContainerMonthlyTotal,
+                          ]}
+                        >
+                          <Text style={styles.iconText}>{isMonthlyTotal ? '📅' : item.icon}</Text>
+                        </View>
+                        <View style={styles.details}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+                              {cleanNote}
+                            </Text>
+                            {isMonthlyTotal && (
+                              <View style={styles.lumpSumPill}>
+                                <Text style={styles.lumpSumPillText}>Lump Sum</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.meta} numberOfLines={1} ellipsizeMode="tail">
+                            {isMonthlyTotal
+                              ? `Full Month Total · ${getCategoryName(item.category)}`
+                              : `${getCategoryName(item.category)} · ${item.time}`}
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.details}>
-                        <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
-                          {item.note}
-                        </Text>
-                        <Text style={styles.meta} numberOfLines={1} ellipsizeMode="tail">
-                          {getCategoryName(item.category)} · {item.time}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.amount}>₹{item.amount.toLocaleString()}</Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text style={styles.amount}>₹{item.amount.toLocaleString()}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           );
@@ -147,6 +182,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
+  expItemMonthlyTotal: {
+    borderColor: Colors.amber,
+    backgroundColor: '#FCFAF4',
+  },
   left: {
     flex: 1,
     flexDirection: 'row',
@@ -166,6 +205,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
+  iconContainerMonthlyTotal: {
+    backgroundColor: Colors.amberLight,
+  },
   iconText: {
     fontSize: 18,
   },
@@ -173,6 +215,19 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansSemiBold,
     fontSize: 13.5,
     color: Colors.ink,
+    flexShrink: 1,
+  },
+  lumpSumPill: {
+    backgroundColor: Colors.amberLight,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+  },
+  lumpSumPillText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.amber,
+    textTransform: 'uppercase',
   },
   meta: {
     fontFamily: Fonts.monoRegular,

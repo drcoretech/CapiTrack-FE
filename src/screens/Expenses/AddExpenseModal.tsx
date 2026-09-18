@@ -9,11 +9,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Calendar as CalendarIcon } from 'lucide-react-native';
+import { X, Calendar as CalendarIcon, Zap, Check } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
@@ -21,6 +20,7 @@ import { ExpenseCategory } from '../../types';
 import { useTranslation } from '../../i18n/translations';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
 import { CalendarDatePickerModal } from '../../components/CalendarDatePickerModal';
+import { MonthPickerModal, formatMonthLabel, getMonthEndISOString } from '../../components/MonthPickerModal';
 
 export const AddExpenseModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -30,6 +30,21 @@ export const AddExpenseModal: React.FC = () => {
   const { t, getCategoryName } = useTranslation();
 
   const activeCategories = categories.filter((c) => c.enabled);
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-12
+  const prevMonthNum = currentMonth === 1 ? 12 : currentMonth - 1;
+  const prevYearNum = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+  // Entry Mode: 'single' (normal daily spend) or 'month_total' (lump sum for an entire month)
+  const [entryMode, setEntryMode] = useState<'single' | 'month_total'>('single');
+  const [selectedMonthYear, setSelectedMonthYear] = useState({
+    year: prevYearNum,
+    month: prevMonthNum,
+    label: formatMonthLabel(prevYearNum, prevMonthNum),
+  });
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   const [amountStr, setAmountStr] = useState('150');
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>(
@@ -49,31 +64,66 @@ export const AddExpenseModal: React.FC = () => {
     }
   }, [categories]);
 
+  const handleModeSwitch = (mode: 'single' | 'month_total') => {
+    setEntryMode(mode);
+    Keyboard.dismiss();
+    if (mode === 'month_total') {
+      if (!note || note.trim() === '') {
+        setNote(`${selectedMonthYear.label} Total (Manual Notes)`);
+      }
+      // If category is Food, recommend 'Other' or let user decide
+      if (selectedCategory === 'Food') {
+        const otherCat = activeCategories.find((c) => c.name === 'Other');
+        if (otherCat) setSelectedCategory('Other');
+      }
+    } else {
+      if (note.includes('Total (Manual Notes)')) {
+        setNote('');
+      }
+    }
+  };
+
+  const handleMonthSelected = (year: number, month: number, label: string) => {
+    setSelectedMonthYear({ year, month, label });
+    setNote(`${label} Total (Manual Notes)`);
+  };
+
   const handleSave = () => {
     const num = parseFloat(amountStr) || 0;
     if (num <= 0) return;
 
     let targetDate: string | undefined = undefined;
-    if (dateChoice === 'today') {
-      targetDate = new Date().toISOString();
-    } else if (dateChoice === 'yesterday') {
-      const y = new Date();
-      y.setDate(y.getDate() - 1);
-      targetDate = y.toISOString();
-    } else if (dateChoice === 'custom' && customDateStr.trim()) {
-      const parsed = new Date(customDateStr.trim());
-      if (!isNaN(parsed.getTime())) {
-        targetDate = parsed.toISOString();
+    let finalNote = note.trim();
+
+    if (entryMode === 'month_total') {
+      // Set date to the final second of the chosen month so it strictly falls inside it
+      targetDate = getMonthEndISOString(selectedMonthYear.year, selectedMonthYear.month);
+      const cleanNoteText = finalNote.replace(/\[Monthly Total\]\s*/g, '');
+      finalNote = `[Monthly Total] ${cleanNoteText || `${selectedMonthYear.label} Total Expense`}`;
+    } else {
+      if (dateChoice === 'today') {
+        targetDate = new Date().toISOString();
+      } else if (dateChoice === 'yesterday') {
+        const y = new Date();
+        y.setDate(y.getDate() - 1);
+        targetDate = y.toISOString();
+      } else if (dateChoice === 'custom' && customDateStr.trim()) {
+        const parsed = new Date(customDateStr.trim());
+        if (!isNaN(parsed.getTime())) {
+          targetDate = parsed.toISOString();
+        }
       }
     }
 
-    addExpense(num, selectedCategory, note, targetDate);
+    addExpense(num, selectedCategory, finalNote, targetDate);
     setAmountStr('150');
     setNote('');
     setDateChoice('today');
     setCustomDateStr('');
     setCustomDateLabel('');
     setShowCalendar(false);
+    setShowMonthPicker(false);
+    setEntryMode('single');
     Keyboard.dismiss();
   };
 
@@ -94,11 +144,64 @@ export const AddExpenseModal: React.FC = () => {
           <View style={styles.topBar}>
             <View>
               <Text style={styles.eyebrow}>{t('newEntry')}</Text>
-              <Text style={styles.title}>{t('addExpense')}</Text>
+              <Text style={styles.title}>
+                {entryMode === 'month_total' ? 'Full Month Total' : t('addExpense')}
+              </Text>
             </View>
             <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.closeBtn}>
               <X size={20} color={Colors.inkSoft} />
             </TouchableOpacity>
+          </View>
+
+          {/* Entry Mode Switcher Tabs */}
+          <View style={styles.modeSwitchWrapper}>
+            <View style={styles.modeSwitchBar}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => handleModeSwitch('single')}
+                style={[
+                  styles.modeTab,
+                  entryMode === 'single' && styles.modeTabActive,
+                ]}
+              >
+                <Zap
+                  size={14}
+                  color={entryMode === 'single' ? '#FFFFFF' : Colors.inkSoft}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.modeTabText,
+                    entryMode === 'single' && styles.modeTabTextActive,
+                  ]}
+                >
+                  Single Spend
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => handleModeSwitch('month_total')}
+                style={[
+                  styles.modeTab,
+                  entryMode === 'month_total' && styles.modeTabActive,
+                ]}
+              >
+                <CalendarIcon
+                  size={14}
+                  color={entryMode === 'month_total' ? '#FFFFFF' : Colors.inkSoft}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.modeTabText,
+                    entryMode === 'month_total' && styles.modeTabTextActive,
+                  ]}
+                >
+                  Full Month Total
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <ScrollView
@@ -109,125 +212,183 @@ export const AddExpenseModal: React.FC = () => {
           >
             {/* Amount Section */}
             <View style={styles.amountContainer}>
-              <Text style={styles.curLabel}>{t('amountLabel')}</Text>
+              <Text style={styles.curLabel}>
+                {entryMode === 'month_total' ? '₹ TOTAL FOR THE MONTH' : t('amountLabel')}
+              </Text>
               <TextInput
                 value={amountStr}
                 onChangeText={setAmountStr}
                 keyboardType="numeric"
                 style={styles.amountInput}
-                placeholder="150"
+                placeholder={entryMode === 'month_total' ? '13123' : '150'}
                 placeholderTextColor={Colors.line}
                 autoFocus={false}
               />
             </View>
 
-            {/* Category Grid (dynamic from store with translations) */}
-            <View style={styles.categoryGrid}>
-              {activeCategories.map((cat) => {
-                const isSelected = selectedCategory === cat.name;
-                const localizedLabel = getCategoryName(cat.name);
+            {/* If in Month Total mode, show Month Selector first */}
+            {entryMode === 'month_total' ? (
+              <View style={styles.monthCardContainer}>
+                <View style={styles.monthHeaderRow}>
+                  <Text style={styles.dateLabel}>TARGET MONTH</Text>
+                  <View style={styles.lumpSumBadge}>
+                    <Text style={styles.lumpSumBadgeText}>Lump Sum</Text>
+                  </View>
+                </View>
 
-                return (
-                  <AnimatedPressable
-                    key={cat.id}
-                    scaleTo={0.91}
-                    onPress={() => {
-                      setSelectedCategory(cat.name);
-                      Keyboard.dismiss();
-                    }}
-                    style={[styles.catChip, isSelected && styles.catChipSelected]}
-                  >
-                    <Text style={styles.catIcon}>{cat.icon}</Text>
-                    <Text style={[styles.catLabel, isSelected && styles.catLabelSelected]}>
-                      {localizedLabel}
-                    </Text>
-                  </AnimatedPressable>
-                );
-              })}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setShowMonthPicker(true);
+                  }}
+                  style={styles.monthSelectButton}
+                >
+                  <View style={styles.monthSelectLeft}>
+                    <View style={styles.monthIconCircle}>
+                      <CalendarIcon size={18} color={Colors.moss} />
+                    </View>
+                    <View>
+                      <Text style={styles.monthSelectTitle}>{selectedMonthYear.label}</Text>
+                      <Text style={styles.monthSelectSubtitle}>Tap to pick another month</Text>
+                    </View>
+                  </View>
+                  <View style={styles.changePill}>
+                    <Text style={styles.changePillText}>Change ▾</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <View style={styles.monthHintBox}>
+                  <Text style={styles.monthHintText}>
+                    💡 Records ₹{amountStr || '0'} as your total spend for {selectedMonthYear.label}. This will update {selectedMonthYear.label}'s monthly insights, totals & history without needing daily receipts.
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
+            {/* Category Grid */}
+            <View>
+              <Text style={styles.sectionHeader}>
+                {entryMode === 'month_total' ? 'PRIMARY CATEGORY' : 'CATEGORY'}
+              </Text>
+              <View style={styles.categoryGrid}>
+                {activeCategories.map((cat) => {
+                  const isSelected = selectedCategory === cat.name;
+                  const localizedLabel = getCategoryName(cat.name);
+
+                  return (
+                    <AnimatedPressable
+                      key={cat.id}
+                      scaleTo={0.91}
+                      onPress={() => {
+                        setSelectedCategory(cat.name);
+                        Keyboard.dismiss();
+                      }}
+                      style={[styles.catChip, isSelected && styles.catChipSelected]}
+                    >
+                      <Text style={styles.catIcon}>{cat.icon}</Text>
+                      <Text style={[styles.catLabel, isSelected && styles.catLabelSelected]}>
+                        {localizedLabel}
+                      </Text>
+                    </AnimatedPressable>
+                  );
+                })}
+              </View>
             </View>
 
             {/* Note Field */}
             <View style={styles.fieldContainer}>
+              <Text style={styles.sectionHeader}>NOTE / DESCRIPTION</Text>
               <TextInput
                 value={note}
                 onChangeText={setNote}
-                placeholder={t('noteExpensePlaceholder')}
+                placeholder={
+                  entryMode === 'month_total'
+                    ? `${selectedMonthYear.label} Total (from notes)`
+                    : t('noteExpensePlaceholder')
+                }
                 placeholderTextColor={Colors.inkSoft}
                 style={styles.textInput}
               />
             </View>
 
-            {/* Date Selection */}
-            <View style={styles.dateSection}>
-              <Text style={styles.dateLabel}>DATE</Text>
-              <View style={styles.dateChipsRow}>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setDateChoice('today');
-                    Keyboard.dismiss();
-                  }}
-                  style={[styles.dateChip, dateChoice === 'today' && styles.dateChipActive]}
-                >
-                  <Text style={[styles.dateChipText, dateChoice === 'today' && styles.dateChipTextActive]}>
-                    {t('dayToday')}
-                  </Text>
-                </TouchableOpacity>
+            {/* Date Selection (Only for Single Spend mode) */}
+            {entryMode === 'single' && (
+              <View style={styles.dateSection}>
+                <Text style={styles.dateLabel}>DATE</Text>
+                <View style={styles.dateChipsRow}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setDateChoice('today');
+                      Keyboard.dismiss();
+                    }}
+                    style={[styles.dateChip, dateChoice === 'today' && styles.dateChipActive]}
+                  >
+                    <Text style={[styles.dateChipText, dateChoice === 'today' && styles.dateChipTextActive]}>
+                      {t('dayToday')}
+                    </Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setDateChoice('yesterday');
-                    Keyboard.dismiss();
-                  }}
-                  style={[styles.dateChip, dateChoice === 'yesterday' && styles.dateChipActive]}
-                >
-                  <Text style={[styles.dateChipText, dateChoice === 'yesterday' && styles.dateChipTextActive]}>
-                    {t('dayYesterday')}
-                  </Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setDateChoice('yesterday');
+                      Keyboard.dismiss();
+                    }}
+                    style={[styles.dateChip, dateChoice === 'yesterday' && styles.dateChipActive]}
+                  >
+                    <Text style={[styles.dateChipText, dateChoice === 'yesterday' && styles.dateChipTextActive]}>
+                      {t('dayYesterday')}
+                    </Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    Keyboard.dismiss();
-                    setShowCalendar(true);
-                  }}
-                  style={[
-                    styles.dateChip,
-                    styles.dateChipCustom,
-                    dateChoice === 'custom' && styles.dateChipActive,
-                  ]}
-                >
-                  <CalendarIcon
-                    size={14}
-                    color={dateChoice === 'custom' ? '#ffffff' : Colors.moss}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setShowCalendar(true);
+                    }}
                     style={[
-                      styles.dateChipText,
-                      dateChoice === 'custom' && styles.dateChipTextActive,
+                      styles.dateChip,
+                      styles.dateChipCustom,
+                      dateChoice === 'custom' && styles.dateChipActive,
                     ]}
                   >
-                    {dateChoice === 'custom' && customDateLabel
-                      ? customDateLabel
-                      : 'Choose Date...'}
-                  </Text>
-                </TouchableOpacity>
+                    <CalendarIcon
+                      size={14}
+                      color={dateChoice === 'custom' ? '#ffffff' : Colors.moss}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      style={[
+                        styles.dateChipText,
+                        dateChoice === 'custom' && styles.dateChipTextActive,
+                      ]}
+                    >
+                      {dateChoice === 'custom' && customDateLabel
+                        ? customDateLabel
+                        : 'Choose Date...'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
+            )}
           </ScrollView>
 
           {/* Action Button with spring bounce */}
           <View style={styles.footer}>
             <AnimatedPressable scaleTo={0.96} onPress={handleSave} style={styles.saveBtn}>
-              <Text style={styles.saveBtnText}>{t('saveExpense')}</Text>
+              <Text style={styles.saveBtnText}>
+                {entryMode === 'month_total'
+                  ? `Save ${selectedMonthYear.label} Total`
+                  : t('saveExpense')}
+              </Text>
             </AnimatedPressable>
           </View>
         </KeyboardAvoidingView>
 
-        {/* Visual Interactive Calendar Modal */}
+        {/* Visual Interactive Calendar Modal (for Single Spend) */}
         <CalendarDatePickerModal
           visible={showCalendar}
           selectedDateStr={customDateStr}
@@ -237,6 +398,15 @@ export const AddExpenseModal: React.FC = () => {
             setDateChoice('custom');
           }}
           onClose={() => setShowCalendar(false)}
+        />
+
+        {/* Month & Year Picker Modal (for Full Month Total) */}
+        <MonthPickerModal
+          visible={showMonthPicker}
+          selectedYear={selectedMonthYear.year}
+          selectedMonth={selectedMonthYear.month}
+          onSelectMonth={handleMonthSelected}
+          onClose={() => setShowMonthPicker(false)}
         />
       </SafeAreaView>
     </Modal>
@@ -282,11 +452,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  modeSwitchWrapper: {
+    paddingHorizontal: 22,
+    paddingTop: 4,
+    paddingBottom: 10,
+  },
+  modeSwitchBar: {
+    flexDirection: 'row',
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  modeTabActive: {
+    backgroundColor: Colors.moss,
+    shadowColor: Colors.moss,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  modeTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.inkSoft,
+  },
+  modeTabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
   scrollContent: {
     paddingHorizontal: 22,
-    paddingTop: 16,
+    paddingTop: 8,
     paddingBottom: 24,
-    gap: 20,
+    gap: 18,
   },
   amountContainer: {
     backgroundColor: Colors.card,
@@ -304,11 +512,101 @@ const styles = StyleSheet.create({
   },
   amountInput: {
     fontFamily: Fonts.serifMedium,
-    fontSize: 54,
+    fontSize: 52,
     color: Colors.ink,
     textAlign: 'center',
     paddingVertical: 4,
     minWidth: 160,
+  },
+  monthCardContainer: {
+    backgroundColor: Colors.card,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    gap: 12,
+  },
+  monthHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  lumpSumBadge: {
+    backgroundColor: Colors.amberLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  lumpSumBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.amber,
+    textTransform: 'uppercase',
+  },
+  monthSelectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.mist,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  monthSelectLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  monthIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.mossLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthSelectTitle: {
+    fontFamily: Fonts.serifMedium,
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.ink,
+  },
+  monthSelectSubtitle: {
+    fontSize: 11,
+    color: Colors.inkSoft,
+    marginTop: 2,
+  },
+  changePill: {
+    backgroundColor: Colors.card,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  changePillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.moss,
+  },
+  monthHintBox: {
+    backgroundColor: Colors.mossLight,
+    padding: 10,
+    borderRadius: 10,
+  },
+  monthHintText: {
+    fontSize: 11.5,
+    color: Colors.mossDark,
+    lineHeight: 16,
+  },
+  sectionHeader: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+    color: Colors.inkSoft,
+    marginBottom: 8,
   },
   categoryGrid: {
     flexDirection: 'row',
@@ -344,7 +642,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansSemiBold,
   },
   fieldContainer: {
-    marginBottom: 16,
+    marginBottom: 4,
   },
   textInput: {
     fontFamily: Fonts.sansRegular,
@@ -358,7 +656,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.line,
   },
   dateSection: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   dateLabel: {
     fontFamily: Fonts.monoMedium,
