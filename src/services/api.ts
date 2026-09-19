@@ -1,5 +1,6 @@
 import { Platform, NativeModules } from 'react-native';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ClientProject } from '../types';
 
 export const CLOUD_API_URL = 'https://capitrack-be.vercel.app/api';
@@ -52,6 +53,26 @@ export const API_BASE_URL = getBaseUrl();
 console.log('[CapiTrack Network] Connected API Base URL:', API_BASE_URL);
 
 let currentApiUser = 'Digvijay';
+let currentDeviceId = '';
+
+export const getOrCreateDeviceId = async (): Promise<string> => {
+  if (currentDeviceId) return currentDeviceId;
+  try {
+    const saved = await AsyncStorage.getItem('@capitrack_device_id');
+    if (saved && saved.trim()) {
+      currentDeviceId = saved.trim();
+      return currentDeviceId;
+    }
+  } catch {}
+
+  const newId = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 11);
+  currentDeviceId = newId;
+  AsyncStorage.setItem('@capitrack_device_id', newId).catch(() => {});
+  return newId;
+};
+
+// Initialize device ID in background immediately
+getOrCreateDeviceId().catch(() => {});
 
 export const setCurrentApiUser = (name: string) => {
   if (name && name.trim()) {
@@ -59,11 +80,17 @@ export const setCurrentApiUser = (name: string) => {
   }
 };
 
+export const getCurrentDeviceId = () => currentDeviceId;
+
 // Generic fetch helper with forgiving timeout & graceful network handling
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+  if (!currentDeviceId) {
+    await getOrCreateDeviceId();
+  }
 
   try {
     const res = await fetch(url, {
@@ -71,6 +98,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       headers: {
         'Content-Type': 'application/json',
         'x-user-name': currentApiUser,
+        'x-device-id': currentDeviceId,
         ...(options.headers || {}),
       },
       signal: controller.signal,
