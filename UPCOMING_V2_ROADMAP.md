@@ -43,7 +43,28 @@
 
 ---
 
-## 3. Multi-Bank SMS Auto-Capture Expansion
+## 3. "Link with Google" & Cloud Account Recovery (Zero-Friction Auth)
+
+### Problem it Solves in v2
+- In v1, CapiTrack uses seamless **Device ID Isolation** (`deviceId`), which requires zero sign-up friction, zero passwords, and zero OTPs.
+- However, if a user uninstalls the app, gets a new phone, or wants to sync between a phone and tablet, they need a safe way to preserve and restore their finances.
+
+### Technical Architecture & Capabilities
+1. **1-Tap "Link with Google Account"**:
+   - Uses native Google Identity Services (`@react-native-google-signin/google-signin` / Expo AuthSession).
+   - Seamlessly associates the user's existing device data to their verified Google profile (`email`, `googleId`, `avatarUrl`) without creating duplicates.
+   - Preserves all previous expenses, contacts, and client projects intact.
+2. **Instant Cross-Device Restore & Sync**:
+   - Fresh install on a new phone $\rightarrow$ Tap **"Continue with Google"** $\rightarrow$ Instantly restores the complete khata history and expense logs from the cloud.
+3. **Private Google Drive Auto-Backups**:
+   - Optional periodic automated backup (daily/weekly) to the user's private Google Drive (`appDataFolder`).
+   - Zero SaaS hosting cost for the developer; 100% end-to-end data privacy for the user.
+4. **Google Calendar Auto-Sync for EMIs**:
+   - One-tap sync of loan EMI and credit card bill due dates into Google Calendar with native reminder notifications.
+
+---
+
+## 4. Multi-Bank SMS Auto-Capture Expansion
 
 - **Current State**: Tested with standard UPI debit alerts.
 - **v2 Expansion**:
@@ -53,7 +74,7 @@
 
 ---
 
-## 4. One-Tap CA Reports & Tax Statement Export (PDF / Excel)
+## 5. One-Tap CA Reports & Tax Statement Export (PDF / Excel)
 
 - **Freelance Invoices & Receipts**:
   - Generate professional PDF receipts for client milestone payments with custom branding.
@@ -63,7 +84,7 @@
 
 ---
 
-## 5. Split Expense / Group Khata Engine
+## 6. Split Expense / Group Khata Engine
 
 - When adding an expense (e.g. ₹2,400 at a restaurant):
   - Tap **"Split with Friends"**.
@@ -72,7 +93,7 @@
 
 ---
 
-## 6. Biometric App Lock (Fingerprint & Face ID)
+## 7. Biometric App Lock (Fingerprint & Face ID)
 
 - Secure private khata records and financial details.
 - Implemented using `expo-local-authentication`.
@@ -80,8 +101,8 @@
 
 ---
 
-## 7. Cloud Backup & Cross-Device QR Sync
+## 8. Encrypted Cross-Device Pairing (No Password Required)
 
-- With Multi-User Isolation now in place via Device UUID:
-  - Generate a secure **Pairing QR Code** on Phone A.
-  - Scan with Phone B to seamlessly link both devices to the same account without requiring email/password registration!
+- In addition to Google Sign-In:
+  - Generate a secure, short-lived **Pairing QR Code** on Phone A.
+  - Scan with Phone B to instantly link both devices to the same financial workspace.
