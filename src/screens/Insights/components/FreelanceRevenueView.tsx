@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Clock,
   ArrowUpRight,
-  Sparkles,
 } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
@@ -120,18 +119,6 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
     return { totalInvoiced, totalReceivedEver, pendingDue };
   }, [projects]);
 
-  // Cashflow & Savings Bridge (Revenue - Personal Expenses)
-  const cashflow = useMemo(() => {
-    const net = totalCollectedMonth - totalPersonalSpent;
-    const isSurplus = net >= 0;
-    const savingsRate =
-      totalCollectedMonth > 0 ? Math.max(0, Math.round((net / totalCollectedMonth) * 100)) : 0;
-    return {
-      net,
-      isSurplus,
-      savingsRate,
-    };
-  }, [totalCollectedMonth, totalPersonalSpent]);
 
   // 6-Month Revenue Trend
   const sixMonthsTrend = useMemo(() => {
@@ -280,91 +267,7 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
         </View>
       </View>
 
-      {/* 2. Cashflow & Income Bridge Card */}
-      <View style={styles.cashflowCard}>
-        <View style={styles.cashflowHeader}>
-          <View style={styles.cashflowTitleRow}>
-            <Sparkles size={16} color={Colors.moss} style={{ marginRight: 6 }} />
-            <Text style={styles.cashflowTitle}>{t('netCashflowTitle')}</Text>
-          </View>
-          <View
-            style={[
-              styles.cashflowBadge,
-              cashflow.isSurplus ? styles.cashflowBadgePositive : styles.cashflowBadgeNegative,
-            ]}
-          >
-            <Text
-              style={[
-                styles.cashflowBadgeText,
-                { color: cashflow.isSurplus ? Colors.moss : Colors.brick },
-              ]}
-            >
-              {cashflow.isSurplus ? t('netSurplus') : t('netDeficit')}
-            </Text>
-          </View>
-        </View>
-
-        {/* Inflow vs Outflow Equation */}
-        <View style={styles.equationRow}>
-          <View style={styles.equationBox}>
-            <Text style={styles.equationLabel}>{t('freelanceIncome')}</Text>
-            <Text style={[styles.equationAmount, { color: Colors.moss }]}>
-              +{currencySymbol}
-              {totalCollectedMonth.toLocaleString()}
-            </Text>
-          </View>
-
-          <Text style={styles.equationOperator}>-</Text>
-
-          <View style={styles.equationBox}>
-            <Text style={styles.equationLabel}>{t('personalOutflow')}</Text>
-            <Text style={[styles.equationAmount, { color: Colors.brick }]}>
-              {currencySymbol}
-              {totalPersonalSpent.toLocaleString()}
-            </Text>
-          </View>
-
-          <Text style={styles.equationOperator}>=</Text>
-
-          <View style={styles.equationBox}>
-            <Text style={styles.equationLabel}>Net Retained</Text>
-            <Text
-              style={[
-                styles.equationAmount,
-                { color: cashflow.isSurplus ? Colors.moss : Colors.brick },
-              ]}
-            >
-              {cashflow.isSurplus ? '+' : ''}
-              {currencySymbol}
-              {cashflow.net.toLocaleString()}
-            </Text>
-          </View>
-        </View>
-
-        {/* Savings Rate Note */}
-        {totalCollectedMonth > 0 && (
-          <View style={styles.savingsRateRow}>
-            <View style={styles.savingsBarTrack}>
-              <View
-                style={[
-                  styles.savingsBarFill,
-                  {
-                    width: `${Math.min(100, Math.max(5, cashflow.savingsRate))}%`,
-                    backgroundColor: cashflow.isSurplus ? Colors.moss : Colors.amber,
-                  },
-                ]}
-              />
-            </View>
-            <Text style={styles.savingsRateText}>
-              {cashflow.isSurplus
-                ? `${cashflow.savingsRate}% ${t('savingsRatePct')} from freelance revenue`
-                : `Personal spending exceeded freelance income by ${currencySymbol}${Math.abs(cashflow.net).toLocaleString()}`}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* 3. 6-Month Freelance Revenue Trend Bar Chart */}
+      {/* 2. 6-Month Freelance Revenue Trend Bar Chart */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>{t('revenueTrend6Months')}</Text>
         <View style={styles.trendBarsRow}>
@@ -535,11 +438,11 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   heroCard: {
-    backgroundColor: Colors.card,
+    backgroundColor: '#F7FAF7',
     borderRadius: 20,
     padding: 20,
-    borderWidth: 1,
-    borderColor: Colors.line,
+    borderWidth: 1.5,
+    borderColor: Colors.moss,
     shadowColor: Colors.ink,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -609,92 +512,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.line,
     marginHorizontal: 8,
   },
-  cashflowCard: {
-    backgroundColor: '#F7FAF7',
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.moss,
-  },
-  cashflowHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cashflowTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cashflowTitle: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 14,
-    color: Colors.ink,
-  },
-  cashflowBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  cashflowBadgePositive: {
-    backgroundColor: Colors.mossLight,
-  },
-  cashflowBadgeNegative: {
-    backgroundColor: Colors.brickLight,
-  },
-  cashflowBadgeText: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 10,
-  },
-  equationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: Colors.line,
-  },
-  equationBox: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  equationLabel: {
-    fontFamily: Fonts.sansRegular,
-    fontSize: 10,
-    color: Colors.inkSoft,
-    marginBottom: 2,
-  },
-  equationAmount: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 13,
-  },
-  equationOperator: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 15,
-    color: Colors.inkSoft,
-    marginHorizontal: 4,
-  },
-  savingsRateRow: {
-    marginTop: 12,
-    gap: 6,
-  },
-  savingsBarTrack: {
-    height: 5,
-    backgroundColor: Colors.line,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  savingsBarFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  savingsRateText: {
-    fontFamily: Fonts.sansRegular,
-    fontSize: 11,
-    color: Colors.inkSoft,
-  },
+
   card: {
     backgroundColor: Colors.card,
     borderRadius: 18,

@@ -4,6 +4,7 @@ import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useTranslation } from '../../../i18n/translations';
 import { AnimatedPressable } from '../../../components/AnimatedPressable';
+import { CategoryIcon } from '../../../components/CategoryIcon';
 import { Expense } from '../../../types';
 
 interface TodaysActivityListProps {
@@ -54,7 +55,12 @@ export const TodaysActivityList: React.FC<TodaysActivityListProps> = ({
             >
               <View style={styles.expLeft}>
                 <View style={[styles.expIconContainer, isMonthlyTotal && { backgroundColor: Colors.amberLight }]}>
-                  <Text style={styles.expIcon}>{isMonthlyTotal ? '📅' : exp.icon}</Text>
+                  <CategoryIcon
+                    category={isMonthlyTotal ? 'monthly' : exp.category}
+                    icon={exp.icon}
+                    size={17}
+                    color={isMonthlyTotal ? Colors.amber : Colors.moss}
+                  />
                 </View>
                 <View style={styles.expDetails}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

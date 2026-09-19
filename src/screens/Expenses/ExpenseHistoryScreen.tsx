@@ -7,6 +7,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useTranslation } from '../../i18n/translations';
 import { Expense } from '../../types';
 import { ExpenseSkeleton } from './components/ExpenseSkeleton';
+import { CategoryIcon } from '../../components/CategoryIcon';
 
 export const ExpenseHistoryScreen: React.FC = () => {
   const expenses = useAppStore((state) => state.expenses);
@@ -133,7 +134,12 @@ export const ExpenseHistoryScreen: React.FC = () => {
                                 isMonthlyTotal && styles.iconContainerMonthlyTotal,
                               ]}
                             >
-                              <Text style={styles.iconText}>{isMonthlyTotal ? '📅' : item.icon}</Text>
+                              <CategoryIcon
+                                category={isMonthlyTotal ? 'monthly' : item.category}
+                                icon={item.icon}
+                                size={18}
+                                color={isMonthlyTotal ? Colors.amber : Colors.moss}
+                              />
                             </View>
                             <View style={styles.details}>
                               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

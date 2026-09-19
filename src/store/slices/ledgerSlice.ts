@@ -3,54 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, LedgerSlice } from '../types';
 import { Person, ClientProject } from '../../types';
 import { api } from '../../services/api';
-import { INITIAL_CONTACTS } from '../initialData';
-
-const INITIAL_CLIENT_PROJECTS: ClientProject[] = [
-  {
-    id: 'proj_kemlite',
-    clientName: 'Kemlite',
-    clientPhone: '+919822012345',
-    projectTitle: 'Corporate Website Redesign',
-    totalValue: 12000,
-    payments: [
-      {
-        id: 'pay_kemlite_1',
-        amount: 6000,
-        date: '18 Sep 2026',
-        note: 'Advance milestone payment (50%)',
-        method: 'Bank Transfer',
-        recordedAsIncome: true,
-      },
-    ],
-    status: 'payment_pending',
-    createdAt: new Date().toISOString(),
-    notes: 'Kemlite industrial corporate portal redesign with product showcase.',
-  },
-  {
-    id: 'proj_audiology',
-    clientName: 'Audiology Clinic',
-    clientPhone: '+919822054321',
-    projectTitle: 'Hearing Care Clinic Portal',
-    totalValue: 5000,
-    payments: [
-      {
-        id: 'pay_audiology_1',
-        amount: 5000,
-        date: '15 Sep 2026',
-        note: 'Final settlement payment received via UPI',
-        method: 'UPI',
-        recordedAsIncome: true,
-      },
-    ],
-    status: 'completed',
-    createdAt: new Date().toISOString(),
-    notes: 'Single-page responsive clinic website with appointment booking.',
-  },
-];
 
 export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (set, get) => ({
-  contacts: INITIAL_CONTACTS,
-  clientProjects: INITIAL_CLIENT_PROJECTS,
+  contacts: [],
+  clientProjects: [],
 
   addLedgerEntry: async (personName, amount, direction, note) => {
     const trimmedName = personName.trim() || 'Friend';

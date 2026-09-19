@@ -17,6 +17,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { useTranslation } from '../../i18n/translations';
+import { CategoryIcon } from '../../components/CategoryIcon';
 
 const EMOJI_PRESETS = ['🛍️', '💡', '⛽', '🏠', '📚', '☕', '🎮', '✈️', '🐾', '🎁'];
 
@@ -76,7 +77,7 @@ export const ManageCategoriesModal: React.FC = () => {
                   <View key={cat.id} style={styles.catItem}>
                     <View style={styles.catLeft}>
                       <View style={styles.iconCircle}>
-                        <Text style={styles.iconText}>{cat.icon}</Text>
+                        <CategoryIcon category={cat.name} icon={cat.icon} size={18} color={Colors.moss} />
                       </View>
                       <View>
                         <Text style={styles.catName}>{displayName}</Text>

@@ -8,25 +8,40 @@ import {
   ScrollView,
   TextInput,
   Keyboard,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Edit3, Cloud, Check, ChevronRight, Settings, Globe, Shield, CreditCard, Users, ArrowLeft } from 'lucide-react-native';
+import {
+  X,
+  Edit3,
+  Check,
+  ChevronRight,
+  Globe,
+  Shield,
+  CreditCard,
+  Users,
+  ArrowLeft,
+  Briefcase,
+  Layers,
+} from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useAppStore } from '../../../store/useAppStore';
 import { useTranslation } from '../../../i18n/translations';
-import { AnimatedPressable } from '../../../components/AnimatedPressable';
+import { notificationListener } from '../../../services/notificationListener';
 
 export const ProfileDetailsModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
   const closeModal = useAppStore((state) => state.closeModal);
   const openModal = useAppStore((state) => state.openModal);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const userName = useAppStore((state) => state.userName);
   const setUserName = useAppStore((state) => state.setUserName);
   const selectedLanguage = useAppStore((state) => state.selectedLanguage);
-  const currencySymbol = useAppStore((state) => state.currencySymbol) || '₹';
   const autoCaptureEnabled = useAppStore((state) => state.autoCaptureEnabled);
+  const toggleAutoCapture = useAppStore((state) => state.toggleAutoCapture);
+  const businessTrackingEnabled = useAppStore((state) => state.businessTrackingEnabled);
+  const toggleBusinessTracking = useAppStore((state) => state.toggleBusinessTracking);
+  const categories = useAppStore((state) => state.categories);
   const expenses = useAppStore((state) => state.expenses);
   const contacts = useAppStore((state) => state.contacts);
 
@@ -35,6 +50,7 @@ export const ProfileDetailsModal: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   const isVisible = activeModal === 'profile_details';
+  const activeCategoriesCount = categories.filter((c) => c.enabled).length;
 
   const handleStartEdit = () => {
     setNameInput(userName);
@@ -79,13 +95,13 @@ export const ProfileDetailsModal: React.FC = () => {
       onRequestClose={closeModal}
     >
       <SafeAreaView style={styles.container}>
-        {/* Header Bar */}
+        {/* Header Bar - Clean without title */}
         <View style={styles.headerBar}>
-          <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.backBtn}>
+          <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.iconBtn}>
             <ArrowLeft size={20} color={Colors.ink} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profile & Account</Text>
-          <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.closeBtn}>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.iconBtn}>
             <X size={20} color={Colors.inkSoft} />
           </TouchableOpacity>
         </View>
@@ -138,18 +154,13 @@ export const ProfileDetailsModal: React.FC = () => {
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={handleStartEdit}
-                  style={styles.editPill}
+                  style={styles.editPencilBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Edit3 size={13} color={Colors.moss} />
-                  <Text style={styles.editPillText}>Edit Name</Text>
+                  <Edit3 size={16} color={Colors.moss} />
                 </TouchableOpacity>
               </View>
             )}
-
-            <View style={styles.cloudBadge}>
-              <Cloud size={13} color={Colors.moss} />
-              <Text style={styles.cloudBadgeText}>Synced with MongoDB Atlas Cloud</Text>
-            </View>
           </View>
 
           {/* Quick Stats Grid */}
@@ -171,12 +182,70 @@ export const ProfileDetailsModal: React.FC = () => {
             </View>
           </View>
 
-          {/* Account Details Section */}
+          {/* App Preferences & Features */}
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionHeader}>ACCOUNT SETTINGS</Text>
+            <Text style={styles.sectionHeader}>PREFERENCES & FEATURES</Text>
 
             <View style={styles.cardGroup}>
-              {/* Language */}
+              {/* Freelance & Client Projects Toggle */}
+              <View style={styles.settingItem}>
+                <View style={styles.settingLeft}>
+                  <View style={styles.settingIconCircle}>
+                    <Briefcase size={18} color={businessTrackingEnabled ? Colors.moss : Colors.inkSoft} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.settingTitle}>Freelance & Client Projects</Text>
+                    <Text
+                      style={[
+                        styles.settingSub,
+                        { color: businessTrackingEnabled ? Colors.moss : Colors.inkSoft },
+                      ]}
+                    >
+                      {businessTrackingEnabled ? 'Active (Website deals & dues)' : 'Disabled'}
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={businessTrackingEnabled}
+                  onValueChange={toggleBusinessTracking}
+                  trackColor={{ false: Colors.line, true: Colors.moss }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {/* Auto-Capture Notifications */}
+              <View style={styles.settingItem}>
+                <View style={styles.settingLeft}>
+                  <View style={styles.settingIconCircle}>
+                    <Shield size={18} color={autoCaptureEnabled ? Colors.moss : Colors.brick} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.settingTitle}>Auto-Capture Notifications</Text>
+                    <Text
+                      style={[
+                        styles.settingSub,
+                        { color: autoCaptureEnabled ? Colors.moss : Colors.inkSoft },
+                      ]}
+                    >
+                      {autoCaptureEnabled ? 'Active & Listening' : 'Turned Off'}
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={autoCaptureEnabled}
+                  onValueChange={async () => {
+                    const nextVal = !autoCaptureEnabled;
+                    await toggleAutoCapture();
+                    if (nextVal) {
+                      await notificationListener.openSettings();
+                    }
+                  }}
+                  trackColor={{ false: Colors.line, true: Colors.moss }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {/* App Language */}
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => openModal('language_select')}
@@ -197,43 +266,28 @@ export const ProfileDetailsModal: React.FC = () => {
                 </View>
               </TouchableOpacity>
 
-              {/* Auto Capture Status */}
-              <View style={[styles.settingItem, styles.lastSettingItem]}>
+              {/* Manage Custom Categories */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => openModal('manage_categories')}
+                style={[styles.settingItem, styles.lastSettingItem]}
+              >
                 <View style={styles.settingLeft}>
                   <View style={styles.settingIconCircle}>
-                    <Shield size={18} color={autoCaptureEnabled ? Colors.moss : Colors.brick} />
+                    <Layers size={18} color={Colors.amber} />
                   </View>
                   <View>
-                    <Text style={styles.settingTitle}>Auto-Capture Notifications</Text>
-                    <Text
-                      style={[
-                        styles.settingSub,
-                        { color: autoCaptureEnabled ? Colors.moss : Colors.inkSoft },
-                      ]}
-                    >
-                      {autoCaptureEnabled ? 'Active & Running' : 'Turned Off'}
-                    </Text>
+                    <Text style={styles.settingTitle}>Custom Categories</Text>
+                    <Text style={styles.settingSub}>{activeCategoriesCount} active categories</Text>
                   </View>
                 </View>
-              </View>
+                <View style={styles.settingRight}>
+                  <Text style={styles.changeActionText}>Configure</Text>
+                  <ChevronRight size={16} color={Colors.inkSoft} />
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
-
-          {/* Full App Settings Button */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => {
-              closeModal();
-              setActiveTab('settings');
-            }}
-            style={styles.openSettingsBtn}
-          >
-            <View style={styles.openSettingsLeft}>
-              <Settings size={18} color={Colors.ink} />
-              <Text style={styles.openSettingsText}>Go to All App Settings</Text>
-            </View>
-            <ChevronRight size={18} color={Colors.inkSoft} />
-          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -251,24 +305,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 18,
     paddingTop: 8,
-    paddingBottom: 12,
+    paddingBottom: 8,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontFamily: Fonts.serifMedium,
-    fontSize: 18,
-    color: Colors.ink,
-  },
-  closeBtn: {
+  iconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -280,7 +319,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 8,
     paddingBottom: 40,
     gap: 16,
   },
@@ -306,7 +345,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.moss,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   avatarLargeText: {
     fontFamily: Fonts.serifMedium,
@@ -316,8 +355,8 @@ const styles = StyleSheet.create({
   nameDisplayRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 10,
+    justifyContent: 'center',
+    gap: 8,
   },
   displayName: {
     fontFamily: Fonts.serifMedium,
@@ -325,24 +364,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.ink,
   },
-  editPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
+  editPencilBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: Colors.mossLight,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  editPillText: {
-    fontSize: 12,
-    fontFamily: Fonts.sansSemiBold,
-    color: Colors.moss,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   editNameContainer: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 6,
   },
   nameTextInput: {
     width: '100%',
@@ -386,20 +419,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
   },
-  cloudBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.mist,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  cloudBadgeText: {
-    fontSize: 11.5,
-    fontFamily: Fonts.sansMedium,
-    color: Colors.inkSoft,
-  },
   statsRow: {
     flexDirection: 'row',
     gap: 12,
@@ -434,7 +453,7 @@ const styles = StyleSheet.create({
     color: Colors.inkSoft,
   },
   sectionContainer: {
-    marginTop: 6,
+    marginTop: 4,
   },
   sectionHeader: {
     fontFamily: Fonts.monoMedium,
@@ -467,6 +486,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
   },
   settingIconCircle: {
     width: 36,
@@ -495,27 +515,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.sansSemiBold,
     color: Colors.moss,
-  },
-  openSettingsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    marginTop: 4,
-  },
-  openSettingsLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  openSettingsText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 13.5,
-    color: Colors.ink,
   },
 });

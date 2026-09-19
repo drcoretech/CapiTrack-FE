@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Settings } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useTranslation, getGreetingKey } from '../../../i18n/translations';
@@ -32,9 +33,9 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({ userName, onPressProfile
       <AnimatedPressable
         scaleTo={0.9}
         onPress={onPressProfile}
-        style={styles.avatarBadge}
+        style={styles.settingsBadge}
       >
-        <Text style={styles.avatarText}>{userName ? userName[0].toUpperCase() : 'U'}</Text>
+        <Settings size={20} color={Colors.ink} />
       </AnimatedPressable>
     </View>
   );
@@ -70,17 +71,19 @@ const styles = StyleSheet.create({
     color: Colors.inkSoft,
     marginTop: 2,
   },
-  avatarBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: Colors.ink,
+  settingsBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.line,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatarText: {
-    fontFamily: Fonts.serifMedium,
-    fontSize: 16,
-    color: Colors.card,
+    shadowColor: Colors.ink,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
 });

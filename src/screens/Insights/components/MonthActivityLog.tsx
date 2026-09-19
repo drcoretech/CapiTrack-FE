@@ -6,6 +6,7 @@ import { Fonts } from '../../../theme/typography';
 import { useTranslation } from '../../../i18n/translations';
 import { AnimatedPressable } from '../../../components/AnimatedPressable';
 import { Expense } from '../../../types';
+import { CategoryIcon } from '../../../components/CategoryIcon';
 
 interface MonthActivityLogProps {
   monthExpenses: Expense[];
@@ -53,7 +54,12 @@ export const MonthActivityLog: React.FC<MonthActivityLogProps> = ({
                     isMonthlyTotal && styles.activityIconCircleLumpSum,
                   ]}
                 >
-                  <Text style={styles.activityIcon}>{isMonthlyTotal ? '📅' : (expense.icon || '💸')}</Text>
+                  <CategoryIcon
+                    category={isMonthlyTotal ? 'monthly' : expense.category}
+                    icon={expense.icon}
+                    size={17}
+                    color={isMonthlyTotal ? Colors.amber : Colors.moss}
+                  />
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

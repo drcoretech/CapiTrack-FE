@@ -27,7 +27,7 @@ export const computeDayGroup = (dateInput?: string | Date): 'Today' | 'Yesterday
 };
 
 export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = (set, get) => ({
-  expenses: INITIAL_EXPENSES,
+  expenses: [],
   categories: INITIAL_CATEGORIES,
   pendingNudge: null,
   pendingNudges: [],

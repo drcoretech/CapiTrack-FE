@@ -23,7 +23,7 @@ export const LedgerSummaryCards: React.FC<LedgerSummaryCardsProps> = ({
       <AnimatedPressable
         scaleTo={0.95}
         onPress={onPressCard}
-        style={styles.statCard}
+        style={[styles.statCard, styles.statCardOwedToYou]}
       >
         <Text style={[styles.statRowAmount, { color: Colors.moss }]}>
           ₹{owedToYou.toLocaleString()}
@@ -58,6 +58,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 14,
+  },
+  statCardOwedToYou: {
+    backgroundColor: '#F7FAF7',
+    borderWidth: 1.5,
+    borderColor: Colors.moss,
   },
   statRowAmount: {
     fontFamily: Fonts.serifMedium,

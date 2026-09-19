@@ -4,6 +4,7 @@ import { TrendingDown, TrendingUp } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useTranslation } from '../../../i18n/translations';
+import { CategoryIcon } from '../../../components/CategoryIcon';
 
 interface MonthHeroCardProps {
   totalSpent: number;
@@ -98,7 +99,12 @@ export const MonthHeroCard: React.FC<MonthHeroCardProps> = ({
           <Text style={styles.statLabel}>{t('topCategoryLabel')}</Text>
           {topCategory ? (
             <View style={styles.topCatPill}>
-              <Text style={styles.topCatIcon}>{topCategory.icon}</Text>
+              <CategoryIcon
+                category={topCategory.category}
+                icon={topCategory.icon}
+                size={14}
+                color={Colors.moss}
+              />
               <Text style={styles.topCatName} numberOfLines={1}>
                 {getCategoryName(topCategory.category)}
               </Text>
@@ -126,9 +132,9 @@ export const MonthHeroCard: React.FC<MonthHeroCardProps> = ({
 
 const styles = StyleSheet.create({
   heroCard: {
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.line,
+    backgroundColor: '#F7FAF7',
+    borderWidth: 1.5,
+    borderColor: Colors.moss,
     borderRadius: 20,
     padding: 18,
     gap: 14,

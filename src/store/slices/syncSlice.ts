@@ -150,10 +150,7 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
             transactions: existing ? existing.transactions : [],
           };
         }),
-        clientProjects:
-          projRes.success && projRes.projects.length > 0
-            ? projRes.projects
-            : state.clientProjects,
+        clientProjects: projRes.success ? projRes.projects : state.clientProjects,
       }));
     } catch { }
   },

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useTranslation } from '../../../i18n/translations';
+import { CategoryIcon } from '../../../components/CategoryIcon';
 
 interface CategoryItem {
   category: string;
@@ -44,7 +45,12 @@ export const CategoryBreakdownCard: React.FC<CategoryBreakdownCardProps> = ({
               {/* Top line with Icon, Name, Amount and Percentage */}
               <View style={styles.catRow}>
                 <View style={styles.catLeft}>
-                  <Text style={styles.catEmoji}>{item.icon}</Text>
+                  <CategoryIcon
+                    category={item.category}
+                    icon={item.icon}
+                    size={18}
+                    color={catColor}
+                  />
                   <Text style={styles.catName}>
                     {getCategoryName(item.category)}
                   </Text>

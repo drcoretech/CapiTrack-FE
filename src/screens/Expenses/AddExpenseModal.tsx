@@ -21,6 +21,7 @@ import { useTranslation } from '../../i18n/translations';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
 import { CalendarDatePickerModal } from '../../components/CalendarDatePickerModal';
 import { MonthPickerModal, formatMonthLabel, getMonthEndISOString } from '../../components/MonthPickerModal';
+import { CategoryIcon } from '../../components/CategoryIcon';
 
 export const AddExpenseModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -272,7 +273,12 @@ export const AddExpenseModal: React.FC = () => {
                         }}
                         style={[styles.catChip, isSelected && styles.catChipSelected]}
                       >
-                        <Text style={styles.catIcon}>{cat.icon}</Text>
+                        <CategoryIcon
+                          category={cat.name}
+                          icon={cat.icon}
+                          size={18}
+                          color={isSelected ? Colors.moss : Colors.inkSoft}
+                        />
                         <Text style={[styles.catLabel, isSelected && styles.catLabelSelected]}>
                           {localizedLabel}
                         </Text>

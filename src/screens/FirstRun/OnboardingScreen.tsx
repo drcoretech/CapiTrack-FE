@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Check, Briefcase, User } from 'lucide-react-native';
+import { Check, Briefcase, User, BookOpen, SlidersHorizontal, Zap, Sparkles } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
@@ -121,7 +121,7 @@ export const OnboardingScreen: React.FC = () => {
           <View style={styles.page}>
             <View style={styles.pageInner}>
               <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
-                <Text style={styles.heroEmoji}>📒</Text>
+                <BookOpen size={40} color={Colors.moss} strokeWidth={2} />
               </View>
 
               <Text style={styles.title}>{t('onboardingCombinedTitle')}</Text>
@@ -133,7 +133,7 @@ export const OnboardingScreen: React.FC = () => {
           <View style={styles.page}>
             <View style={styles.pageInner}>
               <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
-                <Text style={styles.heroEmoji}>🎯</Text>
+                <SlidersHorizontal size={40} color={Colors.moss} strokeWidth={2} />
               </View>
 
               <Text style={styles.title}>{t('onboardingModeTitle')}</Text>
@@ -204,7 +204,7 @@ export const OnboardingScreen: React.FC = () => {
           <View style={styles.page}>
             <View style={styles.pageInner}>
               <View style={[styles.heroIcon, { backgroundColor: Colors.amberLight }]}>
-                <Text style={styles.heroEmoji}>⚡</Text>
+                <Zap size={40} color={Colors.amber} strokeWidth={2} />
               </View>
 
               <Text style={styles.title}>{t('onboardingAutoCaptureTitle')}</Text>
@@ -241,7 +241,7 @@ export const OnboardingScreen: React.FC = () => {
           <View style={styles.page}>
             <View style={styles.pageInner}>
               <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
-                <Text style={styles.heroEmoji}>👋</Text>
+                <Sparkles size={40} color={Colors.moss} strokeWidth={2} />
               </View>
 
               <Text style={styles.title}>{t('whatShouldWeCallYou')}</Text>

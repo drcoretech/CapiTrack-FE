@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Home, Receipt, Users, BarChart2, Settings, Plus } from 'lucide-react-native';
+import { Home, Receipt, Users, BarChart2, Plus } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { useAppStore } from '../store/useAppStore';
 import { TabScreen } from '../types';
@@ -18,7 +18,6 @@ const NAV_ITEMS: NavItemConfig[] = [
   { key: 'expenses', label: 'Expenses', icon: Receipt },
   { key: 'ledger', label: 'Ledger', icon: Users },
   { key: 'insights', label: 'Insights', icon: BarChart2 },
-  { key: 'settings', label: 'Settings', icon: Settings },
 ];
 
 export const FloatingNavBar: React.FC = () => {
@@ -38,7 +37,6 @@ export const FloatingNavBar: React.FC = () => {
     expenses: new Animated.Value(1),
     ledger: new Animated.Value(1),
     insights: new Animated.Value(1),
-    settings: new Animated.Value(1),
   }).current;
 
   useEffect(() => {
@@ -119,7 +117,7 @@ export const FloatingNavBar: React.FC = () => {
               >
                 <Animated.View style={{ transform: [{ scale: animScale }] }}>
                   <IconComponent
-                    size={21}
+                    size={23}
                     color={isActive ? '#FFFFFF' : Colors.inkSoft}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
@@ -159,9 +157,9 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   navItem: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 54,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },

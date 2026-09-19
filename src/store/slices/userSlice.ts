@@ -16,12 +16,29 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
 
   setUserName: async (name: string) => {
     const trimmed = name.trim() || 'You';
-    set({ userName: trimmed });
+    const currentName = get().userName;
+    if (trimmed !== currentName) {
+      set({
+        userName: trimmed,
+        expenses: [],
+        contacts: [],
+        clientProjects: [],
+        dashboardData: null,
+      });
+      AsyncStorage.multiRemove([
+        '@capitrack_client_projects',
+        '@capitrack_expenses',
+        '@capitrack_contacts',
+      ]).catch(() => {});
+    } else {
+      set({ userName: trimmed });
+    }
     setCurrentApiUser(trimmed);
     AsyncStorage.setItem('@capitrack_user_name', trimmed).catch(() => {});
     try {
       await api.updatePreferences({ name: trimmed });
     } catch {}
+    get().loadInitialData().catch(() => {});
   },
 
   setSelectedLanguage: async (lang) => {
