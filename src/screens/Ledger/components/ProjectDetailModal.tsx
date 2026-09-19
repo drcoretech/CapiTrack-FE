@@ -36,6 +36,7 @@ export const ProjectDetailModal: React.FC = () => {
   const [payMethod, setPayMethod] = useState<ProjectPayment['method']>('UPI');
   const [payNote, setPayNote] = useState('');
   const [bridgeToIncome, setBridgeToIncome] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (!project) return null;
 
@@ -69,20 +70,7 @@ export const ProjectDetailModal: React.FC = () => {
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      'Delete Project',
-      `Are you sure you want to delete "${project.projectTitle}"? All recorded milestone payments will be removed.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            deleteClientProject(project.id);
-          },
-        },
-      ]
-    );
+    setShowDeleteConfirm(true);
   };
 
   return (
@@ -203,7 +191,7 @@ export const ProjectDetailModal: React.FC = () => {
                     pendingDue === 0 && { color: Colors.ink },
                   ]}
                 >
-                  {showPaymentForm ? 'Hide Payment Form' : '+ Record Milestone Payment'}
+                  {showPaymentForm ? 'Hide Payment Form' : 'Record Milestone Payment'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -231,7 +219,7 @@ export const ProjectDetailModal: React.FC = () => {
                 {/* Payment Method Selector */}
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>PAYMENT METHOD</Text>
-                  <View style={styles.methodRow}>
+                  <View style={styles.methodGrid}>
                     {(['UPI', 'Bank Transfer', 'Cash', 'Cheque'] as const).map((m) => (
                       <TouchableOpacity
                         key={m}
@@ -247,6 +235,7 @@ export const ProjectDetailModal: React.FC = () => {
                             styles.methodChipText,
                             payMethod === m && styles.methodChipTextActive,
                           ]}
+                          numberOfLines={1}
                         >
                           {m}
                         </Text>
@@ -350,6 +339,50 @@ export const ProjectDetailModal: React.FC = () => {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      {/* Custom Delete Confirmation Modal */}
+      <Modal
+        visible={showDeleteConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteConfirm(false)}
+      >
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmCard}>
+            <View style={styles.deleteIconCircle}>
+              <Trash2 size={24} color={Colors.brick} />
+            </View>
+            <Text style={styles.confirmTitle}>Delete Project?</Text>
+            <Text style={styles.confirmSub}>
+              Are you sure you want to delete{' '}
+              <Text style={{ fontWeight: '700', color: Colors.ink }}>
+                "{project.projectTitle}"
+              </Text>
+              ? All recorded milestone payments and contract history will be permanently deleted.
+            </Text>
+            <View style={styles.confirmActions}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  setShowDeleteConfirm(false);
+                  deleteClientProject(project.id);
+                }}
+                style={styles.confirmDeleteBtn}
+              >
+                <Trash2 size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.confirmDeleteText}>Yes, Delete Project</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setShowDeleteConfirm(false)}
+                style={styles.confirmCancelBtn}
+              >
+                <Text style={styles.confirmCancelText}>Cancel / Keep Project</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 };
@@ -561,18 +594,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.ink,
   },
-  methodRow: {
+  methodGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   methodChip: {
-    flex: 1,
-    paddingVertical: 9,
+    width: '48%',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     borderRadius: 10,
     backgroundColor: Colors.mist,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.line,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   methodChipActive: {
     backgroundColor: Colors.mossLight,
@@ -580,7 +616,7 @@ const styles = StyleSheet.create({
   },
   methodChipText: {
     fontFamily: Fonts.sansMedium,
-    fontSize: 12,
+    fontSize: 12.5,
     color: Colors.inkSoft,
   },
   methodChipTextActive: {
@@ -730,5 +766,86 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.inkSoft,
     lineHeight: 18,
+  },
+  confirmBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(17, 24, 20, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  confirmCard: {
+    width: '100%',
+    backgroundColor: Colors.cardElevated,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FEE2E2',
+    shadowColor: Colors.ink,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  deleteIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  confirmTitle: {
+    fontFamily: Fonts.serifMedium,
+    fontSize: 20,
+    color: Colors.ink,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  confirmSub: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 13,
+    color: Colors.inkSoft,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 22,
+  },
+  confirmActions: {
+    width: '100%',
+    gap: 10,
+  },
+  confirmDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.brick,
+    borderRadius: 14,
+    paddingVertical: 13,
+    shadowColor: Colors.brick,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  confirmDeleteText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  confirmCancelBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.mist,
+    borderRadius: 14,
+    paddingVertical: 13,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  confirmCancelText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 13.5,
+    color: Colors.ink,
   },
 });

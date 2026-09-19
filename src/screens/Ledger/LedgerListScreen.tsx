@@ -92,7 +92,7 @@ export const LedgerListScreen: React.FC = () => {
                     ledgerSubTab === 'personal' && styles.segmentTextActive,
                   ]}
                 >
-                  👥 Personal Expenses ({contacts.length})
+                  Personal Expenses ({contacts.length})
                 </Text>
               </TouchableOpacity>
 
@@ -110,7 +110,7 @@ export const LedgerListScreen: React.FC = () => {
                     ledgerSubTab === 'projects' && styles.segmentTextActive,
                   ]}
                 >
-                  💼 Client Projects ({clientProjects.length})
+                  Client Projects ({clientProjects.length})
                 </Text>
               </TouchableOpacity>
             </View>

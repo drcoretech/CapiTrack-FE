@@ -11,13 +11,12 @@ import { CategoryIcon } from '../../../components/CategoryIcon';
 interface MonthActivityLogProps {
   monthExpenses: Expense[];
   currencySymbol: string;
-  onPressAddExpense: () => void;
+  onPressAddExpense?: () => void;
 }
 
 export const MonthActivityLog: React.FC<MonthActivityLogProps> = ({
   monthExpenses,
   currencySymbol,
-  onPressAddExpense,
 }) => {
   const { t, getCategoryName } = useTranslation();
 
@@ -92,15 +91,6 @@ export const MonthActivityLog: React.FC<MonthActivityLogProps> = ({
           <Text style={styles.emptyTitle}>
             {t('noExpensesThisMonth')}
           </Text>
-          <AnimatedPressable
-            style={styles.addExpenseActionBtn}
-            onPress={onPressAddExpense}
-          >
-            <Plus size={16} color="#FFFFFF" />
-            <Text style={styles.addExpenseActionText}>
-              {t('logFirstExpense')}
-            </Text>
-          </AnimatedPressable>
         </View>
       )}
     </View>

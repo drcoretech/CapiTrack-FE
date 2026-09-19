@@ -113,7 +113,7 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
 
   addClientProject: async (projectData, initialPayment = 0, addToIncome = false) => {
     const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    const dateStr = now.toISOString();
     const initialPayments =
       initialPayment > 0
         ? [
@@ -170,7 +170,7 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
 
   addProjectPayment: async (projectId, amount, note = '', method = 'UPI', addToIncome = false) => {
     const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    const dateStr = now.toISOString();
     const newPay = {
       id: 'pay_' + Date.now(),
       amount,

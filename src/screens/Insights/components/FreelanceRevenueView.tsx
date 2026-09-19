@@ -23,6 +23,36 @@ interface FreelanceRevenueViewProps {
   onNavigateToLedger?: () => void;
 }
 
+const parseDateSafe = (dateInput?: any): Date => {
+  if (!dateInput) return new Date();
+  if (dateInput instanceof Date && !isNaN(dateInput.getTime())) return dateInput;
+  const d = new Date(dateInput);
+  if (!isNaN(d.getTime())) return d;
+  if (typeof dateInput === 'string') {
+    const monthNames: Record<string, number> = {
+      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+    };
+    const parts = dateInput.replace(/,/g, '').split(/\s+/);
+    if (parts.length >= 3) {
+      const p0 = parts[0].toLowerCase().slice(0, 3);
+      const p1 = parts[1].toLowerCase().slice(0, 3);
+      if (monthNames[p0] !== undefined) {
+        const m = monthNames[p0];
+        const day = parseInt(parts[1], 10);
+        const y = parseInt(parts[2], 10);
+        if (!isNaN(day) && !isNaN(y)) return new Date(y, m, day);
+      } else if (monthNames[p1] !== undefined) {
+        const day = parseInt(parts[0], 10);
+        const m = monthNames[p1];
+        const y = parseInt(parts[2], 10);
+        if (!isNaN(day) && !isNaN(y)) return new Date(y, m, day);
+      }
+    }
+  }
+  return new Date();
+};
+
 export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
   projects,
   selectedMonth,
@@ -50,7 +80,7 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
 
     projects.forEach((proj) => {
       (proj.payments || []).forEach((p) => {
-        const d = new Date(p.date || Date.now());
+        const d = parseDateSafe(p.date);
         if (d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear) {
           list.push({
             paymentId: p.id,
@@ -84,7 +114,7 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
     let sum = 0;
     projects.forEach((proj) => {
       (proj.payments || []).forEach((p) => {
-        const d = new Date(p.date || Date.now());
+        const d = parseDateSafe(p.date);
         if (d.getMonth() + 1 === prevMonth && d.getFullYear() === prevYear) {
           sum += p.amount;
         }
@@ -136,7 +166,7 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
       let monthSum = 0;
       projects.forEach((proj) => {
         (proj.payments || []).forEach((p) => {
-          const d = new Date(p.date || Date.now());
+          const d = parseDateSafe(p.date);
           if (d.getMonth() + 1 === m.month && d.getFullYear() === m.year) {
             monthSum += p.amount;
           }
@@ -267,7 +297,126 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
         </View>
       </View>
 
-      {/* 2. 6-Month Freelance Revenue Trend Bar Chart */}
+      {/* 2. Client Contracts & Projects Overview */}
+      <View style={styles.card}>
+        <View style={styles.cardHeaderRow}>
+          <View>
+            <Text style={styles.sectionTitle}>Client Contracts & Projects</Text>
+            <Text style={styles.sectionSubtitle}>
+              {projects.length} {projects.length === 1 ? 'Contract' : 'Contracts'} · {currencySymbol}{portfolioStats.totalInvoiced.toLocaleString()} Total Portfolio
+            </Text>
+          </View>
+          {onNavigateToLedger && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={onNavigateToLedger}
+              style={styles.addContractHeaderBtn}
+            >
+              <Text style={styles.addContractHeaderText}>+ New Contract</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {projects.length === 0 ? (
+          <View style={styles.emptyContractBox}>
+            <Briefcase size={28} color={Colors.inkSoft} style={{ marginBottom: 8 }} />
+            <Text style={styles.emptyContractTitle}>No Client Projects Added</Text>
+            <Text style={styles.emptyContractSub}>
+              Add client contracts in Ledger to track contract values, milestones, and freelance earnings.
+            </Text>
+          </View>
+        ) : (
+          projects.map((proj) => {
+            const rec = (proj.payments || []).reduce((s, p) => s + p.amount, 0);
+            const due = Math.max(0, proj.totalValue - rec);
+            const pct =
+              proj.totalValue > 0
+                ? Math.min(100, Math.round((rec / proj.totalValue) * 100))
+                : 100;
+            const isCompleted = due === 0;
+
+            return (
+              <TouchableOpacity
+                key={proj.id}
+                activeOpacity={0.7}
+                onPress={() => onOpenProject?.(proj.id)}
+                style={styles.contractItemCard}
+              >
+                <View style={styles.contractCardTop}>
+                  <View style={{ flex: 1, marginRight: 8 }}>
+                    <Text style={styles.contractClientName} numberOfLines={1}>
+                      {proj.clientName}
+                    </Text>
+                    <Text style={styles.contractProjectTitle} numberOfLines={1}>
+                      {proj.projectTitle}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.contractTotalAmount}>
+                      {currencySymbol}{proj.totalValue.toLocaleString()}
+                    </Text>
+                    <View
+                      style={[
+                        styles.contractStatusPill,
+                        isCompleted
+                          ? styles.pillCompleted
+                          : rec > 0
+                          ? styles.pillPending
+                          : styles.pillInProgress,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.contractStatusText,
+                          isCompleted
+                            ? styles.statusTextCompleted
+                            : rec > 0
+                            ? styles.statusTextPending
+                            : styles.statusTextInProgress,
+                        ]}
+                      >
+                        {isCompleted ? 'Settled' : rec > 0 ? 'Partially Paid' : 'In Progress'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Progress Bar */}
+                <View style={styles.contractBarTrack}>
+                  <View
+                    style={[
+                      styles.contractBarFill,
+                      {
+                        width: `${pct}%`,
+                        backgroundColor: isCompleted ? Colors.moss : rec > 0 ? Colors.amber : '#CBD5E1',
+                      },
+                    ]}
+                  />
+                </View>
+
+                <View style={styles.contractCardBottom}>
+                  <Text style={styles.contractCollectedText}>
+                    Collected: {currencySymbol}{rec.toLocaleString()} ({pct}%)
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text
+                      style={[
+                        styles.contractDueText,
+                        due === 0 && { color: Colors.moss },
+                      ]}
+                    >
+                      {due > 0 ? `Due: ${currencySymbol}${due.toLocaleString()}` : 'Fully Paid ✅'}
+                    </Text>
+                    <ArrowUpRight size={13} color={Colors.inkSoft} />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </View>
+
+      {/* 3. 6-Month Freelance Revenue Trend Bar Chart */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>{t('revenueTrend6Months')}</Text>
         <View style={styles.trendBarsRow}>
@@ -339,47 +488,7 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
         )}
       </View>
 
-      {/* 5. Outstanding Receivables Pipeline */}
-      {activeDuesProjects.length > 0 && (
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Text style={styles.sectionTitle}>{t('pipelineTitle')}</Text>
-            <Text style={styles.pipelineTotalDue}>
-              Total Due: {currencySymbol}
-              {portfolioStats.pendingDue.toLocaleString()}
-            </Text>
-          </View>
-
-          {activeDuesProjects.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              activeOpacity={0.7}
-              onPress={() => onOpenProject?.(item.id)}
-              style={styles.pipelineCard}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.pipelineClient}>{item.clientName}</Text>
-                <Text style={styles.pipelineProject}>{item.projectTitle}</Text>
-                <Text style={styles.pipelineCollected}>
-                  Collected: {currencySymbol}
-                  {item.received.toLocaleString()} of {currencySymbol}
-                  {item.totalValue.toLocaleString()}
-                </Text>
-              </View>
-              <View style={styles.pipelineRight}>
-                <Text style={styles.pipelineDueLabel}>Pending Due</Text>
-                <Text style={styles.pipelineDueAmount}>
-                  {currencySymbol}
-                  {item.due.toLocaleString()}
-                </Text>
-                <ArrowUpRight size={14} color={Colors.moss} style={{ alignSelf: 'flex-end', marginTop: 4 }} />
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {/* 6. Milestone Receipts Activity Log */}
+      {/* 5. Milestone Receipts Activity Log */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>{t('milestonesReceived')}</Text>
         {monthPayments.length === 0 ? (
@@ -408,7 +517,7 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
                 <View style={styles.paymentMetaRow}>
                   <Clock size={11} color={Colors.inkSoft} style={{ marginRight: 3 }} />
                   <Text style={styles.paymentMeta}>
-                    {new Date(p.date).toLocaleDateString(undefined, {
+                    {parseDateSafe(p.date).toLocaleDateString(undefined, {
                       day: 'numeric',
                       month: 'short',
                     })}{' '}
@@ -617,44 +726,127 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 3,
   },
-  pipelineCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: Colors.mist,
-    borderRadius: 12,
-    marginBottom: 8,
+  sectionSubtitle: {
+    fontFamily: Fonts.monoRegular,
+    fontSize: 11,
+    color: Colors.inkSoft,
+    marginTop: 2,
   },
-  pipelineClient: {
+  addContractHeaderBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: Colors.mossLight,
+    borderRadius: 8,
+  },
+  addContractHeaderText: {
     fontFamily: Fonts.sansSemiBold,
-    fontSize: 13,
+    fontSize: 11.5,
+    color: Colors.moss,
+  },
+  emptyContractBox: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+  },
+  emptyContractTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 14,
+    color: Colors.ink,
+    marginBottom: 4,
+  },
+  emptyContractSub: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 12,
+    color: Colors.inkSoft,
+    textAlign: 'center',
+    lineHeight: 17,
+  },
+  contractItemCard: {
+    backgroundColor: Colors.mist,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  contractCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  contractClientName: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 14,
     color: Colors.ink,
   },
-  pipelineProject: {
+  contractProjectTitle: {
     fontFamily: Fonts.sansRegular,
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.inkSoft,
     marginTop: 1,
   },
-  pipelineCollected: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 10,
-    color: Colors.inkSoft,
+  contractTotalAmount: {
+    fontFamily: Fonts.serifMedium,
+    fontSize: 15,
+    color: Colors.ink,
+    textAlign: 'right',
+  },
+  contractStatusPill: {
     marginTop: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-end',
   },
-  pipelineRight: {
-    alignItems: 'flex-end',
+  pillCompleted: {
+    backgroundColor: Colors.mossLight,
   },
-  pipelineDueLabel: {
-    fontFamily: Fonts.sansRegular,
-    fontSize: 10,
+  pillPending: {
+    backgroundColor: Colors.amberLight,
+  },
+  pillInProgress: {
+    backgroundColor: '#E2E8F0',
+  },
+  contractStatusText: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 9.5,
+    letterSpacing: 0.3,
+  },
+  statusTextCompleted: {
+    color: Colors.moss,
+  },
+  statusTextPending: {
+    color: Colors.amber,
+  },
+  statusTextInProgress: {
     color: Colors.inkSoft,
   },
-  pipelineDueAmount: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 14,
-    color: Colors.brick,
-    marginTop: 2,
+  contractBarTrack: {
+    height: 5,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  contractBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  contractCardBottom: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  contractCollectedText: {
+    fontFamily: Fonts.monoRegular,
+    fontSize: 10.5,
+    color: Colors.inkSoft,
+  },
+  contractDueText: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 11,
+    color: Colors.amber,
   },
   paymentItem: {
     flexDirection: 'row',

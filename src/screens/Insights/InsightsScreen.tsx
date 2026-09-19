@@ -357,7 +357,6 @@ export const InsightsScreen: React.FC = () => {
                 <MonthActivityLog
                   monthExpenses={monthExpenses}
                   currencySymbol={currencySymbol}
-                  onPressAddExpense={() => openModal('add_expense')}
                 />
               </>
             )}
