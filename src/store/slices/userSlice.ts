@@ -1,10 +1,12 @@
 import { StateCreator } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, UserSlice } from '../types';
-import { api, setCurrentApiUser } from '../../services/api';
+import { api, setCurrentApiUser, setAuthSession, clearAuthSession } from '../../services/api';
 
 export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, get) => ({
-  userName: 'Digvijay',
+  userName: '',
+  userId: null,
+  isAuthenticated: false,
   currencySymbol: '₹',
   selectedLanguage: 'en',
   firstRunStep: 'splash',
@@ -93,5 +95,101 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
   resetOnboarding: () => {
     AsyncStorage.removeItem('@capitrack_onboarding_completed').catch(() => {});
     set({ firstRunStep: 'splash', hasCompletedOnboarding: false });
+  },
+
+  login: async (name: string, password: string) => {
+    try {
+      const res = await api.login({ name, password });
+      if (res.success && res.user) {
+        set({
+          isAuthenticated: true,
+          userId: res.user.id,
+          userName: res.user.name,
+          currencySymbol: res.user.currencySymbol || '₹',
+          selectedLanguage: (res.user.preferredLanguage as any) || 'en',
+          businessTrackingEnabled: !!res.user.preferences?.businessTrackingEnabled,
+          hasCompletedOnboarding: true,
+          firstRunStep: 'main',
+        });
+        setAuthSession(res.token, res.user.id, res.user.name);
+        await AsyncStorage.multiSet([
+          ['@capitrack_auth_token', res.token],
+          ['@capitrack_auth_user_id', res.user.id],
+          ['@capitrack_user_name', res.user.name],
+          ['@capitrack_onboarding_completed', 'true'],
+        ]);
+        get().loadInitialData().catch(() => {});
+        return { success: true };
+      }
+      return { success: false, message: res.message || 'Login failed' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Login failed' };
+    }
+  },
+
+  signup: async (name: string, password: string, businessTrackingEnabled = false) => {
+    try {
+      const res = await api.signup({
+        name,
+        password,
+        businessTrackingEnabled,
+        preferredLanguage: get().selectedLanguage,
+      });
+      if (res.success && res.user) {
+        set({
+          isAuthenticated: true,
+          userId: res.user.id,
+          userName: res.user.name,
+          currencySymbol: res.user.currencySymbol || '₹',
+          selectedLanguage: (res.user.preferredLanguage as any) || 'en',
+          businessTrackingEnabled: !!businessTrackingEnabled,
+          hasCompletedOnboarding: true,
+          firstRunStep: 'main',
+          expenses: [],
+          contacts: [],
+          clientProjects: [],
+          dashboardData: null,
+        });
+        setAuthSession(res.token, res.user.id, res.user.name);
+        await AsyncStorage.multiSet([
+          ['@capitrack_auth_token', res.token],
+          ['@capitrack_auth_user_id', res.user.id],
+          ['@capitrack_user_name', res.user.name],
+          ['@capitrack_business_tracking_enabled', businessTrackingEnabled ? 'true' : 'false'],
+          ['@capitrack_onboarding_completed', 'true'],
+        ]);
+        get().loadInitialData().catch(() => {});
+        return { success: true };
+      }
+      return { success: false, message: res.message || 'Signup failed' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Signup failed' };
+    }
+  },
+
+  logout: async () => {
+    clearAuthSession();
+    await AsyncStorage.multiRemove([
+      '@capitrack_auth_token',
+      '@capitrack_auth_user_id',
+      '@capitrack_user_name',
+      '@capitrack_onboarding_completed',
+      '@capitrack_client_projects',
+      '@capitrack_expenses',
+      '@capitrack_contacts',
+      '@capitrack_pending_nudge',
+      '@capitrack_pending_nudges',
+    ]).catch(() => {});
+    set({
+      isAuthenticated: false,
+      userId: null,
+      userName: '',
+      expenses: [],
+      contacts: [],
+      clientProjects: [],
+      dashboardData: null,
+      firstRunStep: 'splash',
+      hasCompletedOnboarding: false,
+    });
   },
 });

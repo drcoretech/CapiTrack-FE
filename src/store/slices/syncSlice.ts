@@ -1,7 +1,7 @@
 import { StateCreator } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, SyncSlice } from '../types';
-import { api } from '../../services/api';
+import { api, setAuthSession } from '../../services/api';
 
 export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, get) => ({
   isSyncing: false,
@@ -11,6 +11,20 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
   loadInitialData: async () => {
     set({ isSyncing: true });
     try {
+      const [token, userId, localName] = await Promise.all([
+        AsyncStorage.getItem('@capitrack_auth_token'),
+        AsyncStorage.getItem('@capitrack_auth_user_id'),
+        AsyncStorage.getItem('@capitrack_user_name'),
+      ]);
+
+      if (!token && !localName) {
+        set({ isSyncing: false, isAuthenticated: false });
+        return;
+      }
+
+      setAuthSession(token || '', userId || '', localName || '');
+      set({ isAuthenticated: true, userId: userId || null, userName: localName || '' });
+
       const [
         dashRes,
         expRes,
@@ -21,7 +35,6 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
         localBusiness,
         projRes,
         localOnboarding,
-        localUserName,
       ] = await Promise.allSettled([
         api.getDashboardSummary(),
         api.getExpenses(),
@@ -32,7 +45,6 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
         AsyncStorage.getItem('@capitrack_business_tracking_enabled'),
         api.getProjects(),
         AsyncStorage.getItem('@capitrack_onboarding_completed'),
-        AsyncStorage.getItem('@capitrack_user_name'),
       ]);
 
       set((state) => {
@@ -117,7 +129,6 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
 
         const isOnboardingDone =
           (localOnboarding.status === 'fulfilled' && localOnboarding.value === 'true') ||
-          (localUserName.status === 'fulfilled' && !!localUserName.value && localUserName.value !== 'You') ||
           (userRes.status === 'fulfilled' && userRes.value.success && !!userRes.value.user.name && userRes.value.user.name !== 'You');
 
         if (isOnboardingDone) {

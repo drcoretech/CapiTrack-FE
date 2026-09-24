@@ -27,12 +27,7 @@ export const SplashScreen: React.FC = () => {
   const promptPulse = useRef(new Animated.Value(0.3)).current;
 
   const handleProceed = () => {
-    const isDone = isCompletedRef.current || useAppStore.getState().hasCompletedOnboarding;
-    if (isDone) {
-      setFirstRunStep('main');
-    } else {
-      setFirstRunStep('language');
-    }
+    setFirstRunStep('main');
   };
 
   useEffect(() => {

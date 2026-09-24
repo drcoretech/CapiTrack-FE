@@ -23,6 +23,7 @@ import {
   ArrowLeft,
   Briefcase,
   Layers,
+  LogOut,
 } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
@@ -44,10 +45,12 @@ export const ProfileDetailsModal: React.FC = () => {
   const categories = useAppStore((state) => state.categories);
   const expenses = useAppStore((state) => state.expenses);
   const contacts = useAppStore((state) => state.contacts);
+  const logout = useAppStore((state) => state.logout);
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(userName);
   const [isSaving, setIsSaving] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const isVisible = activeModal === 'profile_details';
   const activeCategoriesCount = categories.filter((c) => c.enabled).length;
@@ -287,8 +290,55 @@ export const ProfileDetailsModal: React.FC = () => {
                 </View>
               </TouchableOpacity>
             </View>
+
+            {/* Log Out Button */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setShowLogoutConfirm(true)}
+              style={styles.logoutBtn}
+            >
+              <LogOut size={18} color="#DC2626" />
+              <Text style={styles.logoutBtnText}>Log Out of CapiTrack</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* Custom Log Out Confirmation Dialog */}
+        {showLogoutConfirm && (
+          <Modal visible={true} transparent={true} animationType="fade">
+            <View style={styles.confirmBackdrop}>
+              <View style={styles.confirmCard}>
+                <View style={styles.confirmIconBadge}>
+                  <LogOut size={26} color="#DC2626" />
+                </View>
+                <Text style={styles.confirmTitle}>Log Out?</Text>
+                <Text style={styles.confirmDesc}>
+                  Are you sure you want to log out? Your data is securely saved in your CapiTrack account and you can log back in anytime with your name and password.
+                </Text>
+                <View style={styles.confirmActions}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setShowLogoutConfirm(false)}
+                    style={styles.confirmCancelBtn}
+                  >
+                    <Text style={styles.confirmCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={async () => {
+                      setShowLogoutConfirm(false);
+                      closeModal();
+                      await logout();
+                    }}
+                    style={styles.confirmLogoutBtn}
+                  >
+                    <Text style={styles.confirmLogoutText}>Yes, Log Out</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -515,5 +565,96 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.sansSemiBold,
     color: Colors.moss,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+    borderRadius: 16,
+    paddingVertical: 14,
+    marginTop: 16,
+    marginBottom: 20,
+    gap: 8,
+  },
+  logoutBtnText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 14,
+    color: '#DC2626',
+  },
+  confirmBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  confirmCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  confirmIconBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  confirmTitle: {
+    fontFamily: Fonts.serifSemiBold,
+    fontSize: 20,
+    color: Colors.ink,
+    marginBottom: 8,
+  },
+  confirmDesc: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 13,
+    color: Colors.inkSoft,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 22,
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  confirmCancelBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmCancelText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 14,
+    color: Colors.ink,
+  },
+  confirmLogoutBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: '#DC2626',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmLogoutText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 14,
+    color: '#FFFFFF',
   },
 });

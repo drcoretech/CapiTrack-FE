@@ -33,6 +33,8 @@ export type ModalType =
 
 export interface UserSlice {
   userName: string;
+  userId: string | null;
+  isAuthenticated: boolean;
   currencySymbol: string;
   selectedLanguage: 'en' | 'hi' | 'mr';
   firstRunStep: 'splash' | 'language' | 'onboarding' | 'main';
@@ -48,6 +50,13 @@ export interface UserSlice {
   toggleDarkMode: () => Promise<void>;
   toggleBusinessTracking: () => Promise<void>;
   resetOnboarding: () => void;
+  login: (name: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  signup: (
+    name: string,
+    password: string,
+    businessTrackingEnabled?: boolean
+  ) => Promise<{ success: boolean; message?: string }>;
+  logout: () => Promise<void>;
 }
 
 export interface UiSlice {

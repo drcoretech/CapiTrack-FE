@@ -26,6 +26,7 @@ import { Colors } from './src/theme/colors';
 import { SplashScreen } from './src/screens/FirstRun/SplashScreen';
 import { LanguageSelectScreen } from './src/screens/FirstRun/LanguageSelectScreen';
 import { OnboardingScreen } from './src/screens/FirstRun/OnboardingScreen';
+import { AuthScreen } from './src/screens/Auth/AuthScreen';
 
 // Main tab screens
 import { HomeScreen } from './src/screens/Home/HomeScreen';
@@ -62,6 +63,7 @@ export default function App() {
   });
 
   const firstRunStep = useAppStore((state) => state.firstRunStep);
+  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
   const activeTab = useAppStore((state) => state.activeTab);
   const activeModal = useAppStore((state) => state.activeModal);
   const loadInitialData = useAppStore((state) => state.loadInitialData);
@@ -117,7 +119,7 @@ export default function App() {
     );
   }
 
-  // 1. First-Run flow (Splash -> Language selection -> Onboarding)
+  // 1. First-Run Splash
   if (firstRunStep === 'splash') {
     return (
       <SafeAreaProvider>
@@ -127,20 +129,12 @@ export default function App() {
     );
   }
 
-  if (firstRunStep === 'language') {
+  // 2. Authentication Gate: If user is not logged in, show AuthScreen
+  if (!isAuthenticated) {
     return (
       <SafeAreaProvider>
         <StatusBar style="dark" />
-        <LanguageSelectScreen />
-      </SafeAreaProvider>
-    );
-  }
-
-  if (firstRunStep === 'onboarding') {
-    return (
-      <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <OnboardingScreen />
+        <AuthScreen />
       </SafeAreaProvider>
     );
   }

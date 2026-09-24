@@ -54,6 +54,8 @@ console.log('[CapiTrack Network] Connected API Base URL:', API_BASE_URL);
 
 let currentApiUser = 'Digvijay';
 let currentDeviceId = '';
+let currentApiToken = '';
+let currentApiUserId = '';
 
 export const getOrCreateDeviceId = async (): Promise<string> => {
   if (currentDeviceId) return currentDeviceId;
@@ -80,13 +82,25 @@ export const setCurrentApiUser = (name: string) => {
   }
 };
 
+export const setAuthSession = (token: string, userId: string, userName: string) => {
+  if (token) currentApiToken = token.trim();
+  if (userId) currentApiUserId = userId.trim();
+  if (userName) currentApiUser = userName.trim();
+};
+
+export const clearAuthSession = () => {
+  currentApiToken = '';
+  currentApiUserId = '';
+  currentApiUser = 'User';
+};
+
 export const getCurrentDeviceId = () => currentDeviceId;
 
 // Generic fetch helper with forgiving timeout & graceful network handling
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 6000);
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
 
   if (!currentDeviceId) {
     await getOrCreateDeviceId();
@@ -99,6 +113,8 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
         'Content-Type': 'application/json',
         'x-user-name': currentApiUser,
         'x-device-id': currentDeviceId,
+        ...(currentApiUserId ? { 'x-user-id': currentApiUserId } : {}),
+        ...(currentApiToken ? { Authorization: `Bearer ${currentApiToken}` } : {}),
         ...(options.headers || {}),
       },
       signal: controller.signal,
@@ -118,6 +134,71 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 }
 
 export const api = {
+  // Authentication
+  signup: (data: {
+    name: string;
+    password: string;
+    preferredLanguage?: string;
+    businessTrackingEnabled?: boolean;
+    deviceId?: string;
+  }) =>
+    request<{
+      success: boolean;
+      message: string;
+      token: string;
+      user: {
+        id: string;
+        name: string;
+        preferredLanguage: string;
+        currencySymbol: string;
+        preferences: {
+          autoCaptureEnabled: boolean;
+          darkMode: boolean;
+          businessTrackingEnabled: boolean;
+        };
+      };
+    }>('/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  login: (data: { name: string; password: string; deviceId?: string }) =>
+    request<{
+      success: boolean;
+      message: string;
+      token: string;
+      user: {
+        id: string;
+        name: string;
+        preferredLanguage: string;
+        currencySymbol: string;
+        preferences: {
+          autoCaptureEnabled: boolean;
+          darkMode: boolean;
+          businessTrackingEnabled: boolean;
+        };
+      };
+    }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getMe: () =>
+    request<{
+      success: boolean;
+      user: {
+        id: string;
+        name: string;
+        preferredLanguage: string;
+        currencySymbol: string;
+        preferences: {
+          autoCaptureEnabled: boolean;
+          darkMode: boolean;
+          businessTrackingEnabled: boolean;
+        };
+      };
+    }>('/auth/me'),
+
   // Health
   checkHealth: () => request<{ status: string; service: string }>('/health'),
 
