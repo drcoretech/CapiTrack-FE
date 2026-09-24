@@ -4,9 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Dimensions,
   NativeSyntheticEvent,
@@ -14,8 +11,7 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Check, Briefcase, User, BookOpen, SlidersHorizontal, Zap, Sparkles } from 'lucide-react-native';
+import { Briefcase, User, BookOpen, SlidersHorizontal, Zap } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
@@ -27,20 +23,16 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const OnboardingScreen: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const userName = useAppStore((state) => state.userName);
-  const [inputName, setInputName] = useState(userName || 'Digvijay');
-  const [selectedMode, setSelectedMode] = useState<'both' | 'personal'>('personal');
   const autoCaptureEnabled = useAppStore((state) => state.autoCaptureEnabled);
   const toggleAutoCapture = useAppStore((state) => state.toggleAutoCapture);
   const setFirstRunStep = useAppStore((state) => state.setFirstRunStep);
-  const setUserName = useAppStore((state) => state.setUserName);
   const { t } = useTranslation();
 
   const scrollRef = useRef<ScrollView>(null);
 
   // Exactly 3 feature introduction pages total:
   // Page 0: Combined Expenses & Khata
-  // Page 1: Freelance Projects & Contracts
+  // Page 1: Personal & Freelance Workflows
   // Page 2: Auto-Capture & Security
   const totalPages = 3;
   const isLastStep = currentIndex === 2;
@@ -91,169 +83,179 @@ export const OnboardingScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardView}
+      {/* Horizontal Swipeable ScrollView */}
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleScrollEnd}
+        scrollEventThrottle={16}
+        contentContainerStyle={styles.horizontalScrollContent}
       >
-        {/* Horizontal Swipeable ScrollView */}
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={handleScrollEnd}
-          scrollEventThrottle={16}
-          contentContainerStyle={styles.horizontalScrollContent}
-        >
-          {/* Screen 1: Combined Expenses & Khata */}
-          <View style={styles.page}>
-            <View style={styles.pageInner}>
-              <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
-                <BookOpen size={40} color={Colors.moss} strokeWidth={2} />
-              </View>
-
-              <Text style={styles.title}>{t('onboardingCombinedTitle')}</Text>
-              <Text style={styles.desc}>{t('onboardingCombinedDesc')}</Text>
+        {/* Screen 1: Combined Expenses & Khata */}
+        <View style={styles.page}>
+          <View style={styles.pageInner}>
+            <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
+              <BookOpen size={40} color={Colors.moss} strokeWidth={2} />
             </View>
+
+            <Text style={styles.title}>{t('onboardingCombinedTitle')}</Text>
+            <Text style={styles.desc}>{t('onboardingCombinedDesc')}</Text>
           </View>
+        </View>
 
-          {/* Screen 2: Choose Workflow Mode (Personal vs Both) */}
-          <View style={styles.page}>
-            <View style={styles.pageInner}>
-              <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
-                <SlidersHorizontal size={40} color={Colors.moss} strokeWidth={2} />
-              </View>
+        {/* Screen 2: Informative Workflow Preview (Personal & Freelance) */}
+        <View style={styles.page}>
+          <View style={styles.pageInner}>
+            <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
+              <SlidersHorizontal size={40} color={Colors.moss} strokeWidth={2} />
+            </View>
 
-              <Text style={styles.title}>{t('onboardingModeTitle')}</Text>
-              <Text style={styles.desc}>{t('onboardingModeDesc')}</Text>
+            <Text style={styles.title}>{t('onboardingModeTitle')}</Text>
+            <Text style={styles.desc}>{t('onboardingModeDesc')}</Text>
 
-              {/* Mode Selection Cards */}
-              <View style={styles.modeContainer}>
-                {/* Option 1: Personal Expenses Only (Default) */}
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => setSelectedMode('personal')}
-                  style={[
-                    styles.modeCard,
-                    selectedMode === 'personal' && styles.modeCardActive,
-                  ]}
-                >
-                  <View style={styles.modeCardTop}>
-                    <View style={styles.modeIconCircle}>
-                      <User size={20} color={selectedMode === 'personal' ? Colors.moss : Colors.inkSoft} />
-                    </View>
-                    <View style={{ flex: 1 }}>
+            {/* Informational Feature Cards */}
+            <View style={styles.modeContainer}>
+              {/* Feature 1: Personal Expenses */}
+              <View style={styles.modeCard}>
+                <View style={styles.modeCardTop}>
+                  <View style={[styles.modeIconCircle, { backgroundColor: '#E8F5E9' }]}>
+                    <User size={20} color={Colors.moss} />
+                  </View>
+                  <View style={styles.modeHeaderTexts}>
+                    <View style={styles.modeTitleRow}>
                       <Text style={styles.modeTitle}>{t('modePersonalTitle')}</Text>
-                      <Text style={styles.modeDesc}>{t('modePersonalDesc')}</Text>
+                      <View style={[styles.modeTagPill, { backgroundColor: '#F0FDF4' }]}>
+                        <Text style={[styles.modeTagText, { color: Colors.mossDark }]}>
+                          {t('modePersonalBadge')}
+                        </Text>
+                      </View>
                     </View>
-                    <View
-                      style={[
-                        styles.radioCircle,
-                        selectedMode === 'personal' && styles.radioCircleActive,
-                      ]}
-                    >
-                      {selectedMode === 'personal' && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
-                    </View>
+                    <Text style={styles.modeDesc}>{t('modePersonalDesc')}</Text>
                   </View>
-                </TouchableOpacity>
-
-                {/* Option 2: Personal + Freelance Projects */}
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => setSelectedMode('both')}
-                  style={[
-                    styles.modeCard,
-                    selectedMode === 'both' && styles.modeCardActive,
-                  ]}
-                >
-                  <View style={styles.modeCardTop}>
-                    <View style={styles.modeIconCircle}>
-                      <Briefcase size={20} color={selectedMode === 'both' ? Colors.moss : Colors.inkSoft} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.modeTitle}>{t('modeBothTitle')}</Text>
-                      <Text style={styles.modeDesc}>{t('modeBothDesc')}</Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.radioCircle,
-                        selectedMode === 'both' && styles.radioCircleActive,
-                      ]}
-                    >
-                      {selectedMode === 'both' && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* Screen 3: Smart Auto-Capture with Settings Redirect */}
-          <View style={styles.page}>
-            <View style={styles.pageInner}>
-              <View style={[styles.heroIcon, { backgroundColor: Colors.amberLight }]}>
-                <Zap size={40} color={Colors.amber} strokeWidth={2} />
-              </View>
-
-              <Text style={styles.title}>{t('onboardingAutoCaptureTitle')}</Text>
-              <Text style={styles.desc}>{t('onboardingAutoCaptureDesc')}</Text>
-
-              {/* Interactive Auto-Capture Toggle Card */}
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={handleToggleAutoCapture}
-                style={styles.autoCaptureCard}
-              >
-                <View style={styles.autoCaptureCardLeft}>
-                  <Text style={styles.autoCaptureCardTitle}>{t('enableAutoCaptureLabel')}</Text>
-                  <Text style={[styles.autoCaptureCardSub, { color: autoCaptureEnabled ? Colors.moss : Colors.inkSoft }]}>
-                    {autoCaptureEnabled ? t('autoCaptureStatusOn') : t('autoCaptureStatusOff')}
-                  </Text>
                 </View>
-                <Switch
-                  value={autoCaptureEnabled}
-                  onValueChange={handleToggleAutoCapture}
-                  trackColor={{ false: Colors.line, true: Colors.moss }}
-                  thumbColor="#FFFFFF"
-                />
-              </TouchableOpacity>
 
-              <View style={styles.autoCaptureNoticeBox}>
-                <Text style={styles.autoCaptureNoticeText}>{t('autoCaptureOffNotice')}</Text>
-                <Text style={styles.autoCapturePrivacyText}>{t('privateOnDeviceNote')}</Text>
+                {/* Feature Chips */}
+                <View style={styles.chipRow}>
+                  <View style={styles.featureChip}>
+                    <Text style={styles.featureChipText}>⚡ Quick Log</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <Text style={styles.featureChipText}>📊 Category Budgets</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <Text style={styles.featureChipText}>🤝 Friends Khata</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Feature 2: Freelance & Client Projects */}
+              <View style={styles.modeCard}>
+                <View style={styles.modeCardTop}>
+                  <View style={[styles.modeIconCircle, { backgroundColor: '#F0FDFA' }]}>
+                    <Briefcase size={20} color="#0D9488" />
+                  </View>
+                  <View style={styles.modeHeaderTexts}>
+                    <View style={styles.modeTitleRow}>
+                      <Text style={styles.modeTitle}>{t('modeBothTitle')}</Text>
+                      <View style={[styles.modeTagPill, { backgroundColor: '#ECFDF5' }]}>
+                        <Text style={[styles.modeTagText, { color: '#047857' }]}>
+                          {t('modeBothBadge')}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.modeDesc}>{t('modeBothDesc')}</Text>
+                  </View>
+                </View>
+
+                {/* Feature Chips */}
+                <View style={styles.chipRow}>
+                  <View style={styles.featureChip}>
+                    <Text style={styles.featureChipText}>💼 Client CRM</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <Text style={styles.featureChipText}>🎯 Milestone Payments</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <Text style={styles.featureChipText}>📈 Revenue Trends</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Informational Guidance Notice */}
+              <View style={styles.infoNoticeBox}>
+                <Text style={styles.infoNoticeText}>{t('onboardingModeNote')}</Text>
               </View>
             </View>
           </View>
-        </ScrollView>
+        </View>
 
-        {/* Paging Dots (3 dots) */}
-        <View style={styles.dotsContainer}>
-          {Array.from({ length: totalPages }).map((_, i) => {
-            const isActive = i === currentIndex;
-            return (
-              <TouchableOpacity
-                key={i}
-                activeOpacity={0.7}
-                onPress={() => goToPage(i)}
-                style={[styles.dot, isActive && styles.activeDot]}
+        {/* Screen 3: Smart Auto-Capture with Settings Redirect */}
+        <View style={styles.page}>
+          <View style={styles.pageInner}>
+            <View style={[styles.heroIcon, { backgroundColor: Colors.amberLight }]}>
+              <Zap size={40} color={Colors.amber} strokeWidth={2} />
+            </View>
+
+            <Text style={styles.title}>{t('onboardingAutoCaptureTitle')}</Text>
+            <Text style={styles.desc}>{t('onboardingAutoCaptureDesc')}</Text>
+
+            {/* Interactive Auto-Capture Toggle Card */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleToggleAutoCapture}
+              style={styles.autoCaptureCard}
+            >
+              <View style={styles.autoCaptureCardLeft}>
+                <Text style={styles.autoCaptureCardTitle}>{t('enableAutoCaptureLabel')}</Text>
+                <Text style={[styles.autoCaptureCardSub, { color: autoCaptureEnabled ? Colors.moss : Colors.inkSoft }]}>
+                  {autoCaptureEnabled ? t('autoCaptureStatusOn') : t('autoCaptureStatusOff')}
+                </Text>
+              </View>
+              <Switch
+                value={autoCaptureEnabled}
+                onValueChange={handleToggleAutoCapture}
+                trackColor={{ false: Colors.line, true: Colors.moss }}
+                thumbColor="#FFFFFF"
               />
-            );
-          })}
-        </View>
+            </TouchableOpacity>
 
-        {/* Action Footer */}
-        <View style={styles.footer}>
-          <AnimatedPressable scaleTo={0.96} onPress={handleNext} style={styles.primaryBtn}>
-            <Text style={styles.primaryBtnText}>{getButtonText()}</Text>
-          </AnimatedPressable>
-
-          <TouchableOpacity activeOpacity={0.7} onPress={handleSkip} style={styles.ghostBtn}>
-            <Text style={styles.ghostBtnText}>
-              {isLastStep ? 'Already have an account? Sign In' : t('skipBtn')}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.autoCaptureNoticeBox}>
+              <Text style={styles.autoCaptureNoticeText}>{t('autoCaptureOffNotice')}</Text>
+              <Text style={styles.autoCapturePrivacyText}>{t('privateOnDeviceNote')}</Text>
+            </View>
+          </View>
         </View>
-      </KeyboardAvoidingView>
+      </ScrollView>
+
+      {/* Paging Dots (3 dots) */}
+      <View style={styles.dotsContainer}>
+        {Array.from({ length: totalPages }).map((_, i) => {
+          const isActive = i === currentIndex;
+          return (
+            <TouchableOpacity
+              key={i}
+              activeOpacity={0.7}
+              onPress={() => goToPage(i)}
+              style={[styles.dot, isActive && styles.activeDot]}
+            />
+          );
+        })}
+      </View>
+
+      {/* Action Footer */}
+      <View style={styles.footer}>
+        <AnimatedPressable scaleTo={0.96} onPress={handleNext} style={styles.primaryBtn}>
+          <Text style={styles.primaryBtnText}>{getButtonText()}</Text>
+        </AnimatedPressable>
+
+        <TouchableOpacity activeOpacity={0.7} onPress={handleSkip} style={styles.ghostBtn}>
+          <Text style={styles.ghostBtnText}>
+            {isLastStep ? 'Already have an account? Sign In' : t('skipBtn')}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };
@@ -263,9 +265,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.mist,
   },
-  keyboardView: {
-    flex: 1,
-  },
   horizontalScrollContent: {
     alignItems: 'center',
   },
@@ -273,7 +272,7 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 28,
+    paddingHorizontal: 26,
   },
   pageInner: {
     width: '100%',
@@ -281,98 +280,136 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   heroIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
     shadowColor: Colors.ink,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
   },
-  heroEmoji: {
-    fontSize: 38,
-  },
   title: {
     fontFamily: Fonts.serifMedium,
     fontSize: 22,
     color: Colors.ink,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
     lineHeight: 28,
   },
   desc: {
     fontFamily: Fonts.sansRegular,
-    fontSize: 13.5,
+    fontSize: 13,
     color: Colors.inkSoft,
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 16,
+    lineHeight: 19,
+    marginBottom: 14,
     paddingHorizontal: 6,
   },
   modeContainer: {
     width: '100%',
-    gap: 12,
-    marginTop: 4,
-    marginBottom: 6,
+    gap: 10,
+    marginTop: 2,
+    marginBottom: 4,
   },
   modeCard: {
-    backgroundColor: Colors.card,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    borderWidth: 1.5,
+    borderWidth: 1.2,
     borderColor: Colors.line,
-    padding: 16,
-  },
-  modeCardActive: {
-    borderColor: Colors.moss,
-    backgroundColor: '#F7FAF7',
-    shadowColor: Colors.moss,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
+    padding: 13,
+    shadowColor: Colors.ink,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 2,
   },
   modeCardTop: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
   },
   modeIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.mist,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
+  },
+  modeHeaderTexts: {
+    flex: 1,
+  },
+  modeTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 3,
   },
   modeTitle: {
     fontFamily: Fonts.sansSemiBold,
     fontSize: 14.5,
     color: Colors.ink,
   },
+  modeTagPill: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  modeTagText: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 9.5,
+    letterSpacing: 0.2,
+  },
   modeDesc: {
     fontFamily: Fonts.sansRegular,
     fontSize: 12,
     color: Colors.inkSoft,
-    marginTop: 3,
+    lineHeight: 16.5,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  featureChip: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  featureChipText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 10.5,
+    color: Colors.inkSoft,
+  },
+  infoNoticeBox: {
+    width: '100%',
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#DCFCE7',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 2,
+  },
+  infoNoticeText: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 11.5,
+    color: Colors.mossDark,
+    textAlign: 'center',
     lineHeight: 16,
-  },
-  radioCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: Colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  radioCircleActive: {
-    backgroundColor: Colors.moss,
-    borderColor: Colors.moss,
   },
   autoCaptureCard: {
     width: '100%',
@@ -419,28 +456,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.monoMedium,
     fontSize: 10.5,
     color: Colors.mossDark,
-    textAlign: 'center',
-  },
-  nameInputContainer: {
-    width: '100%',
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.moss,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    marginTop: 8,
-    shadowColor: Colors.moss,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  nameInput: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 18,
-    color: Colors.ink,
-    paddingVertical: 12,
     textAlign: 'center',
   },
   dotsContainer: {
@@ -490,8 +505,5 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansMedium,
     fontSize: 14,
     color: Colors.inkSoft,
-  },
-  ghostBtnPlaceholder: {
-    height: 34,
   },
 });
