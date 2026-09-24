@@ -164,7 +164,7 @@ export const EditExpenseModal: React.FC = () => {
     >
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.avoidingView}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
@@ -184,14 +184,8 @@ export const EditExpenseModal: React.FC = () => {
           </View>
 
           <ScrollView
-            contentContainerStyle={[
-              styles.scrollContent,
-              {
-                paddingBottom: isKeyboardVisible
-                  ? (Platform.OS === 'android' ? keyboardHeight + 80 : 30)
-                  : 30,
-              },
-            ]}
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
@@ -360,12 +354,7 @@ export const EditExpenseModal: React.FC = () => {
           </ScrollView>
 
           {/* Action Button with spring bounce */}
-          <View
-            style={[
-              styles.footer,
-              Platform.OS === 'android' && isKeyboardVisible && { marginBottom: keyboardHeight },
-            ]}
-          >
+          <View style={styles.footer}>
             <AnimatedPressable scaleTo={0.96} onPress={handleSave} style={styles.saveBtn}>
               <Text style={styles.saveBtnText}>Save changes</Text>
             </AnimatedPressable>
@@ -437,6 +426,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.line,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  scrollView: {
+    flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 22,

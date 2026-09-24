@@ -61,7 +61,7 @@ export const AddLedgerEntryModal: React.FC = () => {
     >
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.avoidingView}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
@@ -77,14 +77,8 @@ export const AddLedgerEntryModal: React.FC = () => {
           </View>
 
           <ScrollView
-            contentContainerStyle={[
-              styles.scrollContent,
-              {
-                paddingBottom: isKeyboardVisible
-                  ? (Platform.OS === 'android' ? keyboardHeight + 80 : 30)
-                  : 30,
-              },
-            ]}
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
@@ -161,12 +155,7 @@ export const AddLedgerEntryModal: React.FC = () => {
           </ScrollView>
 
           {/* Save Button */}
-          <View
-            style={[
-              styles.footer,
-              Platform.OS === 'android' && isKeyboardVisible && { marginBottom: keyboardHeight },
-            ]}
-          >
+          <View style={styles.footer}>
             <TouchableOpacity activeOpacity={0.88} onPress={handleSave} style={styles.saveBtn}>
               <Text style={styles.saveBtnText}>{t('saveEntry')}</Text>
             </TouchableOpacity>
@@ -183,6 +172,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.mist,
   },
   avoidingView: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
   },
   topBar: {

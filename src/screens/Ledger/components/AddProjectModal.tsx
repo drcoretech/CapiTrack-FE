@@ -97,14 +97,8 @@ export const AddProjectModal: React.FC = () => {
           </View>
 
           <ScrollView
-            contentContainerStyle={[
-              styles.scrollContent,
-              {
-                paddingBottom: isKeyboardVisible
-                  ? (Platform.OS === 'android' ? keyboardHeight + 80 : 30)
-                  : 40,
-              },
-            ]}
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
@@ -216,12 +210,7 @@ export const AddProjectModal: React.FC = () => {
           </ScrollView>
 
           {/* Bottom Save Button */}
-          <View
-            style={[
-              styles.footer,
-              Platform.OS === 'android' && isKeyboardVisible && { marginBottom: keyboardHeight },
-            ]}
-          >
+          <View style={styles.footer}>
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={handleSave}
