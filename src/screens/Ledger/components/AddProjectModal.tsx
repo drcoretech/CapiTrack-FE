@@ -16,6 +16,7 @@ import { X, Briefcase, Check } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useAppStore } from '../../../store/useAppStore';
+import { useKeyboard } from '../../../hooks/useKeyboard';
 
 export const AddProjectModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -28,6 +29,7 @@ export const AddProjectModal: React.FC = () => {
   const [advanceStr, setAdvanceStr] = useState('6000');
   const [addToIncome, setAddToIncome] = useState(true);
   const [notes, setNotes] = useState('');
+  const { isKeyboardVisible, keyboardHeight } = useKeyboard();
 
   const isVisible = activeModal === 'add_project';
 
@@ -81,9 +83,17 @@ export const AddProjectModal: React.FC = () => {
           </View>
 
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                paddingBottom: isKeyboardVisible
+                  ? (Platform.OS === 'android' ? keyboardHeight + 80 : 30)
+                  : 40,
+              },
+            ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
           >
             {/* Client / Company Name */}
             <View style={styles.fieldGroup}>
@@ -171,7 +181,12 @@ export const AddProjectModal: React.FC = () => {
           </ScrollView>
 
           {/* Bottom Save Button */}
-          <View style={styles.footer}>
+          <View
+            style={[
+              styles.footer,
+              Platform.OS === 'android' && isKeyboardVisible && { marginBottom: keyboardHeight },
+            ]}
+          >
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={handleSave}

@@ -18,6 +18,7 @@ import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useAppStore } from '../../../store/useAppStore';
 import { ProjectPayment } from '../../../types';
+import { useKeyboard } from '../../../hooks/useKeyboard';
 
 export const ProjectDetailModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -37,6 +38,7 @@ export const ProjectDetailModal: React.FC = () => {
   const [payNote, setPayNote] = useState('');
   const [bridgeToIncome, setBridgeToIncome] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { isKeyboardVisible, keyboardHeight } = useKeyboard();
 
   if (!project) return null;
 
@@ -97,9 +99,17 @@ export const ProjectDetailModal: React.FC = () => {
           </View>
 
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                paddingBottom: isKeyboardVisible
+                  ? (Platform.OS === 'android' ? keyboardHeight + 80 : 30)
+                  : 40,
+              },
+            ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
           >
             {/* Project Hero Header */}
             <View style={styles.hero}>

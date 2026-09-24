@@ -23,6 +23,7 @@ import { AnimatedPressable } from '../../components/AnimatedPressable';
 import { CalendarDatePickerModal, formatHumanDate } from '../../components/CalendarDatePickerModal';
 import { MonthPickerModal, formatMonthLabel, getMonthEndISOString } from '../../components/MonthPickerModal';
 import { CategoryIcon } from '../../components/CategoryIcon';
+import { useKeyboard } from '../../hooks/useKeyboard';
 
 export const EditExpenseModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -42,6 +43,7 @@ export const EditExpenseModal: React.FC = () => {
   const [customDateStr, setCustomDateStr] = useState('');
   const [customDateLabel, setCustomDateLabel] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
+  const { isKeyboardVisible, keyboardHeight } = useKeyboard();
 
   // Monthly Total mode states
   const [isMonthlyTotal, setIsMonthlyTotal] = useState(false);
@@ -182,7 +184,14 @@ export const EditExpenseModal: React.FC = () => {
           </View>
 
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                paddingBottom: isKeyboardVisible
+                  ? (Platform.OS === 'android' ? keyboardHeight + 80 : 30)
+                  : 30,
+              },
+            ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
@@ -351,7 +360,12 @@ export const EditExpenseModal: React.FC = () => {
           </ScrollView>
 
           {/* Action Button with spring bounce */}
-          <View style={styles.footer}>
+          <View
+            style={[
+              styles.footer,
+              Platform.OS === 'android' && isKeyboardVisible && { marginBottom: keyboardHeight },
+            ]}
+          >
             <AnimatedPressable scaleTo={0.96} onPress={handleSave} style={styles.saveBtn}>
               <Text style={styles.saveBtnText}>Save changes</Text>
             </AnimatedPressable>

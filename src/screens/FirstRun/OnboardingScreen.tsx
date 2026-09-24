@@ -11,7 +11,19 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Briefcase, User, BookOpen, SlidersHorizontal, Zap } from 'lucide-react-native';
+import {
+  Briefcase,
+  User,
+  BookOpen,
+  SlidersHorizontal,
+  Zap,
+  PieChart,
+  Users,
+  Building2,
+  CheckCircle2,
+  TrendingUp,
+  Sparkles,
+} from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
@@ -139,13 +151,16 @@ export const OnboardingScreen: React.FC = () => {
                 {/* Feature Chips */}
                 <View style={styles.chipRow}>
                   <View style={styles.featureChip}>
-                    <Text style={styles.featureChipText}>⚡ Quick Log</Text>
+                    <Zap size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Quick Log</Text>
                   </View>
                   <View style={styles.featureChip}>
-                    <Text style={styles.featureChipText}>📊 Category Budgets</Text>
+                    <PieChart size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Category Budgets</Text>
                   </View>
                   <View style={styles.featureChip}>
-                    <Text style={styles.featureChipText}>🤝 Friends Khata</Text>
+                    <Users size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Friends Khata</Text>
                   </View>
                 </View>
               </View>
@@ -172,19 +187,23 @@ export const OnboardingScreen: React.FC = () => {
                 {/* Feature Chips */}
                 <View style={styles.chipRow}>
                   <View style={styles.featureChip}>
-                    <Text style={styles.featureChipText}>💼 Client CRM</Text>
+                    <Building2 size={11} color="#0D9488" strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Client CRM</Text>
                   </View>
                   <View style={styles.featureChip}>
-                    <Text style={styles.featureChipText}>🎯 Milestone Payments</Text>
+                    <CheckCircle2 size={11} color="#0D9488" strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Milestone Payments</Text>
                   </View>
                   <View style={styles.featureChip}>
-                    <Text style={styles.featureChipText}>📈 Revenue Trends</Text>
+                    <TrendingUp size={11} color="#0D9488" strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Revenue Trends</Text>
                   </View>
                 </View>
               </View>
 
               {/* Informational Guidance Notice */}
               <View style={styles.infoNoticeBox}>
+                <Sparkles size={14} color={Colors.mossDark} style={{ marginRight: 8 }} />
                 <Text style={styles.infoNoticeText}>{t('onboardingModeNote')}</Text>
               </View>
             </View>
@@ -382,12 +401,17 @@ const styles = StyleSheet.create({
     borderTopColor: '#F1F5F9',
   },
   featureChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 3.5,
     borderRadius: 10,
+  },
+  chipIcon: {
+    marginRight: 4,
   },
   featureChipText: {
     fontFamily: Fonts.sansMedium,
@@ -396,6 +420,8 @@ const styles = StyleSheet.create({
   },
   infoNoticeBox: {
     width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#F0FDF4',
     borderWidth: 1,
     borderColor: '#DCFCE7',
@@ -405,10 +431,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   infoNoticeText: {
+    flex: 1,
     fontFamily: Fonts.sansRegular,
     fontSize: 11.5,
     color: Colors.mossDark,
-    textAlign: 'center',
     lineHeight: 16,
   },
   autoCaptureCard: {

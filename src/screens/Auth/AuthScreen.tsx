@@ -28,6 +28,7 @@ import {
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
+import { useKeyboard } from '../../hooks/useKeyboard';
 
 export const AuthScreen: React.FC = () => {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
@@ -37,6 +38,7 @@ export const AuthScreen: React.FC = () => {
   const [workflowMode, setWorkflowMode] = useState<'personal' | 'both'>('personal');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const { isKeyboardVisible, keyboardHeight } = useKeyboard();
 
   const login = useAppStore((state) => state.login);
   const signup = useAppStore((state) => state.signup);
@@ -79,37 +81,49 @@ export const AuthScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <KeyboardAvoidingView
-          style={styles.keyboardView}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          {/* Subtle Back to Tour button */}
-          <View style={styles.topBar}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => setFirstRunStep('onboarding')}
-              style={styles.backTourBtn}
-            >
-              <ChevronLeft size={18} color={Colors.inkSoft} />
-              <Text style={styles.backTourText}>App Tour</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            automaticallyAdjustKeyboardInsets={true}
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {/* Subtle Back to Tour button */}
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setFirstRunStep('onboarding')}
+            style={styles.backTourBtn}
           >
-            {/* Header Brand Badge */}
-            <View style={styles.header}>
+            <ChevronLeft size={18} color={Colors.inkSoft} />
+            <Text style={styles.backTourText}>App Tour</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingBottom: isKeyboardVisible
+                ? (Platform.OS === 'android' ? keyboardHeight + 40 : 40)
+                : 60,
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          {/* Header Brand Badge */}
+          <View style={[styles.header, isKeyboardVisible && styles.headerCompact]}>
+            {!isKeyboardVisible && (
               <View style={styles.logoBadge}>
                 <Wallet size={26} color={Colors.moss} />
               </View>
-              <Text style={styles.brandTitle}>CapiTrack</Text>
+            )}
+            <Text style={[styles.brandTitle, isKeyboardVisible && styles.brandTitleCompact]}>
+              CapiTrack
+            </Text>
+            {!isKeyboardVisible && (
               <Text style={styles.brandTagline}>Your Personal Capital & Khata Ledger</Text>
-            </View>
+            )}
+          </View>
 
             {/* Segmented Switcher */}
             <View style={styles.switcherContainer}>
@@ -307,8 +321,7 @@ export const AuthScreen: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
-  </SafeAreaView>
+    </SafeAreaView>
   );
 };
 
@@ -346,13 +359,17 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 90,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
     marginBottom: 14,
+  },
+  headerCompact: {
+    marginBottom: 8,
+  },
+  brandTitleCompact: {
+    fontSize: 20,
   },
   logoBadge: {
     width: 52,

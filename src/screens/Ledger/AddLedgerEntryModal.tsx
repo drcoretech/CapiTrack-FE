@@ -17,6 +17,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { useTranslation } from '../../i18n/translations';
+import { useKeyboard } from '../../hooks/useKeyboard';
 
 export const AddLedgerEntryModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -30,6 +31,7 @@ export const AddLedgerEntryModal: React.FC = () => {
   const [direction, setDirection] = useState<'LENT' | 'BORROWED'>('LENT');
   const [amountStr, setAmountStr] = useState('1400');
   const [note, setNote] = useState('');
+  const { isKeyboardVisible, keyboardHeight } = useKeyboard();
 
   const isVisible = activeModal === 'add_ledger';
 
@@ -75,7 +77,14 @@ export const AddLedgerEntryModal: React.FC = () => {
           </View>
 
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                paddingBottom: isKeyboardVisible
+                  ? (Platform.OS === 'android' ? keyboardHeight + 80 : 30)
+                  : 30,
+              },
+            ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
@@ -152,7 +161,12 @@ export const AddLedgerEntryModal: React.FC = () => {
           </ScrollView>
 
           {/* Save Button */}
-          <View style={styles.footer}>
+          <View
+            style={[
+              styles.footer,
+              Platform.OS === 'android' && isKeyboardVisible && { marginBottom: keyboardHeight },
+            ]}
+          >
             <TouchableOpacity activeOpacity={0.88} onPress={handleSave} style={styles.saveBtn}>
               <Text style={styles.saveBtnText}>{t('saveEntry')}</Text>
             </TouchableOpacity>
