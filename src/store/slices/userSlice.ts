@@ -188,8 +188,8 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
       contacts: [],
       clientProjects: [],
       dashboardData: null,
-      firstRunStep: 'splash',
-      hasCompletedOnboarding: false,
+      firstRunStep: 'auth',
+      hasCompletedOnboarding: true,
     });
   },
 });

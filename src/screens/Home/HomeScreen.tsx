@@ -32,35 +32,46 @@ export const HomeScreen: React.FC = () => {
 
   const [isEditingName, setIsEditingName] = useState(false);
 
-  // Staggered entrance animators
-  const headerFade = useRef(new Animated.Value(0)).current;
-  const headerSlide = useRef(new Animated.Value(-12)).current;
-  const bigStatScale = useRef(new Animated.Value(0.92)).current;
-  const bigStatFade = useRef(new Animated.Value(0)).current;
-  const cardsSlide = useRef(new Animated.Value(24)).current;
-  const cardsFade = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.stagger(90, [
-      Animated.parallel([
-        Animated.timing(headerFade, { toValue: 1, duration: 280, useNativeDriver: true }),
-        Animated.spring(headerSlide, { toValue: 0, friction: 6, tension: 80, useNativeDriver: true }),
-      ]),
-      Animated.parallel([
-        Animated.timing(bigStatFade, { toValue: 1, duration: 320, useNativeDriver: true }),
-        Animated.spring(bigStatScale, { toValue: 1, friction: 6, tension: 70, useNativeDriver: true }),
-      ]),
-      Animated.parallel([
-        Animated.timing(cardsFade, { toValue: 1, duration: 320, useNativeDriver: true }),
-        Animated.spring(cardsSlide, { toValue: 0, friction: 7, tension: 80, useNativeDriver: true }),
-      ]),
-    ]).start();
-  }, []);
+  // Staggered entrance animators (initialized to 1 so content is never invisible)
+  const headerFade = useRef(new Animated.Value(1)).current;
+  const headerSlide = useRef(new Animated.Value(0)).current;
+  const bigStatScale = useRef(new Animated.Value(1)).current;
+  const bigStatFade = useRef(new Animated.Value(1)).current;
+  const cardsSlide = useRef(new Animated.Value(0)).current;
+  const cardsFade = useRef(new Animated.Value(1)).current;
 
   // Dynamic calculations directly from real expenses array
   const todayExpenses = expenses.filter((e) => e.dayGroup === 'Today');
   const spentToday = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
   const deltaText = dashboardData?.delta ?? (spentToday > 0 ? `↑ 100% ${t('vsYesterday')}` : `0% ${t('vsYesterday')}`);
+
+  const isInitialLoading = isSyncing && !dashboardData && expenses.length === 0;
+
+  useEffect(() => {
+    if (!isInitialLoading) {
+      headerFade.setValue(0);
+      headerSlide.setValue(-10);
+      bigStatFade.setValue(0);
+      bigStatScale.setValue(0.94);
+      cardsFade.setValue(0);
+      cardsSlide.setValue(16);
+
+      Animated.stagger(80, [
+        Animated.parallel([
+          Animated.timing(headerFade, { toValue: 1, duration: 250, useNativeDriver: true }),
+          Animated.spring(headerSlide, { toValue: 0, friction: 6, tension: 80, useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(bigStatFade, { toValue: 1, duration: 280, useNativeDriver: true }),
+          Animated.spring(bigStatScale, { toValue: 1, friction: 6, tension: 70, useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(cardsFade, { toValue: 1, duration: 280, useNativeDriver: true }),
+          Animated.spring(cardsSlide, { toValue: 0, friction: 7, tension: 80, useNativeDriver: true }),
+        ]),
+      ]).start();
+    }
+  }, [isInitialLoading]);
 
   // Dynamic AI Insight computation based on real entries and timestamps
   const dynamicInsight = useMemo(() => {
@@ -111,8 +122,6 @@ export const HomeScreen: React.FC = () => {
 
   const owedToYou = dashboardData?.owedToYou ?? calculatedOwedToYou;
   const youOwe = dashboardData?.youOwe ?? calculatedYouOwe;
-
-  const isInitialLoading = isSyncing && !dashboardData && expenses.length === 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>

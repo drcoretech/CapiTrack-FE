@@ -37,12 +37,12 @@ export interface UserSlice {
   isAuthenticated: boolean;
   currencySymbol: string;
   selectedLanguage: 'en' | 'hi' | 'mr';
-  firstRunStep: 'splash' | 'language' | 'onboarding' | 'main';
+  firstRunStep: 'splash' | 'language' | 'onboarding' | 'auth' | 'main';
   hasCompletedOnboarding: boolean;
   autoCaptureEnabled: boolean;
   darkModeEnabled: boolean;
   businessTrackingEnabled: boolean;
-  setFirstRunStep: (step: 'splash' | 'language' | 'onboarding' | 'main') => void;
+  setFirstRunStep: (step: 'splash' | 'language' | 'onboarding' | 'auth' | 'main') => void;
   setHasCompletedOnboarding: (completed: boolean) => void;
   setUserName: (name: string) => Promise<void>;
   setSelectedLanguage: (lang: 'en' | 'hi' | 'mr') => Promise<void>;

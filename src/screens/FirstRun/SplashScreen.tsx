@@ -27,25 +27,23 @@ export const SplashScreen: React.FC = () => {
   const promptPulse = useRef(new Animated.Value(0.3)).current;
 
   const handleProceed = () => {
-    setFirstRunStep('main');
+    const isAuth = useAppStore.getState().isAuthenticated;
+    if (isAuth) {
+      setFirstRunStep('main');
+    } else {
+      setFirstRunStep('onboarding');
+    }
   };
 
   useEffect(() => {
     // Check persistent storage immediately on mount
-    AsyncStorage.getItem('@capitrack_onboarding_completed')
-      .then((val) => {
-        if (val === 'true') {
+    AsyncStorage.getItem('@capitrack_auth_token')
+      .then((token) => {
+        if (token && token.trim().length > 0) {
           isCompletedRef.current = true;
-          useAppStore.setState({ hasCompletedOnboarding: true });
-        }
-      })
-      .catch(() => {});
-
-    AsyncStorage.getItem('@capitrack_user_name')
-      .then((name) => {
-        if (name && name !== 'You' && name.trim().length > 0) {
-          isCompletedRef.current = true;
-          useAppStore.setState({ hasCompletedOnboarding: true });
+          useAppStore.setState({ isAuthenticated: true });
+        } else {
+          isCompletedRef.current = false;
         }
       })
       .catch(() => {});

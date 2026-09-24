@@ -38,13 +38,12 @@ export const OnboardingScreen: React.FC = () => {
 
   const scrollRef = useRef<ScrollView>(null);
 
-  // Exactly 4 pages total:
+  // Exactly 3 feature introduction pages total:
   // Page 0: Combined Expenses & Khata
-  // Page 1: Choose Tracking Mode (Personal Only vs Both Personal & Freelance Projects)
-  // Page 2: Auto-Capture (with Settings redirect on enable)
-  // Page 3: Name Input Step
-  const totalPages = 4;
-  const isNameStep = currentIndex === 3;
+  // Page 1: Freelance Projects & Contracts
+  // Page 2: Auto-Capture & Security
+  const totalPages = 3;
+  const isLastStep = currentIndex === 2;
 
   const handleToggleAutoCapture = async () => {
     const nextVal = !autoCaptureEnabled;
@@ -76,32 +75,17 @@ export const OnboardingScreen: React.FC = () => {
     if (currentIndex < totalPages - 1) {
       goToPage(currentIndex + 1);
     } else {
-      // Final Step: Complete Onboarding
-      const targetName = inputName.trim() || 'Digvijay';
-      const isBusinessActive = selectedMode === 'both';
-
-      // Persist chosen workflow mode
-      useAppStore.setState({ businessTrackingEnabled: isBusinessActive });
-      AsyncStorage.setItem('@capitrack_business_tracking_enabled', isBusinessActive ? 'true' : 'false').catch(() => {});
-
-      // Persist onboarding completed flag immediately
-      AsyncStorage.setItem('@capitrack_onboarding_completed', 'true').catch(() => {});
-      useAppStore.setState({ hasCompletedOnboarding: true });
-
-      // Immediate instant navigation to dashboard
-      setFirstRunStep('main');
-      // Fire name update and persistence in background
-      setUserName(targetName).catch(() => {});
+      // Transition directly to Login / Sign Up screen
+      setFirstRunStep('auth');
     }
   };
 
   const handleSkip = () => {
-    goToPage(3); // Jump directly to Name step
+    setFirstRunStep('auth');
   };
 
   const getButtonText = () => {
-    if (isNameStep) return t('getStartedBtn');
-    if (currentIndex === 2) return t('continueBtn');
+    if (isLastStep) return 'Get Started ›';
     return t('nextBtn');
   };
 
@@ -240,34 +224,9 @@ export const OnboardingScreen: React.FC = () => {
               </View>
             </View>
           </View>
-
-          {/* Screen 4: Name Customization Step */}
-          <View style={styles.page}>
-            <View style={styles.pageInner}>
-              <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
-                <Sparkles size={40} color={Colors.moss} strokeWidth={2} />
-              </View>
-
-              <Text style={styles.title}>{t('whatShouldWeCallYou')}</Text>
-              <Text style={styles.desc}>{t('nameSubDesc')}</Text>
-
-              <View style={styles.nameInputContainer}>
-                <TextInput
-                  value={inputName}
-                  onChangeText={setInputName}
-                  placeholder={t('enterNamePlaceholder')}
-                  placeholderTextColor={Colors.inkSoft}
-                  style={styles.nameInput}
-                  autoCapitalize="words"
-                  returnKeyType="done"
-                  onSubmitEditing={handleNext}
-                />
-              </View>
-            </View>
-          </View>
         </ScrollView>
 
-        {/* Paging Dots (4 dots) */}
+        {/* Paging Dots (3 dots) */}
         <View style={styles.dotsContainer}>
           {Array.from({ length: totalPages }).map((_, i) => {
             const isActive = i === currentIndex;
@@ -288,13 +247,11 @@ export const OnboardingScreen: React.FC = () => {
             <Text style={styles.primaryBtnText}>{getButtonText()}</Text>
           </AnimatedPressable>
 
-          {currentIndex > 0 && !isNameStep ? (
-            <TouchableOpacity activeOpacity={0.7} onPress={handleSkip} style={styles.ghostBtn}>
-              <Text style={styles.ghostBtnText}>{t('skipBtn')}</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.ghostBtnPlaceholder} />
-          )}
+          <TouchableOpacity activeOpacity={0.7} onPress={handleSkip} style={styles.ghostBtn}>
+            <Text style={styles.ghostBtnText}>
+              {isLastStep ? 'Already have an account? Sign In' : t('skipBtn')}
+            </Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

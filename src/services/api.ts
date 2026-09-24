@@ -100,7 +100,8 @@ export const getCurrentDeviceId = () => currentDeviceId;
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  // 20s timeout to allow for serverless cloud cold-starts and slow mobile connections
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
 
   if (!currentDeviceId) {
     await getOrCreateDeviceId();
@@ -129,6 +130,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     return json as T;
   } catch (err: any) {
     clearTimeout(timeoutId);
+    if (err.name === 'AbortError' || err.message?.includes('aborted') || err.message?.includes('cancelled')) {
+      throw new Error('Server connection took too long. Please try again.');
+    }
     throw err;
   }
 }

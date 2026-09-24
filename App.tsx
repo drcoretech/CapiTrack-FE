@@ -129,8 +129,18 @@ export default function App() {
     );
   }
 
-  // 2. Authentication Gate: If user is not logged in, show AuthScreen
-  if (!isAuthenticated) {
+  // 2. Onboarding Gate: If unauthenticated and on onboarding step
+  if (!isAuthenticated && firstRunStep === 'onboarding') {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <OnboardingScreen />
+      </SafeAreaProvider>
+    );
+  }
+
+  // 3. Authentication Gate: If unauthenticated or in auth step, show AuthScreen
+  if (!isAuthenticated || firstRunStep === 'auth') {
     return (
       <SafeAreaProvider>
         <StatusBar style="dark" />

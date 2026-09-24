@@ -9,6 +9,8 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -21,6 +23,7 @@ import {
   Wallet,
   AlertCircle,
   ArrowRight,
+  ChevronLeft,
 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
@@ -37,6 +40,7 @@ export const AuthScreen: React.FC = () => {
 
   const login = useAppStore((state) => state.login);
   const signup = useAppStore((state) => state.signup);
+  const setFirstRunStep = useAppStore((state) => state.setFirstRunStep);
 
   const handleSubmit = async () => {
     setErrorMessage('');
@@ -75,26 +79,40 @@ export const AuthScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView
+          style={styles.keyboardView}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {/* Header Brand Badge */}
-          <View style={styles.header}>
-            <View style={styles.logoBadge}>
-              <Wallet size={32} color={Colors.moss} />
-            </View>
-            <Text style={styles.brandTitle}>CapiTrack</Text>
-            <Text style={styles.brandTagline}>Your Personal Capital & Khata Ledger</Text>
+          {/* Subtle Back to Tour button */}
+          <View style={styles.topBar}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setFirstRunStep('onboarding')}
+              style={styles.backTourBtn}
+            >
+              <ChevronLeft size={18} color={Colors.inkSoft} />
+              <Text style={styles.backTourText}>App Tour</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Segmented Switcher */}
-          <View style={styles.switcherContainer}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets={true}
+          >
+            {/* Header Brand Badge */}
+            <View style={styles.header}>
+              <View style={styles.logoBadge}>
+                <Wallet size={26} color={Colors.moss} />
+              </View>
+              <Text style={styles.brandTitle}>CapiTrack</Text>
+              <Text style={styles.brandTagline}>Your Personal Capital & Khata Ledger</Text>
+            </View>
+
+            {/* Segmented Switcher */}
+            <View style={styles.switcherContainer}>
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => {
@@ -289,7 +307,8 @@ export const AuthScreen: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </TouchableWithoutFeedback>
+  </SafeAreaView>
   );
 };
 
@@ -301,38 +320,62 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 40,
+  topBar: {
+    width: '100%',
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 2,
+    flexDirection: 'row',
     alignItems: 'center',
+  },
+  backTourBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: '#EAEFE9',
+    borderRadius: 16,
+  },
+  backTourText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12.5,
+    color: Colors.inkSoft,
+    marginLeft: 2,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 90,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 14,
   },
   logoBadge: {
-    width: 68,
-    height: 68,
-    borderRadius: 22,
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     backgroundColor: '#EAF3EC',
     borderWidth: 1.5,
     borderColor: '#CBE2CF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   brandTitle: {
     fontFamily: Fonts.serifSemiBold,
-    fontSize: 28,
+    fontSize: 24,
     color: Colors.ink,
     letterSpacing: -0.5,
   },
   brandTagline: {
     fontFamily: Fonts.sansRegular,
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.inkSoft,
-    marginTop: 4,
+    marginTop: 2,
   },
   switcherContainer: {
     flexDirection: 'row',
@@ -340,7 +383,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 4,
     width: '100%',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   switcherTab: {
     flex: 1,
