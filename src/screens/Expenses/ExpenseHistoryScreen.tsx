@@ -8,6 +8,8 @@ import { useTranslation } from '../../i18n/translations';
 import { Expense } from '../../types';
 import { ExpenseSkeleton } from './components/ExpenseSkeleton';
 import { CategoryIcon } from '../../components/CategoryIcon';
+import { Pencil } from 'lucide-react-native';
+
 
 export const ExpenseHistoryScreen: React.FC = () => {
   const expenses = useAppStore((state) => state.expenses);
@@ -159,7 +161,12 @@ export const ExpenseHistoryScreen: React.FC = () => {
                               </Text>
                             </View>
                           </View>
-                          <Text style={styles.amount}>₹{item.amount.toLocaleString()}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={styles.amount}>₹{item.amount.toLocaleString()}</Text>
+                            <View style={styles.editPill}>
+                              <Pencil size={11} color={Colors.inkSoft} />
+                            </View>
+                          </View>
                         </TouchableOpacity>
                       );
                     })}
@@ -287,5 +294,13 @@ const styles = StyleSheet.create({
     color: Colors.ink,
     flexShrink: 0,
     textAlign: 'right',
+  },
+  editPill: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.mist,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

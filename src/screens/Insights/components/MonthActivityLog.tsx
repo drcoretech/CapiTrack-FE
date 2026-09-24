@@ -1,12 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Calendar, Plus } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Calendar, Plus, Pencil } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useTranslation } from '../../../i18n/translations';
 import { AnimatedPressable } from '../../../components/AnimatedPressable';
 import { Expense } from '../../../types';
 import { CategoryIcon } from '../../../components/CategoryIcon';
+import { useAppStore } from '../../../store/useAppStore';
 
 interface MonthActivityLogProps {
   monthExpenses: Expense[];
@@ -19,13 +20,14 @@ export const MonthActivityLog: React.FC<MonthActivityLogProps> = ({
   currencySymbol,
 }) => {
   const { t, getCategoryName } = useTranslation();
+  const setEditingExpense = useAppStore((state) => state.setEditingExpense);
 
   return (
     <View style={styles.activityCard}>
       <View style={styles.breakdownHeaderRow}>
         <Text style={styles.breakdownHeader}>{t('monthActivity')}</Text>
         <Text style={styles.breakdownCountText}>
-          {monthExpenses.length} {t('monthTransactions')}
+          {monthExpenses.length} {t('monthTransactions')} • Tap to edit
         </Text>
       </View>
 
@@ -45,7 +47,12 @@ export const MonthActivityLog: React.FC<MonthActivityLogProps> = ({
               });
 
           return (
-            <View key={expense.id} style={styles.activityItem}>
+            <TouchableOpacity
+              key={expense.id}
+              activeOpacity={0.7}
+              onPress={() => setEditingExpense(expense)}
+              style={styles.activityItem}
+            >
               <View style={styles.activityLeft}>
                 <View
                   style={[
@@ -76,11 +83,16 @@ export const MonthActivityLog: React.FC<MonthActivityLogProps> = ({
                   </Text>
                 </View>
               </View>
-              <Text style={styles.activityAmount}>
-                - {currencySymbol}
-                {expense.amount.toLocaleString()}
-              </Text>
-            </View>
+              <View style={styles.activityRight}>
+                <Text style={styles.activityAmount}>
+                  - {currencySymbol}
+                  {expense.amount.toLocaleString()}
+                </Text>
+                <View style={styles.editPencilBadge}>
+                  <Pencil size={11} color={Colors.inkSoft} />
+                </View>
+              </View>
+            </TouchableOpacity>
           );
         })
       ) : (
@@ -176,12 +188,25 @@ const styles = StyleSheet.create({
     color: Colors.inkSoft,
     marginTop: 2,
   },
+  activityRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   activityAmount: {
     fontFamily: Fonts.monoMedium,
     fontSize: 13.5,
     color: Colors.brick,
     flexShrink: 0,
     textAlign: 'right',
+  },
+  editPencilBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.mist,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyActivityContainer: {
     paddingVertical: 24,

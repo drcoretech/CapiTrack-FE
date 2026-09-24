@@ -6,6 +6,8 @@ import { useTranslation } from '../../../i18n/translations';
 import { AnimatedPressable } from '../../../components/AnimatedPressable';
 import { CategoryIcon } from '../../../components/CategoryIcon';
 import { Expense } from '../../../types';
+import { Pencil } from 'lucide-react-native';
+
 
 interface TodaysActivityListProps {
   expenses: Expense[];
@@ -78,7 +80,12 @@ export const TodaysActivityList: React.FC<TodaysActivityListProps> = ({
                   </Text>
                 </View>
               </View>
-              <Text style={styles.expAmount}>₹{exp.amount.toLocaleString()}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.expAmount}>₹{exp.amount.toLocaleString()}</Text>
+                <View style={styles.editPill}>
+                  <Pencil size={11} color={Colors.inkSoft} />
+                </View>
+              </View>
             </TouchableOpacity>
           );
         })
@@ -172,5 +179,13 @@ const styles = StyleSheet.create({
     color: Colors.ink,
     flexShrink: 0,
     textAlign: 'right',
+  },
+  editPill: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.mist,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import {
   TrendingUp,
@@ -7,6 +7,9 @@ import {
   CheckCircle2,
   Clock,
   ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
 } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
@@ -21,6 +24,7 @@ interface FreelanceRevenueViewProps {
   totalPersonalSpent: number;
   onOpenProject?: (id: string) => void;
   onNavigateToLedger?: () => void;
+  onSelectMonthYear?: (month: number, year: number) => void;
 }
 
 const parseDateSafe = (dateInput?: any): Date => {
@@ -30,23 +34,27 @@ const parseDateSafe = (dateInput?: any): Date => {
   if (!isNaN(d.getTime())) return d;
   if (typeof dateInput === 'string') {
     const monthNames: Record<string, number> = {
-      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+      jan: 0, january: 0,
+      feb: 1, february: 1,
+      mar: 2, march: 2,
+      apr: 3, april: 3,
+      may: 4,
+      jun: 5, june: 5,
+      jul: 6, july: 6,
+      aug: 7, august: 7,
+      sep: 8, september: 8,
+      oct: 9, october: 9,
+      nov: 10, november: 10,
+      dec: 11, december: 11,
     };
-    const parts = dateInput.replace(/,/g, '').split(/\s+/);
-    if (parts.length >= 3) {
-      const p0 = parts[0].toLowerCase().slice(0, 3);
-      const p1 = parts[1].toLowerCase().slice(0, 3);
-      if (monthNames[p0] !== undefined) {
-        const m = monthNames[p0];
-        const day = parseInt(parts[1], 10);
-        const y = parseInt(parts[2], 10);
-        if (!isNaN(day) && !isNaN(y)) return new Date(y, m, day);
-      } else if (monthNames[p1] !== undefined) {
-        const day = parseInt(parts[0], 10);
-        const m = monthNames[p1];
-        const y = parseInt(parts[2], 10);
-        if (!isNaN(day) && !isNaN(y)) return new Date(y, m, day);
+    const cleaned = dateInput.toLowerCase().replace(/,/g, '').trim();
+    for (const [name, m] of Object.entries(monthNames)) {
+      if (cleaned.includes(name)) {
+        const yearMatch = cleaned.match(/\b(20\d\d)\b/);
+        const y = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
+        const dayMatch = cleaned.match(/\b([1-9]|[12]\d|3[01])\b/);
+        const day = dayMatch ? parseInt(dayMatch[1], 10) : 15;
+        return new Date(y, m, day);
       }
     }
   }
@@ -61,6 +69,7 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
   totalPersonalSpent,
   onOpenProject,
   onNavigateToLedger,
+  onSelectMonthYear,
 }) => {
   const { t, getMonth } = useTranslation();
 
@@ -80,7 +89,8 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
 
     projects.forEach((proj) => {
       (proj.payments || []).forEach((p) => {
-        const d = parseDateSafe(p.date);
+        const rawDate = p.date || proj.createdAt;
+        const d = parseDateSafe(rawDate);
         if (d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear) {
           list.push({
             paymentId: p.id,
@@ -101,6 +111,18 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
     return list;
   }, [projects, selectedMonth, selectedYear]);
 
+  // Contracts booked/signed in selected month & year
+  const monthContracts = useMemo(() => {
+    return projects.filter((proj) => {
+      const d = parseDateSafe(proj.createdAt);
+      return d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
+    });
+  }, [projects, selectedMonth, selectedYear]);
+
+  const contractsValueSignedMonth = useMemo(() => {
+    return monthContracts.reduce((sum, p) => sum + p.totalValue, 0);
+  }, [monthContracts]);
+
   // Total collected in selected month
   const totalCollectedMonth = useMemo(() => {
     return monthPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -114,7 +136,8 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
     let sum = 0;
     projects.forEach((proj) => {
       (proj.payments || []).forEach((p) => {
-        const d = parseDateSafe(p.date);
+        const rawDate = p.date || proj.createdAt;
+        const d = parseDateSafe(rawDate);
         if (d.getMonth() + 1 === prevMonth && d.getFullYear() === prevYear) {
           sum += p.amount;
         }
@@ -149,16 +172,23 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
     return { totalInvoiced, totalReceivedEver, pendingDue };
   }, [projects]);
 
+  // Year-wise 6-Month Trend Controls
+  const [trendYear, setTrendYear] = useState(selectedYear);
+  const [trendHalf, setTrendHalf] = useState<'H1' | 'H2'>(selectedMonth <= 6 ? 'H1' : 'H2');
 
-  // 6-Month Revenue Trend
+  useEffect(() => {
+    setTrendYear(selectedYear);
+    setTrendHalf(selectedMonth <= 6 ? 'H1' : 'H2');
+  }, [selectedMonth, selectedYear]);
+
+  // 6-Month Revenue Trend computed for the chosen year and half
   const sixMonthsTrend = useMemo(() => {
     const monthsList: { month: number; year: number }[] = [];
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const startMonth = trendHalf === 'H1' ? 1 : 7;
+    for (let m = startMonth; m < startMonth + 6; m++) {
       monthsList.push({
-        month: targetDate.getMonth() + 1,
-        year: targetDate.getFullYear(),
+        month: m,
+        year: trendYear,
       });
     }
 
@@ -166,7 +196,8 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
       let monthSum = 0;
       projects.forEach((proj) => {
         (proj.payments || []).forEach((p) => {
-          const d = parseDateSafe(p.date);
+          const rawDate = p.date || proj.createdAt;
+          const d = parseDateSafe(rawDate);
           if (d.getMonth() + 1 === m.month && d.getFullYear() === m.year) {
             monthSum += p.amount;
           }
@@ -186,12 +217,17 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
     });
 
     const maxVal = Math.max(...data.map((d) => d.total), 1);
-    return data.map((d) => ({
-      ...d,
-      percentage: Math.max(12, Math.round((d.total / maxVal) * 100)),
-      isPeak: d.total === maxVal && d.total > 0,
-    }));
-  }, [projects, selectedMonth, selectedYear, currencySymbol]);
+    const periodTotal = data.reduce((sum, d) => sum + d.total, 0);
+
+    return {
+      periodTotal,
+      bars: data.map((d) => ({
+        ...d,
+        percentage: Math.max(12, Math.round((d.total / maxVal) * 100)),
+        isPeak: d.total === maxVal && d.total > 0,
+      })),
+    };
+  }, [projects, selectedMonth, selectedYear, currencySymbol, trendYear, trendHalf]);
 
   // Client-wise Revenue Contribution for selected month
   const clientBreakdown = useMemo(() => {
@@ -295,6 +331,30 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
             </Text>
           </View>
         </View>
+
+        {/* Alert when contracts are signed in selected month */}
+        {monthContracts.length > 0 && (
+          <View style={styles.contractAlertCard}>
+            <View style={styles.contractAlertTop}>
+              <View style={styles.contractAlertIcon}>
+                <Briefcase size={16} color={Colors.moss} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.contractAlertTitle}>
+                  {monthContracts.length} Project Contract{monthContracts.length > 1 ? 's' : ''} Signed in {getMonth(selectedMonth)} {selectedYear}
+                </Text>
+                <Text style={styles.contractAlertSub} numberOfLines={2}>
+                  {monthContracts.map((p) => `${p.clientName} (₹${p.totalValue.toLocaleString()})`).join(' • ')}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.contractAlertHint}>
+              {totalCollectedMonth > 0
+                ? `Total contract deal value booked: ₹${contractsValueSignedMonth.toLocaleString()}.`
+                : `₹${contractsValueSignedMonth.toLocaleString()} new contract value booked for this month! Tap project below to record or edit milestone payments.`}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* 2. Client Contracts & Projects Overview */}
@@ -398,7 +458,7 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
                   <Text style={styles.contractCollectedText}>
                     Collected: {currencySymbol}{rec.toLocaleString()} ({pct}%)
                   </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text
                       style={[
                         styles.contractDueText,
@@ -407,7 +467,9 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
                     >
                       {due > 0 ? `Due: ${currencySymbol}${due.toLocaleString()}` : 'Fully Paid ✅'}
                     </Text>
-                    <ArrowUpRight size={13} color={Colors.inkSoft} />
+                    <View style={styles.contractEditBadge}>
+                      <Pencil size={11} color={Colors.inkSoft} />
+                    </View>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -416,12 +478,65 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
         )}
       </View>
 
-      {/* 3. 6-Month Freelance Revenue Trend Bar Chart */}
+      {/* 3. Year-Wise 6-Month Freelance Revenue Trend Bar Chart */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>{t('revenueTrend6Months')}</Text>
+        <View style={styles.trendHeaderRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionTitle}>{t('revenueTrend6Months')}</Text>
+            <Text style={styles.trendPeriodSub}>
+              {trendYear} • {trendHalf === 'H1' ? 'Jan – Jun (H1)' : 'Jul – Dec (H2)'} (Total: {currencySymbol}{sixMonthsTrend.periodTotal.toLocaleString()})
+            </Text>
+          </View>
+
+          <View style={styles.trendYearSwitcher}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setTrendYear((y) => y - 1)}
+              style={styles.yearArrowBtn}
+            >
+              <ChevronLeft size={16} color={Colors.ink} />
+            </TouchableOpacity>
+            <Text style={styles.trendYearLabel}>{trendYear}</Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setTrendYear((y) => y + 1)}
+              style={styles.yearArrowBtn}
+            >
+              <ChevronRight size={16} color={Colors.ink} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Half Year Segmented Tabs */}
+        <View style={styles.halfYearTabContainer}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setTrendHalf('H1')}
+            style={[styles.halfYearTab, trendHalf === 'H1' && styles.halfYearTabActive]}
+          >
+            <Text style={[styles.halfYearTabText, trendHalf === 'H1' && styles.halfYearTabTextActive]}>
+              Jan – Jun (H1)
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setTrendHalf('H2')}
+            style={[styles.halfYearTab, trendHalf === 'H2' && styles.halfYearTabActive]}
+          >
+            <Text style={[styles.halfYearTabText, trendHalf === 'H2' && styles.halfYearTabTextActive]}>
+              Jul – Dec (H2)
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.trendBarsRow}>
-          {sixMonthsTrend.map((item, idx) => (
-            <View key={idx} style={styles.barCol}>
+          {sixMonthsTrend.bars.map((item, idx) => (
+            <TouchableOpacity
+              key={idx}
+              activeOpacity={0.7}
+              onPress={() => onSelectMonthYear?.(item.month, item.year)}
+              style={styles.barCol}
+            >
               <View style={styles.barTrack}>
                 <View
                   style={[
@@ -446,7 +561,7 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
               >
                 {getMonth(item.month).substring(0, 3)}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </View>
@@ -944,5 +1059,113 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansSemiBold,
     fontSize: 12,
     color: '#FFFFFF',
+  },
+  contractAlertCard: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 14,
+  },
+  contractAlertTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  contractAlertIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: Colors.mossLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contractAlertTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 12.5,
+    color: Colors.moss,
+  },
+  contractAlertSub: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 11,
+    color: Colors.inkSoft,
+    marginTop: 1,
+  },
+  contractAlertHint: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 11,
+    color: Colors.moss,
+    lineHeight: 15,
+    marginTop: 4,
+  },
+  contractEditBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trendHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    gap: 8,
+  },
+  trendPeriodSub: {
+    fontFamily: Fonts.monoRegular,
+    fontSize: 11,
+    color: Colors.inkSoft,
+    marginTop: 2,
+  },
+  trendYearSwitcher: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.mist,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    gap: 4,
+  },
+  yearArrowBtn: {
+    padding: 4,
+  },
+  trendYearLabel: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 12,
+    color: Colors.ink,
+  },
+  halfYearTabContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.mist,
+    borderRadius: 10,
+    padding: 3,
+    marginBottom: 14,
+  },
+  halfYearTab: {
+    flex: 1,
+    paddingVertical: 6,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  halfYearTabActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  halfYearTabText: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 11.5,
+    color: Colors.inkSoft,
+  },
+  halfYearTabTextActive: {
+    fontFamily: Fonts.sansSemiBold,
+    color: Colors.ink,
   },
 });

@@ -2,6 +2,33 @@ import { StateCreator } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, SyncSlice } from '../types';
 import { api, setAuthSession } from '../../services/api';
+// Helper to safely merge remote projects with local state without overwriting custom dates
+const mergeProjects = (remoteList: any[], localList: any[] = []): any[] => {
+  const localMap = new Map((localList || []).map((p) => [p.id, p]));
+  const remoteIds = new Set((remoteList || []).map((p) => p.id));
+
+  const merged = (remoteList || []).map((rp) => {
+    const lp = localMap.get(rp.id);
+    if (!lp) return rp;
+    return {
+      ...rp,
+      createdAt: lp.createdAt || rp.createdAt,
+      notes: lp.notes !== undefined ? lp.notes : rp.notes,
+      payments: (rp.payments || []).map((pay: any, idx: number) => {
+        const localPay = lp.payments?.find((p: any) => p.id === pay.id) || lp.payments?.[idx];
+        return localPay && localPay.date ? { ...pay, date: localPay.date } : pay;
+      }),
+    };
+  });
+
+  (localList || []).forEach((lp) => {
+    if (!remoteIds.has(lp.id)) {
+      merged.push(lp);
+    }
+  });
+
+  return merged;
+};
 
 export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, get) => ({
   isSyncing: false,
@@ -50,18 +77,21 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
       set((state) => {
         const nextState: Partial<AppState> = { isSyncing: false, lastSyncedAt: new Date() };
 
+        let currentProjects = state.clientProjects || [];
         if (localProjects.status === 'fulfilled' && localProjects.value) {
           try {
             const parsed = JSON.parse(localProjects.value);
             if (Array.isArray(parsed)) {
+              currentProjects = parsed;
               nextState.clientProjects = parsed;
             }
           } catch {}
         }
 
         if (projRes.status === 'fulfilled' && projRes.value.success) {
-          nextState.clientProjects = projRes.value.projects;
-          AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(projRes.value.projects)).catch(() => {});
+          const merged = mergeProjects(projRes.value.projects, currentProjects);
+          nextState.clientProjects = merged;
+          AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(merged)).catch(() => {});
         }
 
         if (localBusiness.status === 'fulfilled' && localBusiness.value !== null) {
@@ -183,7 +213,7 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
             transactions: existing ? existing.transactions : [],
           };
         }),
-        clientProjects: projRes.success ? projRes.projects : state.clientProjects,
+        clientProjects: projRes.success ? mergeProjects(projRes.projects, state.clientProjects) : state.clientProjects,
       }));
     } catch { }
   },

@@ -13,7 +13,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Trash2, Check, Plus, Briefcase, ArrowUpRight, DollarSign, Calendar as CalendarIcon } from 'lucide-react-native';
+import { X, Trash2, Check, Plus, Briefcase, ArrowUpRight, DollarSign, Calendar as CalendarIcon, Pencil } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useAppStore } from '../../../store/useAppStore';
@@ -27,6 +27,9 @@ export const ProjectDetailModal: React.FC = () => {
   const clientProjects = useAppStore((state) => state.clientProjects);
   const closeModal = useAppStore((state) => state.closeModal);
   const addProjectPayment = useAppStore((state) => state.addProjectPayment);
+  const updateClientProject = useAppStore((state) => state.updateClientProject);
+  const updateProjectPayment = useAppStore((state) => state.updateProjectPayment);
+  const deleteProjectPayment = useAppStore((state) => state.deleteProjectPayment);
   const deleteClientProject = useAppStore((state) => state.deleteClientProject);
 
   const isVisible = activeModal === 'project_detail';
@@ -45,7 +48,41 @@ export const ProjectDetailModal: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
 
+  // Edit project state
+  const [isEditingProject, setIsEditingProject] = useState(false);
+  const [editClientName, setEditClientName] = useState('');
+  const [editProjectTitle, setEditProjectTitle] = useState('');
+  const [editTotalValueStr, setEditTotalValueStr] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editProjectYear, setEditProjectYear] = useState(now.getFullYear());
+  const [editProjectMonth, setEditProjectMonth] = useState(now.getMonth() + 1);
+  const [showEditProjectMonthPicker, setShowEditProjectMonthPicker] = useState(false);
+
+  // Edit milestone payment state
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const [editPayAmountStr, setEditPayAmountStr] = useState('');
+  const [editPayNote, setEditPayNote] = useState('');
+  const [editPayMethod, setEditPayMethod] = useState<ProjectPayment['method']>('UPI');
+  const [editPayBridge, setEditPayBridge] = useState(true);
+  const [editPayYear, setEditPayYear] = useState(now.getFullYear());
+  const [editPayMonth, setEditPayMonth] = useState(now.getMonth() + 1);
+  const [showEditPayMonthPicker, setShowEditPayMonthPicker] = useState(false);
+
   const { isKeyboardVisible, keyboardHeight } = useKeyboard();
+
+  React.useEffect(() => {
+    if (project) {
+      setEditClientName(project.clientName);
+      setEditProjectTitle(project.projectTitle);
+      setEditTotalValueStr(project.totalValue.toString());
+      setEditNotes(project.notes || '');
+      const d = project.createdAt ? new Date(project.createdAt) : new Date();
+      if (!isNaN(d.getTime())) {
+        setEditProjectYear(d.getFullYear());
+        setEditProjectMonth(d.getMonth() + 1);
+      }
+    }
+  }, [project?.id, project?.totalValue, project?.clientName, project?.projectTitle, project?.notes, project?.createdAt]);
 
   if (!project) return null;
 
@@ -84,9 +121,78 @@ export const ProjectDetailModal: React.FC = () => {
     Keyboard.dismiss();
   };
 
+  const handleSaveProjectEdits = async () => {
+    const val = parseFloat(editTotalValueStr);
+    if (!editClientName.trim() || isNaN(val) || val <= 0) {
+      Alert.alert('Invalid Input', 'Please enter a valid client name and total contract value.');
+      return;
+    }
+    const targetDate = new Date(editProjectYear, editProjectMonth - 1, 15, 12, 0, 0).toISOString();
+    await updateClientProject(project.id, {
+      clientName: editClientName.trim(),
+      projectTitle: editProjectTitle.trim() || `${editClientName.trim()} Website Project`,
+      totalValue: val,
+      notes: editNotes.trim(),
+      createdAt: targetDate,
+    });
+    setIsEditingProject(false);
+    Keyboard.dismiss();
+  };
+
+  const startEditPayment = (payment: ProjectPayment) => {
+    setEditingPaymentId(payment.id);
+    setEditPayAmountStr(payment.amount.toString());
+    setEditPayNote(payment.note || '');
+    setEditPayMethod(payment.method || 'UPI');
+    setEditPayBridge(payment.recordedAsIncome ?? true);
+    const d = new Date(payment.date);
+    if (!isNaN(d.getTime())) {
+      setEditPayYear(d.getFullYear());
+      setEditPayMonth(d.getMonth() + 1);
+    } else {
+      setEditPayYear(now.getFullYear());
+      setEditPayMonth(now.getMonth() + 1);
+    }
+  };
+
+  const handleSavePaymentEdit = async () => {
+    if (!editingPaymentId) return;
+    const amount = parseFloat(editPayAmountStr);
+    if (!amount || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid payment amount.');
+      return;
+    }
+    const paymentDate = new Date(editPayYear, editPayMonth - 1, 15, 12, 0, 0).toISOString();
+    await updateProjectPayment(project.id, editingPaymentId, {
+      amount,
+      note: editPayNote.trim() || `${editPayMethod} Payment`,
+      method: editPayMethod,
+      recordedAsIncome: editPayBridge,
+      date: paymentDate,
+    });
+    setEditingPaymentId(null);
+    Keyboard.dismiss();
+  };
+
+  const handleDeletePayment = (payment: ProjectPayment) => {
+    Alert.alert(
+      'Delete Payment Milestone',
+      `Are you sure you want to remove this payment of ₹${payment.amount.toLocaleString()}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteProjectPayment(project.id, payment.id),
+        },
+      ]
+    );
+  };
+
   const handleDelete = () => {
     setShowDeleteConfirm(true);
   };
+
 
   return (
     <Modal
@@ -106,9 +212,18 @@ export const ProjectDetailModal: React.FC = () => {
               <X size={20} color={Colors.inkSoft} />
             </TouchableOpacity>
             <Text style={styles.topBarTitle}>Client Project Contract</Text>
-            <TouchableOpacity activeOpacity={0.7} onPress={handleDelete} style={styles.iconButton}>
-              <Trash2 size={18} color={Colors.brick} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setIsEditingProject(!isEditingProject)}
+                style={[styles.iconButton, isEditingProject && { backgroundColor: Colors.mossLight, borderRadius: 8 }]}
+              >
+                <Pencil size={18} color={isEditingProject ? Colors.moss : Colors.inkSoft} />
+              </TouchableOpacity>
+              <TouchableOpacity activeOpacity={0.7} onPress={handleDelete} style={styles.iconButton}>
+                <Trash2 size={18} color={Colors.brick} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <ScrollView
@@ -124,30 +239,161 @@ export const ProjectDetailModal: React.FC = () => {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
           >
-            {/* Project Hero Header */}
-            <View style={styles.hero}>
-              <View style={styles.heroIconBadge}>
-                <Briefcase size={26} color={Colors.moss} />
-              </View>
-              <Text style={styles.clientName}>{project.clientName}</Text>
-              <Text style={styles.projectTitle}>{project.projectTitle}</Text>
+            {/* Project Hero or Edit Form */}
+            {isEditingProject ? (
+              <View style={styles.editProjectCard}>
+                <View style={styles.editProjectHeaderRow}>
+                  <Text style={styles.formTitle}>Edit Contract Details</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setIsEditingProject(false)}
+                    style={styles.closeEditPill}
+                  >
+                    <Text style={styles.closeEditPillText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
 
-              <View
-                style={[
-                  styles.statusBadge,
-                  isCompleted ? styles.statusBadgeCompleted : styles.statusBadgePending,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusBadgeText,
-                    isCompleted ? styles.statusTextCompleted : styles.statusTextPending,
-                  ]}
-                >
-                  {isCompleted ? 'Fully Settled & Paid ✅' : `₹${pendingDue.toLocaleString()} Due ⏳`}
-                </Text>
+                {/* Client / Company Name */}
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>CLIENT / COMPANY NAME *</Text>
+                  <TextInput
+                    value={editClientName}
+                    onChangeText={setEditClientName}
+                    placeholder="e.g. Audiology, Kemlite"
+                    placeholderTextColor={Colors.inkSoft}
+                    style={styles.input}
+                  />
+                </View>
+
+                {/* Project Title */}
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>PROJECT TITLE</Text>
+                  <TextInput
+                    value={editProjectTitle}
+                    onChangeText={setEditProjectTitle}
+                    placeholder="e.g. Website Development"
+                    placeholderTextColor={Colors.inkSoft}
+                    style={styles.input}
+                  />
+                </View>
+
+                {/* Deal Value */}
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>TOTAL CONTRACT / DEAL VALUE (₹) *</Text>
+                  <TextInput
+                    value={editTotalValueStr}
+                    onChangeText={setEditTotalValueStr}
+                    keyboardType="numeric"
+                    placeholder="12000"
+                    placeholderTextColor={Colors.inkSoft}
+                    style={styles.amountInput}
+                  />
+                </View>
+
+                {/* Contract Month Selector */}
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>CONTRACT / SIGNING MONTH</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setShowEditProjectMonthPicker(true)}
+                    style={styles.monthSelectorBtn}
+                  >
+                    <View style={styles.monthSelectorLeft}>
+                      <CalendarIcon size={18} color={Colors.moss} />
+                      <Text style={styles.monthSelectorText}>
+                        {formatMonthLabel(editProjectYear, editProjectMonth)}
+                      </Text>
+                    </View>
+                    <Text style={styles.changeText}>Change ▾</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.subHint}>
+                    Sets which month this project contract belongs to in your Freelance Insights.
+                  </Text>
+                </View>
+
+                {/* Notes */}
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>CONTRACT NOTES / SCOPE</Text>
+                  <TextInput
+                    value={editNotes}
+                    onChangeText={setEditNotes}
+                    placeholder="Scope, deliverable details, payment terms..."
+                    placeholderTextColor={Colors.inkSoft}
+                    multiline
+                    numberOfLines={3}
+                    style={[styles.input, { minHeight: 70, textAlignVertical: 'top' }]}
+                  />
+                </View>
+
+                {/* Save Button */}
+                <View style={styles.editBtnRow}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setIsEditingProject(false)}
+                    style={styles.editCancelBtn}
+                  >
+                    <Text style={styles.editCancelBtnText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handleSaveProjectEdits}
+                    style={styles.editSaveBtn}
+                  >
+                    <Check size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.editSaveBtnText}>Save Changes</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
+            ) : (
+              /* Project Hero Header */
+              <View style={styles.hero}>
+                <View style={styles.heroIconBadge}>
+                  <Briefcase size={26} color={Colors.moss} />
+                </View>
+                <Text style={styles.clientName}>{project.clientName}</Text>
+                <Text style={styles.projectTitle}>{project.projectTitle}</Text>
+
+                <View style={styles.heroPillsRow}>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      isCompleted ? styles.statusBadgeCompleted : styles.statusBadgePending,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusBadgeText,
+                        isCompleted ? styles.statusTextCompleted : styles.statusTextPending,
+                      ]}
+                    >
+                      {isCompleted ? 'Fully Settled & Paid ✅' : `₹${pendingDue.toLocaleString()} Due ⏳`}
+                    </Text>
+                  </View>
+
+                  {project.createdAt && (
+                    <View style={styles.contractDateBadge}>
+                      <CalendarIcon size={12} color={Colors.inkSoft} />
+                      <Text style={styles.contractDateBadgeText}>
+                        {new Date(project.createdAt).toLocaleDateString(undefined, {
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Edit Contract Hero Button */}
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setIsEditingProject(true)}
+                  style={styles.editContractHeroBtn}
+                >
+                  <Pencil size={13} color={Colors.moss} style={{ marginRight: 5 }} />
+                  <Text style={styles.editContractHeroText}>Edit Contract Details</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* Financial Overview Card */}
             <View style={styles.overviewCard}>
@@ -347,25 +593,166 @@ export const ProjectDetailModal: React.FC = () => {
               ) : (
                 project.payments.map((payment) => (
                   <View key={payment.id} style={styles.paymentCard}>
-                    <View style={styles.paymentLeft}>
-                      <View style={styles.paymentIconBadge}>
-                        <ArrowUpRight size={16} color={Colors.moss} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.paymentNote}>{payment.note}</Text>
-                        <Text style={styles.paymentMeta}>
-                          {payment.date} • {payment.method}
-                        </Text>
-                        {payment.recordedAsIncome && (
-                          <View style={styles.incomeBadge}>
-                            <DollarSign size={10} color={Colors.moss} />
-                            <Text style={styles.incomeBadgeText}>Personal Income Bridge</Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
+                    {editingPaymentId === payment.id ? (
+                      /* Inline Payment Edit Form */
+                      <View style={styles.inlineEditPaymentCard}>
+                        <View style={styles.inlineEditHeaderRow}>
+                          <Text style={styles.inlineEditTitle}>Edit Payment Milestone</Text>
+                          <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => setEditingPaymentId(null)}
+                            style={styles.closeInlineEditBtn}
+                          >
+                            <X size={16} color={Colors.inkSoft} />
+                          </TouchableOpacity>
+                        </View>
 
-                    <Text style={styles.paymentAmount}>+₹{payment.amount.toLocaleString()}</Text>
+                        <View style={styles.fieldGroup}>
+                          <Text style={styles.label}>AMOUNT RECEIVED (₹) *</Text>
+                          <TextInput
+                            value={editPayAmountStr}
+                            onChangeText={setEditPayAmountStr}
+                            keyboardType="numeric"
+                            placeholder="e.g. 6000"
+                            placeholderTextColor={Colors.inkSoft}
+                            style={styles.amountInput}
+                          />
+                        </View>
+
+                        <View style={styles.fieldGroup}>
+                          <Text style={styles.label}>PAYMENT MONTH</Text>
+                          <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => setShowEditPayMonthPicker(true)}
+                            style={styles.monthSelectorBtn}
+                          >
+                            <View style={styles.monthSelectorLeft}>
+                              <CalendarIcon size={16} color={Colors.moss} />
+                              <Text style={styles.monthSelectorText}>
+                                {formatMonthLabel(editPayYear, editPayMonth)}
+                              </Text>
+                            </View>
+                            <Text style={styles.changeText}>Change ▾</Text>
+                          </TouchableOpacity>
+                          <Text style={styles.subHint}>
+                            Assigns this milestone payment to a specific month in your Freelance Insights.
+                          </Text>
+                        </View>
+
+                        <View style={styles.fieldGroup}>
+                          <Text style={styles.label}>NOTE / MILESTONE</Text>
+                          <TextInput
+                            value={editPayNote}
+                            onChangeText={setEditPayNote}
+                            placeholder="e.g. Advance payment, Milestone 2"
+                            placeholderTextColor={Colors.inkSoft}
+                            style={styles.input}
+                          />
+                        </View>
+
+                        {/* Payment Method Selector */}
+                        <View style={styles.fieldGroup}>
+                          <Text style={styles.label}>METHOD</Text>
+                          <View style={styles.methodGrid}>
+                            {(['UPI', 'Bank Transfer', 'Cash', 'Cheque'] as const).map((m) => (
+                              <TouchableOpacity
+                                key={m}
+                                activeOpacity={0.7}
+                                onPress={() => setEditPayMethod(m)}
+                                style={[
+                                  styles.methodChip,
+                                  editPayMethod === m && styles.methodChipActive,
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.methodChipText,
+                                    editPayMethod === m && styles.methodChipTextActive,
+                                  ]}
+                                >
+                                  {m}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        </View>
+
+                        {/* Bridge to income checkbox */}
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => setEditPayBridge(!editPayBridge)}
+                          style={styles.bridgeCheckboxRow}
+                        >
+                          <View
+                            style={[
+                              styles.checkbox,
+                              editPayBridge && styles.checkboxActive,
+                            ]}
+                          >
+                            {editPayBridge && <Check size={14} color="#FFFFFF" />}
+                          </View>
+                          <Text style={styles.bridgeTitle}>Bridge to Monthly Personal Income</Text>
+                        </TouchableOpacity>
+
+                        <View style={styles.editBtnRow}>
+                          <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => setEditingPaymentId(null)}
+                            style={styles.editCancelBtn}
+                          >
+                            <Text style={styles.editCancelBtnText}>Cancel</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={handleSavePaymentEdit}
+                            style={styles.editSaveBtn}
+                          >
+                            <Check size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                            <Text style={styles.editSaveBtnText}>Save Milestone</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <>
+                        <View style={styles.paymentLeft}>
+                          <View style={styles.paymentIconBadge}>
+                            <ArrowUpRight size={16} color={Colors.moss} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.paymentNote}>{payment.note}</Text>
+                            <Text style={styles.paymentMeta}>
+                              {payment.date ? new Date(payment.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : 'Logged payment'} • {payment.method}
+                            </Text>
+                            {payment.recordedAsIncome && (
+                              <View style={styles.incomeBadge}>
+                                <DollarSign size={10} color={Colors.moss} />
+                                <Text style={styles.incomeBadgeText}>Personal Income Bridge</Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+
+                        <View style={styles.paymentRightCol}>
+                          <Text style={styles.paymentAmount}>+₹{payment.amount.toLocaleString()}</Text>
+                          <View style={styles.paymentActionsRow}>
+                            <TouchableOpacity
+                              activeOpacity={0.7}
+                              onPress={() => startEditPayment(payment)}
+                              style={styles.paymentActionIconBtn}
+                            >
+                              <Pencil size={13} color={Colors.inkSoft} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              activeOpacity={0.7}
+                              onPress={() => handleDeletePayment(payment)}
+                              style={styles.paymentActionIconBtn}
+                            >
+                              <Trash2 size={13} color={Colors.brick} />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </>
+                    )}
                   </View>
                 ))
               )}
@@ -438,6 +825,30 @@ export const ProjectDetailModal: React.FC = () => {
           setShowMonthPicker(false);
         }}
         onClose={() => setShowMonthPicker(false)}
+      />
+
+      <MonthPickerModal
+        visible={showEditProjectMonthPicker}
+        selectedYear={editProjectYear}
+        selectedMonth={editProjectMonth}
+        onSelectMonth={(year, month) => {
+          setEditProjectYear(year);
+          setEditProjectMonth(month);
+          setShowEditProjectMonthPicker(false);
+        }}
+        onClose={() => setShowEditProjectMonthPicker(false)}
+      />
+
+      <MonthPickerModal
+        visible={showEditPayMonthPicker}
+        selectedYear={editPayYear}
+        selectedMonth={editPayMonth}
+        onSelectMonth={(year, month) => {
+          setEditPayYear(year);
+          setEditPayMonth(month);
+          setShowEditPayMonthPicker(false);
+        }}
+        onClose={() => setShowEditPayMonthPicker(false)}
       />
     </Modal>
   );
@@ -935,5 +1346,138 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.inkSoft,
     marginTop: 4,
+  },
+  editProjectCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    padding: 18,
+    gap: 14,
+  },
+  editProjectHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  closeEditPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: Colors.mist,
+  },
+  closeEditPillText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    color: Colors.inkSoft,
+  },
+  editBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 6,
+  },
+  editCancelBtn: {
+    flex: 1,
+    backgroundColor: Colors.mist,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  editCancelBtnText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 13.5,
+    color: Colors.ink,
+  },
+  editSaveBtn: {
+    flex: 1.5,
+    flexDirection: 'row',
+    backgroundColor: Colors.moss,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editSaveBtnText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 13.5,
+    color: '#FFFFFF',
+  },
+  heroPillsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  contractDateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 100,
+    backgroundColor: Colors.mist,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  contractDateBadgeText: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 11,
+    color: Colors.inkSoft,
+  },
+  editContractHeroBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: Colors.mossLight,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  editContractHeroText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 12,
+    color: Colors.moss,
+  },
+  inlineEditPaymentCard: {
+    flex: 1,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.moss,
+    padding: 14,
+    gap: 12,
+  },
+  inlineEditHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  inlineEditTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 13.5,
+    color: Colors.ink,
+  },
+  closeInlineEditBtn: {
+    padding: 4,
+  },
+  paymentRightCol: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  paymentActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  paymentActionIconBtn: {
+    padding: 4,
+    backgroundColor: Colors.mist,
+    borderRadius: 6,
   },
 });

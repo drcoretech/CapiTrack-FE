@@ -426,6 +426,42 @@ export const api = {
       body: JSON.stringify({ amount, note, method, addToIncome, paymentDate }),
     }),
 
+  updateProject: (id: string, updates: Partial<ClientProject>) =>
+    request<{
+      success: boolean;
+      project: ClientProject;
+    }>(`/projects/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+
+  updateProjectPayment: (
+    projectId: string,
+    paymentId: string,
+    updates: {
+      amount?: number;
+      note?: string;
+      method?: string;
+      recordedAsIncome?: boolean;
+      date?: string;
+    }
+  ) =>
+    request<{
+      success: boolean;
+      project: ClientProject;
+    }>(`/projects/${projectId}/payments/${paymentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+
+  deleteProjectPayment: (projectId: string, paymentId: string) =>
+    request<{
+      success: boolean;
+      project: ClientProject;
+    }>(`/projects/${projectId}/payments/${paymentId}`, {
+      method: 'DELETE',
+    }),
+
   deleteProject: (projectId: string) =>
     request<{
       success: boolean;

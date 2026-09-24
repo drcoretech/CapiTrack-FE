@@ -118,8 +118,25 @@ export interface LedgerSlice {
     addToIncome?: boolean,
     paymentDate?: string
   ) => Promise<void>;
+  updateClientProject: (
+    id: string,
+    updates: Partial<ClientProject>
+  ) => Promise<void>;
+  updateProjectPayment: (
+    projectId: string,
+    paymentId: string,
+    updates: {
+      amount?: number;
+      note?: string;
+      method?: ProjectPayment['method'];
+      recordedAsIncome?: boolean;
+      date?: string;
+    }
+  ) => Promise<void>;
+  deleteProjectPayment: (projectId: string, paymentId: string) => Promise<void>;
   deleteClientProject: (projectId: string) => Promise<void>;
 }
+
 
 export interface SyncSlice {
   isSyncing: boolean;

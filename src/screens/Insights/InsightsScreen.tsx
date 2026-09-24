@@ -301,6 +301,10 @@ export const InsightsScreen: React.FC = () => {
                   useAppStore.setState({ ledgerSubTab: 'projects' });
                   setActiveTab('ledger');
                 }}
+                onSelectMonthYear={(m, y) => {
+                  setSelectedMonth(m);
+                  setSelectedYear(y);
+                }}
               />
             ) : (
               <>

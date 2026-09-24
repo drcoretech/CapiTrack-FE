@@ -158,8 +158,18 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
       const res = await api.createProject(projectData, initialPayment, addToIncome, paymentDate);
       if (res.success && res.project) {
         set((state) => {
+          const mergedProject: ClientProject = {
+            ...res.project,
+            createdAt: paymentDate || res.project.createdAt || newProject.createdAt,
+            payments: (res.project.payments || []).map((p, idx) => {
+              if (idx === 0 && paymentDate) {
+                return { ...p, date: paymentDate };
+              }
+              return p;
+            }),
+          };
           const replaced = state.clientProjects.map((p) =>
-            p.id === newProject.id ? res.project : p
+            p.id === newProject.id ? mergedProject : p
           );
           AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(replaced)).catch(() => {});
           return { clientProjects: replaced };
@@ -202,6 +212,85 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
       const res = await api.addProjectPayment(projectId, amount, note, method, addToIncome, paymentDate);
       if (res.success && res.project) {
         set((state) => {
+          const mergedProject: ClientProject = {
+            ...res.project,
+            payments: (res.project.payments || []).map((p) => {
+              if (p.note === (note || `${method} Payment`) && paymentDate) {
+                return { ...p, date: paymentDate };
+              }
+              return p;
+            }),
+          };
+          const synced = state.clientProjects.map((p) =>
+            p.id === projectId ? mergedProject : p
+          );
+          AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(synced)).catch(() => {});
+          return { clientProjects: synced };
+        });
+      }
+    } catch {}
+  },
+
+  updateClientProject: async (projectId, updates) => {
+    set((state) => {
+      const updated = state.clientProjects.map((p) => {
+        if (p.id !== projectId) return p;
+        const totalValue = updates.totalValue !== undefined ? updates.totalValue : p.totalValue;
+        const totalPaid = (p.payments || []).reduce((sum, item) => sum + item.amount, 0);
+        const newStatus: ClientProject['status'] =
+          totalPaid >= totalValue ? 'completed' : totalPaid > 0 ? 'payment_pending' : 'in_progress';
+        return {
+          ...p,
+          ...updates,
+          totalValue,
+          status: newStatus,
+        };
+      });
+      AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(updated)).catch(() => {});
+      return { clientProjects: updated };
+    });
+
+    try {
+      const res = await api.updateProject(projectId, updates);
+      if (res.success && res.project) {
+        set((state) => {
+          const synced = state.clientProjects.map((p) =>
+            p.id === projectId ? { ...res.project, ...updates } : p
+          );
+          AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(synced)).catch(() => {});
+          return { clientProjects: synced };
+        });
+      }
+    } catch (err) {
+      console.warn('Update project API failed, preserved locally:', err);
+    }
+  },
+
+  updateProjectPayment: async (projectId, paymentId, updates) => {
+    set((state) => {
+      const updated = state.clientProjects.map((p) => {
+        if (p.id !== projectId) return p;
+        const updatedPayments = (p.payments || []).map((pay) => {
+          if (pay.id !== paymentId) return pay;
+          return { ...pay, ...updates };
+        });
+        const totalPaid = updatedPayments.reduce((sum, item) => sum + item.amount, 0);
+        const newStatus: ClientProject['status'] =
+          totalPaid >= p.totalValue ? 'completed' : totalPaid > 0 ? 'payment_pending' : 'in_progress';
+        return {
+          ...p,
+          payments: updatedPayments,
+          status: newStatus,
+        };
+      });
+      AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(updated)).catch(() => {});
+      return { clientProjects: updated };
+    });
+
+    try {
+      const res = await api.updateProjectPayment(projectId, paymentId, updates);
+      if (res.success && res.project) {
+        set((state) => {
           const synced = state.clientProjects.map((p) =>
             p.id === projectId ? res.project : p
           );
@@ -209,7 +298,43 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
           return { clientProjects: synced };
         });
       }
-    } catch {}
+    } catch (err) {
+      console.warn('Update payment API failed, preserved locally:', err);
+    }
+  },
+
+  deleteProjectPayment: async (projectId, paymentId) => {
+    set((state) => {
+      const updated = state.clientProjects.map((p) => {
+        if (p.id !== projectId) return p;
+        const updatedPayments = (p.payments || []).filter((pay) => pay.id !== paymentId);
+        const totalPaid = updatedPayments.reduce((sum, item) => sum + item.amount, 0);
+        const newStatus: ClientProject['status'] =
+          totalPaid >= p.totalValue ? 'completed' : totalPaid > 0 ? 'payment_pending' : 'in_progress';
+        return {
+          ...p,
+          payments: updatedPayments,
+          status: newStatus,
+        };
+      });
+      AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(updated)).catch(() => {});
+      return { clientProjects: updated };
+    });
+
+    try {
+      const res = await api.deleteProjectPayment(projectId, paymentId);
+      if (res.success && res.project) {
+        set((state) => {
+          const synced = state.clientProjects.map((p) =>
+            p.id === projectId ? res.project : p
+          );
+          AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(synced)).catch(() => {});
+          return { clientProjects: synced };
+        });
+      }
+    } catch (err) {
+      console.warn('Delete payment API failed, preserved locally:', err);
+    }
   },
 
   deleteClientProject: async (projectId) => {
