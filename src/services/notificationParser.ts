@@ -184,6 +184,10 @@ const PROMOTIONAL_OR_SPAM_REGEX = /(?:invest|investing|mutual funds?|sip\b|pre-a
 // Strictly block UPI mandate requests, IPO block requests, collect requests, and conditional/future debits
 const MANDATE_OR_REQUEST_REGEX = /(?:approve\b|mandate request|block request|collect request|payment request|has requested|requested by|requested from|on approval|will be debited|to be debited|would be debited|scheduled to be debited|to be deducted|will be deducted)/i;
 
+// Strictly block automated internal bank balance sweeps, FD/RD sweeps, liquidity adjustments, and self-transfers
+// (e.g. Kotak "ActivMoney sweep in", "debited from ActivMoney", SBI "MOD sweep", "autosweep", FD creation)
+const INTERNAL_TRANSFER_OR_SWEEP_REGEX = /(?:activmoney|activ\s*money|sweep\s*in|sweep-in|sweep\s*out|sweep-out|auto\s*sweep|autosweep|reverse\s*sweep|sweep\s*transfer|fd\s*sweep|mod\s*balance|mod\s*sweep|multi\s*option\s*deposit|money\s*multiplier|super\s*saver|encash\s*24|fixed\s*deposit|term\s*deposit|recurring\s*deposit|\bfd\b\s*(?:created|closed|liquidated|sweep)|\brd\b\s*(?:created|closed)|transferred\s*to\s*(?:own|self|linked)\s*account|transfer\s*to\s*self|self\s*transfer|intra-?bank\s*transfer)/i;
+
 // Detect explicit debit actions - a notification MUST confirm an actual payment/debit to be recorded as an expense
 const DEBIT_ACTION_REGEX = /(?:paid|debited|sent|transferred|spent|payment of|transfer of|withdrawn|\bdr\.?\b)/i;
 
@@ -400,13 +404,19 @@ export function parseNotification(
     return null;
   }
 
-  // 5. HARD STOP: Ignore incoming credit/deposit/refund/cashback notifications (income is not an expense)
+  // 5. HARD STOP: Strictly ignore automated internal bank sweeps, FD sweeps, ActivMoney, and self-transfers
+  // E.g. Kotak "ActivMoney sweep in", "debited from ActivMoney", "Auto sweep", "MOD sweep", "FD sweep" -> ignore!
+  if (INTERNAL_TRANSFER_OR_SWEEP_REGEX.test(combined)) {
+    return null;
+  }
+
+  // 6. HARD STOP: Ignore incoming credit/deposit/refund/cashback notifications (income is not an expense)
   // E.g. "A/c credited with INR 2.00 by transfer from DIGVIJAY" -> ignore!
   if (INCOMING_CREDIT_REGEX.test(combined) && !EXPLICIT_DEBIT_CONFIRMATION.test(combined)) {
     return null;
   }
 
-  // 6. HARD STOP: Must contain a genuine debit/payment confirmation action
+  // 7. HARD STOP: Must contain a genuine debit/payment confirmation action
   if (!DEBIT_ACTION_REGEX.test(combined)) {
     return null;
   }
@@ -467,8 +477,13 @@ export function parseNotification(
     if (merchant.length < 2 || /^(upi|bank|account|your|ref|payment)$/i.test(merchant)) {
       merchant = '';
     } else if (/^self$/i.test(merchant)) {
-      merchant = 'Self Transfer';
+      return null; // Self transfer is not an expense
     }
+  }
+
+  // Reject internal sweeps or self-transfers if extracted as merchant
+  if (merchant && INTERNAL_TRANSFER_OR_SWEEP_REGEX.test(merchant)) {
+    return null;
   }
 
   // Clean and sanitize telecom sender IDs (e.g. JK-BOBSMS-S -> Bank of Baroda, AX-KOTAKB-S -> Kotak Bank)
@@ -478,6 +493,9 @@ export function parseNotification(
 
   if (!merchant) {
     const cleanTitle = cleanTelecomSender(title);
+    if (cleanTitle && INTERNAL_TRANSFER_OR_SWEEP_REGEX.test(cleanTitle)) {
+      return null;
+    }
     merchant = cleanTitle && !cleanTitle.toLowerCase().includes('paid') ? cleanTitle : `${sourceApp} Payment`;
   }
 
