@@ -8,12 +8,15 @@ import {
   Easing,
   Image,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 
 export const SplashScreen: React.FC = () => {
   const setFirstRunStep = useAppStore((state) => state.setFirstRunStep);
+  const hasCompletedOnboarding = useAppStore((state) => state.hasCompletedOnboarding);
+  const isCompletedRef = useRef(hasCompletedOnboarding);
 
   // Animators
   const logoScale = useRef(new Animated.Value(0.3)).current;
@@ -23,7 +26,35 @@ export const SplashScreen: React.FC = () => {
   const textSlide = useRef(new Animated.Value(15)).current;
   const promptPulse = useRef(new Animated.Value(0.3)).current;
 
+  const handleProceed = () => {
+    const isDone = isCompletedRef.current || useAppStore.getState().hasCompletedOnboarding;
+    if (isDone) {
+      setFirstRunStep('main');
+    } else {
+      setFirstRunStep('language');
+    }
+  };
+
   useEffect(() => {
+    // Check persistent storage immediately on mount
+    AsyncStorage.getItem('@capitrack_onboarding_completed')
+      .then((val) => {
+        if (val === 'true') {
+          isCompletedRef.current = true;
+          useAppStore.setState({ hasCompletedOnboarding: true });
+        }
+      })
+      .catch(() => {});
+
+    AsyncStorage.getItem('@capitrack_user_name')
+      .then((name) => {
+        if (name && name !== 'You' && name.trim().length > 0) {
+          isCompletedRef.current = true;
+          useAppStore.setState({ hasCompletedOnboarding: true });
+        }
+      })
+      .catch(() => {});
+
     // 1. Elastic Logo Pop
     Animated.parallel([
       Animated.spring(logoScale, {
@@ -90,10 +121,13 @@ export const SplashScreen: React.FC = () => {
       ])
     ).start();
 
-    // 5. Automatic transition after 3.2 seconds
+    // 5. Automatic transition:
+    // Returning users get a sleek 1.4s brand introduction directly into dashboard.
+    // Brand new users get 2.8s before moving to language setup.
+    const transitionDelay = isCompletedRef.current ? 1400 : 2800;
     const timer = setTimeout(() => {
-      setFirstRunStep('language');
-    }, 3200);
+      handleProceed();
+    }, transitionDelay);
 
     return () => clearTimeout(timer);
   }, []);
@@ -101,7 +135,7 @@ export const SplashScreen: React.FC = () => {
   return (
     <TouchableOpacity
       activeOpacity={0.95}
-      onPress={() => setFirstRunStep('language')}
+      onPress={handleProceed}
       style={styles.container}
     >
       <View style={styles.content}>

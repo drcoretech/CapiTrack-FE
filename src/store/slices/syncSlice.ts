@@ -11,7 +11,18 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
   loadInitialData: async () => {
     set({ isSyncing: true });
     try {
-      const [dashRes, expRes, contactRes, userRes, localAutoCapture, localProjects, localBusiness, projRes] = await Promise.allSettled([
+      const [
+        dashRes,
+        expRes,
+        contactRes,
+        userRes,
+        localAutoCapture,
+        localProjects,
+        localBusiness,
+        projRes,
+        localOnboarding,
+        localUserName,
+      ] = await Promise.allSettled([
         api.getDashboardSummary(),
         api.getExpenses(),
         api.getContacts(),
@@ -20,6 +31,8 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
         AsyncStorage.getItem('@capitrack_client_projects'),
         AsyncStorage.getItem('@capitrack_business_tracking_enabled'),
         api.getProjects(),
+        AsyncStorage.getItem('@capitrack_onboarding_completed'),
+        AsyncStorage.getItem('@capitrack_user_name'),
       ]);
 
       set((state) => {
@@ -100,6 +113,15 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
             nextState.autoCaptureEnabled = isAutoCaptureOnLocally;
             nextState.darkModeEnabled = userRes.value.user.preferences.darkMode ?? state.darkModeEnabled;
           }
+        }
+
+        const isOnboardingDone =
+          (localOnboarding.status === 'fulfilled' && localOnboarding.value === 'true') ||
+          (localUserName.status === 'fulfilled' && !!localUserName.value && localUserName.value !== 'You') ||
+          (userRes.status === 'fulfilled' && userRes.value.success && !!userRes.value.user.name && userRes.value.user.name !== 'You');
+
+        if (isOnboardingDone) {
+          nextState.hasCompletedOnboarding = true;
         }
 
         return nextState;

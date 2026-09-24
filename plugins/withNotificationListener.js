@@ -116,44 +116,25 @@ module.exports = function withNotificationListener(config) {
       });
     }
 
-    // 3. BootUpReceiver
+    // 3. Explicitly remove BootUpReceiver to eliminate the Boot ANR / ForegroundService crash on restart.
+    // In Android 8+, BootUpReceiver attempted to call startForegroundService() on RNAndroidNotificationListener.
+    // Because NotificationListenerService is managed natively by Android OS and cannot call startForeground(),
+    // this invalid call causes Android's watchdog to trigger ForegroundServiceDidNotStartInTimeException and ANR!
+    // The Android OS automatically re-binds to authorized NotificationListenerServices on boot without needing any BootUpReceiver.
     if (!app.receiver) {
       app.receiver = [];
     }
     const receiverName =
       'com.lesimoes.androidnotificationlistener.BootUpReceiver';
-    const receiverExists = app.receiver.some(
-      (r) => r.$ && r.$['android:name'] === receiverName
+    app.receiver = app.receiver.filter(
+      (r) => !(r.$ && r.$['android:name'] === receiverName)
     );
-
-    if (!receiverExists) {
-      app.receiver.push({
-        $: {
-          'android:name': receiverName,
-          'android:enabled': 'true',
-          'android:exported': 'true',
-          'android:permission': 'android.permission.RECEIVE_BOOT_COMPLETED',
-        },
-        'intent-filter': [
-          {
-            action: [
-              {
-                $: {
-                  'android:name': 'android.intent.action.BOOT_COMPLETED',
-                },
-              },
-            ],
-            category: [
-              {
-                $: {
-                  'android:name': 'android.intent.category.DEFAULT',
-                },
-              },
-            ],
-          },
-        ],
-      });
-    }
+    app.receiver.push({
+      $: {
+        'android:name': receiverName,
+        'tools:node': 'remove',
+      },
+    });
 
     return config;
   });

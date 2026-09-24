@@ -8,11 +8,27 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
   currencySymbol: '₹',
   selectedLanguage: 'en',
   firstRunStep: 'splash',
+  hasCompletedOnboarding: false,
   autoCaptureEnabled: false,
   darkModeEnabled: false,
   businessTrackingEnabled: false,
 
-  setFirstRunStep: (step) => set({ firstRunStep: step }),
+  setFirstRunStep: (step) => {
+    set({ firstRunStep: step });
+    if (step === 'main') {
+      set({ hasCompletedOnboarding: true });
+      AsyncStorage.setItem('@capitrack_onboarding_completed', 'true').catch(() => {});
+    }
+  },
+
+  setHasCompletedOnboarding: (completed) => {
+    set({ hasCompletedOnboarding: completed });
+    if (completed) {
+      AsyncStorage.setItem('@capitrack_onboarding_completed', 'true').catch(() => {});
+    } else {
+      AsyncStorage.removeItem('@capitrack_onboarding_completed').catch(() => {});
+    }
+  },
 
   setUserName: async (name: string) => {
     const trimmed = name.trim() || 'You';
@@ -74,5 +90,8 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
     AsyncStorage.setItem('@capitrack_business_tracking_enabled', nextVal ? 'true' : 'false').catch(() => {});
   },
 
-  resetOnboarding: () => set({ firstRunStep: 'splash' }),
+  resetOnboarding: () => {
+    AsyncStorage.removeItem('@capitrack_onboarding_completed').catch(() => {});
+    set({ firstRunStep: 'splash', hasCompletedOnboarding: false });
+  },
 });

@@ -84,6 +84,10 @@ export const OnboardingScreen: React.FC = () => {
       useAppStore.setState({ businessTrackingEnabled: isBusinessActive });
       AsyncStorage.setItem('@capitrack_business_tracking_enabled', isBusinessActive ? 'true' : 'false').catch(() => {});
 
+      // Persist onboarding completed flag immediately
+      AsyncStorage.setItem('@capitrack_onboarding_completed', 'true').catch(() => {});
+      useAppStore.setState({ hasCompletedOnboarding: true });
+
       // Immediate instant navigation to dashboard
       setFirstRunStep('main');
       // Fire name update and persistence in background

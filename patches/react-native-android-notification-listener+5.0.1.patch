@@ -147,3 +147,160 @@ index 3cb5acc..015efad 100644
          <service
              android:name=".RNAndroidNotificationListener"
              android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+diff --git a/node_modules/react-native-android-notification-listener/android/src/main/java/com/lesimoes/androidnotificationlistener/BootUpReceiver.java b/node_modules/react-native-android-notification-listener/android/src/main/java/com/lesimoes/androidnotificationlistener/BootUpReceiver.java
+index 874a350..e4edf38 100644
+--- a/node_modules/react-native-android-notification-listener/android/src/main/java/com/lesimoes/androidnotificationlistener/BootUpReceiver.java
++++ b/node_modules/react-native-android-notification-listener/android/src/main/java/com/lesimoes/androidnotificationlistener/BootUpReceiver.java
+@@ -8,13 +8,8 @@ import android.os.Build;
+ public class BootUpReceiver extends BroadcastReceiver {
+     @Override
+     public void onReceive(Context context, Intent intent) {
+-        if(intent.getAction() == Intent.ACTION_BOOT_COMPLETED){
+-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+-                context.startForegroundService(new Intent(context, RNAndroidNotificationListener.class));
+-                return;
+-            }
+-            context.startService(new Intent(context, RNAndroidNotificationListener.class));
+-        }
+-
++        // NotificationListenerService is managed natively by Android OS.
++        // Calling startForegroundService here crashes on Android 8+ with ForegroundServiceDidNotStartInTimeException / ANR.
++        // Left intentionally empty.
+     }
+ }
+\ No newline at end of file
+diff --git a/node_modules/react-native-android-notification-listener/android/src/main/java/com/lesimoes/androidnotificationlistener/RNAndroidNotificationListener.java b/node_modules/react-native-android-notification-listener/android/src/main/java/com/lesimoes/androidnotificationlistener/RNAndroidNotificationListener.java
+index 350e4c2..0f26519 100644
+--- a/node_modules/react-native-android-notification-listener/android/src/main/java/com/lesimoes/androidnotificationlistener/RNAndroidNotificationListener.java
++++ b/node_modules/react-native-android-notification-listener/android/src/main/java/com/lesimoes/androidnotificationlistener/RNAndroidNotificationListener.java
+@@ -19,7 +19,51 @@ public class RNAndroidNotificationListener extends NotificationListenerService {
+         Notification statusBarNotification = sbn.getNotification();
+ 
+         if (statusBarNotification == null || statusBarNotification.extras == null) {
+-            Log.d(TAG, "The notification received has no data");
++            return;
++        }
++
++        String packageName = sbn.getPackageName();
++        if (packageName == null) return;
++        String pkgLower = packageName.toLowerCase();
++
++        // 1. Immediately drop notifications from CapiTrack itself or Android system UI
++        if (pkgLower.contains("capitrack") || pkgLower.equals("android") || pkgLower.equals("com.android.systemui")) {
++            return;
++        }
++
++        // 2. Immediately drop noisy social/chat/streaming apps in native Java without waking up JS engine
++        if (pkgLower.contains("whatsapp") || pkgLower.contains("instagram") || pkgLower.contains("facebook") ||
++            pkgLower.contains("twitter") || pkgLower.contains("snapchat") || pkgLower.contains("discord") ||
++            pkgLower.contains("telegram") || pkgLower.contains("youtube") || pkgLower.contains("netflix") ||
++            pkgLower.contains("spotify") || pkgLower.contains("tiktok") || pkgLower.contains("amazon") ||
++            pkgLower.contains("flipkart")) {
++            return;
++        }
++
++        // 3. Fast filter: check if the notification title or text contains any financial hint
++        CharSequence title = statusBarNotification.extras.getCharSequence(Notification.EXTRA_TITLE);
++        CharSequence text = statusBarNotification.extras.getCharSequence(Notification.EXTRA_TEXT);
++        CharSequence bigText = statusBarNotification.extras.getCharSequence(Notification.EXTRA_BIG_TEXT);
++
++        String combined = ((title != null ? title.toString() : "") + " " +
++                           (text != null ? text.toString() : "") + " " +
++                           (bigText != null ? bigText.toString() : "")).toLowerCase();
++
++        boolean isPaymentApp = pkgLower.contains("phonepe") || pkgLower.contains("paisa") ||
++                               pkgLower.contains("paytm") || pkgLower.contains("cred") ||
++                               pkgLower.contains("bhim") || pkgLower.contains("upi") ||
++                               pkgLower.contains("bank") || pkgLower.contains("sms") ||
++                               pkgLower.contains("mms") || pkgLower.contains("messaging");
++
++        boolean hasFinancialKeyword = combined.contains("paid") || combined.contains("debited") ||
++                                      combined.contains("spent") || combined.contains("sent") ||
++                                      combined.contains("received") || combined.contains("credited") ||
++                                      combined.contains("₹") || combined.contains("rs.") ||
++                                      combined.contains("rs ") || combined.contains("inr") ||
++                                      combined.contains("upi") || combined.contains("a/c") ||
++                                      combined.contains("acct");
++
++        if (!isPaymentApp && !hasFinancialKeyword) {
+             return;
+         }
+ 
+diff --git a/node_modules/react-native-android-notification-listener/android/src/main/java/com/lesimoes/androidnotificationlistener/RNNotification.java b/node_modules/react-native-android-notification-listener/android/src/main/java/com/lesimoes/androidnotificationlistener/RNNotification.java
+index 79a17f9..0c2a761 100644
+--- a/node_modules/react-native-android-notification-listener/android/src/main/java/com/lesimoes/androidnotificationlistener/RNNotification.java
++++ b/node_modules/react-native-android-notification-listener/android/src/main/java/com/lesimoes/androidnotificationlistener/RNNotification.java
+@@ -95,67 +95,18 @@ public class RNNotification {
+     }
+ 
+     private String getNotificationIcon(Context context, Notification notification) {
+-        try {
+-           
+-            String result = "";
+- 
+-            Icon iconInstance = notification.getSmallIcon();
+-            Drawable iconDrawable = iconInstance.loadDrawable(context);
+-            Bitmap iconBitmap = ((BitmapDrawable) iconDrawable).getBitmap();
+-
+-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+-            iconBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
+-
+-            result = Base64.encodeToString(outputStream.toByteArray(), Base64.DEFAULT);
+-
+-            return TextUtils.isEmpty(result) ? result : "data:image/png;base64," + result;
+-        } catch (Exception e) {
+-            Log.d(TAG, e.getMessage());
+-            return "";
+-        }
++        // Disabled to prevent Main UI Thread CPU spikes, memory bloat, and ANRs
++        return "";
+     }
+     
+-    
+     private String getNotificationLargeIcon(Context context, Notification notification) {
+-        try {
+-            
+-            String result = "";
+- 
+-            Icon iconInstance = notification.getLargeIcon();
+-            Drawable iconDrawable = iconInstance.loadDrawable(context);
+-            Bitmap iconBitmap = ((BitmapDrawable) iconDrawable).getBitmap();
+-
+-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+-            iconBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
+-
+-            result = Base64.encodeToString(outputStream.toByteArray(), Base64.DEFAULT);
+-
+-            return TextUtils.isEmpty(result) ? result : "data:image/png;base64," + result;
+-        } catch (Exception e) {
+-            Log.d(TAG, e.getMessage());
+-            return "";
+-        }
++        // Disabled to prevent Main UI Thread CPU spikes, memory bloat, and ANRs
++        return "";
+     }
+ 
+     private String getNotificationImage(Notification notification) {
+-        try {
+-            if (!notification.extras.containsKey(Notification.EXTRA_PICTURE)) return "";
+-
+-            Bitmap imageBitmap = (Bitmap) notification.extras.get(Notification.EXTRA_PICTURE);
+-
+-            BitmapFactory.Options options = new BitmapFactory.Options();
+-            options.inSampleSize = this.calculateInSampleSize(options, 100,100);
+-            options.inJustDecodeBounds = false;
+-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+-            imageBitmap.compress(Bitmap.CompressFormat.JPEG, 30, outputStream);
+-
+-            String result = Base64.encodeToString(outputStream.toByteArray(), Base64.DEFAULT);
+-
+-            return TextUtils.isEmpty(result) ? result : "data:image/png;base64," + result;
+-        } catch (Exception e) {
+-            Log.d(TAG, e.getMessage());
+-            return "";
+-        }
++        // Disabled to prevent Main UI Thread CPU spikes, memory bloat, and ANRs
++        return "";
+     }
+ 
+     public int calculateInSampleSize(
