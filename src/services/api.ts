@@ -399,14 +399,15 @@ export const api = {
   createProject: (
     project: { clientName: string; projectTitle?: string; totalValue: number; notes?: string },
     initialPayment?: number,
-    addToIncome?: boolean
+    addToIncome?: boolean,
+    paymentDate?: string
   ) =>
     request<{
       success: boolean;
       project: ClientProject;
     }>('/projects', {
       method: 'POST',
-      body: JSON.stringify({ ...project, initialPayment, addToIncome }),
+      body: JSON.stringify({ ...project, initialPayment, addToIncome, paymentDate }),
     }),
 
   addProjectPayment: (
@@ -414,14 +415,15 @@ export const api = {
     amount: number,
     note?: string,
     method?: string,
-    addToIncome?: boolean
+    addToIncome?: boolean,
+    paymentDate?: string
   ) =>
     request<{
       success: boolean;
       project: ClientProject;
     }>(`/projects/${projectId}/payments`, {
       method: 'POST',
-      body: JSON.stringify({ amount, note, method, addToIncome }),
+      body: JSON.stringify({ amount, note, method, addToIncome, paymentDate }),
     }),
 
   deleteProject: (projectId: string) =>

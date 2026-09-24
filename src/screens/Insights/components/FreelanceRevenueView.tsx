@@ -300,9 +300,9 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
       {/* 2. Client Contracts & Projects Overview */}
       <View style={styles.card}>
         <View style={styles.cardHeaderRow}>
-          <View>
-            <Text style={styles.sectionTitle}>Client Contracts & Projects</Text>
-            <Text style={styles.sectionSubtitle}>
+          <View style={styles.cardHeaderLeft}>
+            <Text style={styles.sectionHeaderTitle}>Client Contracts & Projects</Text>
+            <Text style={styles.sectionSubtitle} numberOfLines={1}>
               {projects.length} {projects.length === 1 ? 'Contract' : 'Contracts'} · {currencySymbol}{portfolioStats.totalInvoiced.toLocaleString()} Total Portfolio
             </Text>
           </View>
@@ -639,6 +639,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 14,
+    gap: 8,
+  },
+  cardHeaderLeft: {
+    flex: 1,
+    marginRight: 6,
+  },
+  sectionHeaderTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 14,
+    color: Colors.ink,
+    marginBottom: 2,
   },
   sectionTitle: {
     fontFamily: Fonts.sansSemiBold,
@@ -733,10 +744,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   addContractHeaderBtn: {
+    flexShrink: 0,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
     backgroundColor: Colors.mossLight,
     borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addContractHeaderText: {
     fontFamily: Fonts.sansSemiBold,

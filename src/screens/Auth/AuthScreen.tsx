@@ -180,7 +180,7 @@ export const AuthScreen: React.FC = () => {
                 <User size={18} color={Colors.inkSoft} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. Digvijay or Rohit"
+                  placeholder="Enter your name"
                   placeholderTextColor="#9CA3AF"
                   value={name}
                   onChangeText={(val) => {

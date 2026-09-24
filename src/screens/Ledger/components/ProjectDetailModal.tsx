@@ -13,12 +13,13 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Trash2, Check, Plus, Briefcase, ArrowUpRight, DollarSign } from 'lucide-react-native';
+import { X, Trash2, Check, Plus, Briefcase, ArrowUpRight, DollarSign, Calendar as CalendarIcon } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useAppStore } from '../../../store/useAppStore';
 import { ProjectPayment } from '../../../types';
 import { useKeyboard } from '../../../hooks/useKeyboard';
+import { MonthPickerModal, formatMonthLabel } from '../../../components/MonthPickerModal';
 
 export const ProjectDetailModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -38,6 +39,12 @@ export const ProjectDetailModal: React.FC = () => {
   const [payNote, setPayNote] = useState('');
   const [bridgeToIncome, setBridgeToIncome] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+
   const { isKeyboardVisible, keyboardHeight } = useKeyboard();
 
   if (!project) return null;
@@ -57,16 +64,22 @@ export const ProjectDetailModal: React.FC = () => {
       return;
     }
 
+    const paymentDate = new Date(selectedYear, selectedMonth - 1, 15, 12, 0, 0).toISOString();
+
     await addProjectPayment(
       project.id,
       amount,
       payNote.trim() || `${payMethod} Payment`,
       payMethod,
-      bridgeToIncome
+      bridgeToIncome,
+      paymentDate
     );
 
     setPayAmountStr('');
     setPayNote('');
+    const resetDate = new Date();
+    setSelectedYear(resetDate.getFullYear());
+    setSelectedMonth(resetDate.getMonth() + 1);
     setShowPaymentForm(false);
     Keyboard.dismiss();
   };
@@ -266,6 +279,27 @@ export const ProjectDetailModal: React.FC = () => {
                   />
                 </View>
 
+                {/* Optional Payment Month Selector */}
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>PAYMENT MONTH (OPTIONAL)</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setShowMonthPicker(true)}
+                    style={styles.monthSelectorBtn}
+                  >
+                    <View style={styles.monthSelectorLeft}>
+                      <CalendarIcon size={18} color={Colors.moss} />
+                      <Text style={styles.monthSelectorText}>
+                        {formatMonthLabel(selectedYear, selectedMonth)}
+                      </Text>
+                    </View>
+                    <Text style={styles.changeText}>Change</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.subHint}>
+                    Defaults to current month. Change if payment was received in a prior month (e.g. July).
+                  </Text>
+                </View>
+
                 {/* Income Bridge Checkbox */}
                 <TouchableOpacity
                   activeOpacity={0.8}
@@ -393,6 +427,18 @@ export const ProjectDetailModal: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      <MonthPickerModal
+        visible={showMonthPicker}
+        selectedYear={selectedYear}
+        selectedMonth={selectedMonth}
+        onSelectMonth={(year, month) => {
+          setSelectedYear(year);
+          setSelectedMonth(month);
+          setShowMonthPicker(false);
+        }}
+        onClose={() => setShowMonthPicker(false)}
+      />
     </Modal>
   );
 };
@@ -857,5 +903,37 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansMedium,
     fontSize: 13.5,
     color: Colors.ink,
+  },
+  monthSelectorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  monthSelectorLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  monthSelectorText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 14,
+    color: Colors.ink,
+  },
+  changeText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 13,
+    color: Colors.moss,
+  },
+  subHint: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 11,
+    color: Colors.inkSoft,
+    marginTop: 4,
   },
 });

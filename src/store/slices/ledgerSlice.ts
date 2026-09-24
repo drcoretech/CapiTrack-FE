@@ -111,9 +111,9 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
     } catch {}
   },
 
-  addClientProject: async (projectData, initialPayment = 0, addToIncome = false) => {
+  addClientProject: async (projectData, initialPayment = 0, addToIncome = false, paymentDate?: string) => {
     const now = new Date();
-    const dateStr = now.toISOString();
+    const dateStr = paymentDate || now.toISOString();
     const initialPayments =
       initialPayment > 0
         ? [
@@ -144,7 +144,7 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
       totalValue: projectData.totalValue,
       payments: initialPayments,
       status,
-      createdAt: now.toISOString(),
+      createdAt: paymentDate || now.toISOString(),
       notes: projectData.notes?.trim() || '',
     };
 
@@ -155,7 +155,7 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
     });
 
     try {
-      const res = await api.createProject(projectData, initialPayment, addToIncome);
+      const res = await api.createProject(projectData, initialPayment, addToIncome, paymentDate);
       if (res.success && res.project) {
         set((state) => {
           const replaced = state.clientProjects.map((p) =>
@@ -168,9 +168,9 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
     } catch {}
   },
 
-  addProjectPayment: async (projectId, amount, note = '', method = 'UPI', addToIncome = false) => {
+  addProjectPayment: async (projectId, amount, note = '', method = 'UPI', addToIncome = false, paymentDate?: string) => {
     const now = new Date();
-    const dateStr = now.toISOString();
+    const dateStr = paymentDate || now.toISOString();
     const newPay = {
       id: 'pay_' + Date.now(),
       amount,
@@ -199,7 +199,7 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
     });
 
     try {
-      const res = await api.addProjectPayment(projectId, amount, note, method, addToIncome);
+      const res = await api.addProjectPayment(projectId, amount, note, method, addToIncome, paymentDate);
       if (res.success && res.project) {
         set((state) => {
           const synced = state.clientProjects.map((p) =>

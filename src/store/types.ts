@@ -107,14 +107,16 @@ export interface LedgerSlice {
   addClientProject: (
     project: { clientName: string; clientPhone?: string; projectTitle: string; totalValue: number; notes?: string },
     initialPayment?: number,
-    addToIncome?: boolean
+    addToIncome?: boolean,
+    paymentDate?: string
   ) => Promise<void>;
   addProjectPayment: (
     projectId: string,
     amount: number,
     note?: string,
     method?: ProjectPayment['method'],
-    addToIncome?: boolean
+    addToIncome?: boolean,
+    paymentDate?: string
   ) => Promise<void>;
   deleteClientProject: (projectId: string) => Promise<void>;
 }

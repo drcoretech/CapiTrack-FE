@@ -8,7 +8,6 @@ import {
   Dimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
-  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -23,20 +22,19 @@ import {
   CheckCircle2,
   TrendingUp,
   Sparkles,
+  ShieldCheck,
+  BellRing,
 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { useTranslation } from '../../i18n/translations';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
-import { notificationListener } from '../../services/notificationListener';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const OnboardingScreen: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const autoCaptureEnabled = useAppStore((state) => state.autoCaptureEnabled);
-  const toggleAutoCapture = useAppStore((state) => state.toggleAutoCapture);
   const setFirstRunStep = useAppStore((state) => state.setFirstRunStep);
   const { t } = useTranslation();
 
@@ -48,14 +46,6 @@ export const OnboardingScreen: React.FC = () => {
   // Page 2: Auto-Capture & Security
   const totalPages = 3;
   const isLastStep = currentIndex === 2;
-
-  const handleToggleAutoCapture = async () => {
-    const nextVal = !autoCaptureEnabled;
-    await toggleAutoCapture();
-    if (nextVal) {
-      await notificationListener.openSettings();
-    }
-  };
 
   const handleScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = e.nativeEvent.contentOffset.x;
@@ -210,7 +200,7 @@ export const OnboardingScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Screen 3: Smart Auto-Capture with Settings Redirect */}
+        {/* Screen 3: Smart Auto-Capture & Privacy Showcase */}
         <View style={styles.page}>
           <View style={styles.pageInner}>
             <View style={[styles.heroIcon, { backgroundColor: Colors.amberLight }]}>
@@ -220,29 +210,91 @@ export const OnboardingScreen: React.FC = () => {
             <Text style={styles.title}>{t('onboardingAutoCaptureTitle')}</Text>
             <Text style={styles.desc}>{t('onboardingAutoCaptureDesc')}</Text>
 
-            {/* Interactive Auto-Capture Toggle Card */}
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleToggleAutoCapture}
-              style={styles.autoCaptureCard}
-            >
-              <View style={styles.autoCaptureCardLeft}>
-                <Text style={styles.autoCaptureCardTitle}>{t('enableAutoCaptureLabel')}</Text>
-                <Text style={[styles.autoCaptureCardSub, { color: autoCaptureEnabled ? Colors.moss : Colors.inkSoft }]}>
-                  {autoCaptureEnabled ? t('autoCaptureStatusOn') : t('autoCaptureStatusOff')}
+            {/* Informational Feature Cards */}
+            <View style={styles.modeContainer}>
+              {/* Feature 1: UPI & Bank Detection */}
+              <View style={styles.modeCard}>
+                <View style={styles.modeCardTop}>
+                  <View style={[styles.modeIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                    <Zap size={20} color={Colors.amber} />
+                  </View>
+                  <View style={styles.modeHeaderTexts}>
+                    <View style={styles.modeTitleRow}>
+                      <Text style={styles.modeTitle}>Instant UPI Parsing</Text>
+                      <View style={[styles.modeTagPill, { backgroundColor: '#FFFBEB' }]}>
+                        <Text style={[styles.modeTagText, { color: '#B45309' }]}>
+                          Automated
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.modeDesc}>
+                      Recognizes payments from GPay, PhonePe, Paytm, and bank SMS automatically.
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Feature Chips */}
+                <View style={styles.chipRow}>
+                  <View style={styles.featureChip}>
+                    <Zap size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Real-Time</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <Sparkles size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Zero Typing</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <BellRing size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Smart Match</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Feature 2: 100% On-Device Privacy */}
+              <View style={styles.modeCard}>
+                <View style={styles.modeCardTop}>
+                  <View style={[styles.modeIconCircle, { backgroundColor: '#E8F5E9' }]}>
+                    <ShieldCheck size={20} color={Colors.moss} />
+                  </View>
+                  <View style={styles.modeHeaderTexts}>
+                    <View style={styles.modeTitleRow}>
+                      <Text style={styles.modeTitle}>Private & On-Device</Text>
+                      <View style={[styles.modeTagPill, { backgroundColor: '#F0FDF4' }]}>
+                        <Text style={[styles.modeTagText, { color: Colors.mossDark }]}>
+                          100% Private
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.modeDesc}>
+                      Parsed locally on your smartphone. SMS texts and notifications are never uploaded.
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Feature Chips */}
+                <View style={styles.chipRow}>
+                  <View style={styles.featureChip}>
+                    <ShieldCheck size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Zero Cloud SMS</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <CheckCircle2 size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Encrypted Local</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <SlidersHorizontal size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>User Gated</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Informational Guidance Notice */}
+              <View style={styles.infoNoticeBox}>
+                <Sparkles size={14} color={Colors.mossDark} style={{ marginRight: 8 }} />
+                <Text style={styles.infoNoticeText}>
+                  Kept disabled by default for privacy. You can enable notification auto-capture anytime in Settings.
                 </Text>
               </View>
-              <Switch
-                value={autoCaptureEnabled}
-                onValueChange={handleToggleAutoCapture}
-                trackColor={{ false: Colors.line, true: Colors.moss }}
-                thumbColor="#FFFFFF"
-              />
-            </TouchableOpacity>
-
-            <View style={styles.autoCaptureNoticeBox}>
-              <Text style={styles.autoCaptureNoticeText}>{t('autoCaptureOffNotice')}</Text>
-              <Text style={styles.autoCapturePrivacyText}>{t('privateOnDeviceNote')}</Text>
             </View>
           </View>
         </View>

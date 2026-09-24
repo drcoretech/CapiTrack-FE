@@ -12,11 +12,12 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Briefcase, Check } from 'lucide-react-native';
+import { X, Briefcase, Check, Calendar as CalendarIcon } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useAppStore } from '../../../store/useAppStore';
 import { useKeyboard } from '../../../hooks/useKeyboard';
+import { MonthPickerModal, formatMonthLabel } from '../../../components/MonthPickerModal';
 
 export const AddProjectModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -29,6 +30,12 @@ export const AddProjectModal: React.FC = () => {
   const [advanceStr, setAdvanceStr] = useState('6000');
   const [addToIncome, setAddToIncome] = useState(true);
   const [notes, setNotes] = useState('');
+
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+
   const { isKeyboardVisible, keyboardHeight } = useKeyboard();
 
   const isVisible = activeModal === 'add_project';
@@ -38,6 +45,9 @@ export const AddProjectModal: React.FC = () => {
     const advVal = parseFloat(advanceStr) || 0;
     if (!clientName.trim() || dealVal <= 0) return;
 
+    // Use the 15th of the selected month as payment & creation date
+    const paymentDate = new Date(selectedYear, selectedMonth - 1, 15, 12, 0, 0).toISOString();
+
     addClientProject(
       {
         clientName: clientName.trim(),
@@ -46,7 +56,8 @@ export const AddProjectModal: React.FC = () => {
         notes: notes.trim(),
       },
       advVal,
-      addToIncome
+      addToIncome,
+      paymentDate
     );
 
     setClientName('');
@@ -54,6 +65,9 @@ export const AddProjectModal: React.FC = () => {
     setDealValueStr('12000');
     setAdvanceStr('6000');
     setNotes('');
+    const resetDate = new Date();
+    setSelectedYear(resetDate.getFullYear());
+    setSelectedMonth(resetDate.getMonth() + 1);
     Keyboard.dismiss();
   };
 
@@ -148,6 +162,27 @@ export const AddProjectModal: React.FC = () => {
               </Text>
             </View>
 
+            {/* Optional Project / Payment Month Selector */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>PROJECT / PAYMENT MONTH (OPTIONAL)</Text>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setShowMonthPicker(true)}
+                style={styles.monthSelectorBtn}
+              >
+                <View style={styles.monthSelectorLeft}>
+                  <CalendarIcon size={18} color={Colors.moss} />
+                  <Text style={styles.monthSelectorText}>
+                    {formatMonthLabel(selectedYear, selectedMonth)}
+                  </Text>
+                </View>
+                <Text style={styles.changeText}>Change</Text>
+              </TouchableOpacity>
+              <Text style={styles.subHint}>
+                Defaults to current month. Select an earlier month if you received this payment previously (e.g. July).
+              </Text>
+            </View>
+
             {/* Income Bridge Toggle */}
             <TouchableOpacity
               activeOpacity={0.8}
@@ -200,6 +235,18 @@ export const AddProjectModal: React.FC = () => {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
+
+        <MonthPickerModal
+          visible={showMonthPicker}
+          selectedYear={selectedYear}
+          selectedMonth={selectedMonth}
+          onSelectMonth={(year, month) => {
+            setSelectedYear(year);
+            setSelectedMonth(month);
+            setShowMonthPicker(false);
+          }}
+          onClose={() => setShowMonthPicker(false)}
+        />
       </SafeAreaView>
     </Modal>
   );
@@ -281,6 +328,32 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.inkSoft,
     marginTop: 2,
+  },
+  monthSelectorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  monthSelectorLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  monthSelectorText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 14,
+    color: Colors.ink,
+  },
+  changeText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 13,
+    color: Colors.moss,
   },
   checkboxRow: {
     flexDirection: 'row',

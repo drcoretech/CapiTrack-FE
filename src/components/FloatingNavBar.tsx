@@ -72,24 +72,26 @@ export const FloatingNavBar: React.FC = () => {
 
   return (
     <>
-      {/* Floating Action Button (FAB) with tactile bounce & subtle pop */}
-      <AnimatedPressable
-        scaleTo={0.9}
-        onPress={() => {
-          if (activeTab === 'ledger') {
-            if (ledgerSubTab === 'projects') {
-              openModal('add_project');
+      {/* Floating Action Button (FAB) with tactile bounce & subtle pop - hidden on Insights */}
+      {activeTab !== 'insights' && (
+        <AnimatedPressable
+          scaleTo={0.9}
+          onPress={() => {
+            if (activeTab === 'ledger') {
+              if (ledgerSubTab === 'projects') {
+                openModal('add_project');
+              } else {
+                openModal('add_ledger');
+              }
             } else {
-              openModal('add_ledger');
+              openModal('add_expense');
             }
-          } else {
-            openModal('add_expense');
-          }
-        }}
-        style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 72 }]}
-      >
-        <Plus size={26} color="#FFFFFF" strokeWidth={2.6} />
-      </AnimatedPressable>
+          }}
+          style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 72 }]}
+        >
+          <Plus size={26} color="#FFFFFF" strokeWidth={2.6} />
+        </AnimatedPressable>
+      )}
 
       {/* Floating Frosted Bottom Bar with Entrance & Spring Transitions */}
       <Animated.View
