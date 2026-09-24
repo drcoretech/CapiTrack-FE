@@ -10,7 +10,8 @@ export function useKeyboard() {
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const onShow = (e: KeyboardEvent) => {
-      setKeyboardHeight(e.endCoordinates.height);
+      const h = e?.endCoordinates?.height ?? 0;
+      setKeyboardHeight(h);
       setIsKeyboardVisible(true);
     };
 

@@ -3,7 +3,7 @@
     "name": "CapiTrack",
     "slug": "capitech",
     "owner": "drcoretech",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,6 +13,7 @@
     },
     "android": {
       "package": "com.capitrack.app",
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#1F2A24",
         "foregroundImage": "./assets/android-icon-foreground.png",
