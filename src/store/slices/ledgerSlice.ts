@@ -48,9 +48,13 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
           status: netDelta === 0 ? 'settled' : 'pending',
           transactions: [newTxn],
         };
-        return { contacts: [newContact, ...state.contacts], activeModal: null };
+        const nextList = [newContact, ...state.contacts];
+        AsyncStorage.setItem('@capitrack_contacts', JSON.stringify(nextList)).catch(() => {});
+        return { contacts: nextList, activeModal: null };
       }
     });
+
+    AsyncStorage.setItem('@capitrack_contacts', JSON.stringify(get().contacts)).catch(() => {});
 
     try {
       await api.addTransaction({
@@ -61,6 +65,96 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
       });
       get().refreshDashboard();
     } catch {}
+  },
+
+  updateLedgerEntry: async (personId, txnId, updates) => {
+    const contacts = get().contacts;
+    const targetContact = contacts.find((c) => c.id === personId);
+    if (!targetContact) return;
+
+    const updatedTxns = targetContact.transactions.map((t) => {
+      if (t.id === txnId) {
+        return {
+          ...t,
+          amount: updates.amount !== undefined ? updates.amount : t.amount,
+          direction: (updates.direction !== undefined ? updates.direction : t.direction) as any,
+          note: updates.note !== undefined ? updates.note : t.note,
+          date: updates.date !== undefined ? updates.date : t.date,
+        };
+      }
+      return t;
+    });
+
+    const newNetBalance = updatedTxns.reduce((sum, t) => {
+      if (t.direction === 'LENT') return sum + t.amount;
+      if (t.direction === 'BORROWED') return sum - t.amount;
+      return sum;
+    }, 0);
+
+    const updatedContactName = updates.personName?.trim() || targetContact.name;
+
+    const nextContacts = contacts.map((c) => {
+      if (c.id === personId) {
+        return {
+          ...c,
+          name: updatedContactName,
+          initial: updatedContactName[0].toUpperCase(),
+          netBalance: newNetBalance,
+          status: (newNetBalance === 0 ? 'settled' : 'pending') as 'settled' | 'pending',
+          transactions: updatedTxns,
+        };
+      }
+      return c;
+    });
+
+    set({
+      contacts: nextContacts,
+      editingLedgerTxn: null,
+      activeModal: null,
+    });
+
+    AsyncStorage.setItem('@capitrack_contacts', JSON.stringify(nextContacts)).catch(() => {});
+    get().refreshDashboard();
+  },
+
+  deleteLedgerEntry: async (personId, txnId) => {
+    const contacts = get().contacts;
+    const targetContact = contacts.find((c) => c.id === personId);
+    if (!targetContact) return;
+
+    const remainingTxns = targetContact.transactions.filter((t) => t.id !== txnId);
+
+    let nextContacts: Person[];
+    if (remainingTxns.length === 0) {
+      nextContacts = contacts.filter((c) => c.id !== personId);
+    } else {
+      const newNetBalance = remainingTxns.reduce((sum, t) => {
+        if (t.direction === 'LENT') return sum + t.amount;
+        if (t.direction === 'BORROWED') return sum - t.amount;
+        return sum;
+      }, 0);
+
+      nextContacts = contacts.map((c) => {
+        if (c.id === personId) {
+          return {
+            ...c,
+            netBalance: newNetBalance,
+            status: (newNetBalance === 0 ? 'settled' : 'pending') as 'settled' | 'pending',
+            transactions: remainingTxns,
+          };
+        }
+        return c;
+      });
+    }
+
+    set({
+      contacts: nextContacts,
+      editingLedgerTxn: null,
+      activeModal: null,
+    });
+
+    AsyncStorage.setItem('@capitrack_contacts', JSON.stringify(nextContacts)).catch(() => {});
+    get().refreshDashboard();
   },
 
   loadPersonDetail: async (personId) => {

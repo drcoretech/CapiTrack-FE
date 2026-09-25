@@ -325,29 +325,6 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
           </View>
         </View>
 
-        {/* Alert when contracts are signed in selected month */}
-        {monthContracts.length > 0 && (
-          <View style={styles.contractAlertCard}>
-            <View style={styles.contractAlertTop}>
-              <View style={styles.contractAlertIcon}>
-                <Briefcase size={16} color={Colors.moss} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.contractAlertTitle}>
-                  {monthContracts.length} Project Contract{monthContracts.length > 1 ? 's' : ''} Signed in {getMonth(selectedMonth)} {selectedYear}
-                </Text>
-                <Text style={styles.contractAlertSub} numberOfLines={2}>
-                  {monthContracts.map((p) => `${p.clientName} (₹${p.totalValue.toLocaleString()})`).join(' • ')}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.contractAlertHint}>
-              {totalCollectedMonth > 0
-                ? `Total contract deal value booked: ₹${contractsValueSignedMonth.toLocaleString()}.`
-                : `₹${contractsValueSignedMonth.toLocaleString()} new contract value booked for this month! Tap project below to record or edit milestone payments.`}
-            </Text>
-          </View>
-        )}
       </View>
 
       {/* 2. Client Contracts & Projects Overview */}

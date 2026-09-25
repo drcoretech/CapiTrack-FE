@@ -1,4 +1,4 @@
-import { Expense, Person, TabScreen, AppCategory, ExpenseCategory, ClientProject, ProjectPayment } from '../types';
+import { Expense, Person, LedgerTransaction, TabScreen, AppCategory, ExpenseCategory, ClientProject, ProjectPayment } from '../types';
 
 export interface PendingNudge {
   id: string;
@@ -29,7 +29,8 @@ export type ModalType =
   | 'edit_expense'
   | 'profile_details'
   | 'add_project'
-  | 'project_detail';
+  | 'project_detail'
+  | 'edit_ledger_entry';
 
 export interface UserSlice {
   userName: string;
@@ -69,11 +70,13 @@ export interface UiSlice {
   insightsSubTab: 'personal' | 'revenue';
   setInsightsSubTab: (tab: 'personal' | 'revenue') => void;
   editingExpense: Expense | null;
+  editingLedgerTxn: { personId: string; txn: LedgerTransaction } | null;
   authInitialMode: 'signin' | 'signup';
   setActiveTab: (tab: TabScreen) => void;
   openModal: (modal: ModalType, entityId?: string) => void;
   closeModal: () => void;
   setEditingExpense: (expense: Expense | null) => void;
+  setEditingLedgerTxn: (data: { personId: string; txn: LedgerTransaction } | null) => void;
   setAuthInitialMode: (mode: 'signin' | 'signup') => void;
 }
 
@@ -104,6 +107,18 @@ export interface LedgerSlice {
   contacts: Person[];
   clientProjects: ClientProject[];
   addLedgerEntry: (personName: string, amount: number, direction: 'LENT' | 'BORROWED', note: string) => Promise<void>;
+  updateLedgerEntry: (
+    personId: string,
+    txnId: string,
+    updates: {
+      amount?: number;
+      direction?: 'LENT' | 'BORROWED';
+      note?: string;
+      date?: string;
+      personName?: string;
+    }
+  ) => Promise<void>;
+  deleteLedgerEntry: (personId: string, txnId: string) => Promise<void>;
   settlePerson: (personId: string) => Promise<void>;
   loadPersonDetail: (personId: string) => Promise<void>;
   addClientProject: (

@@ -46,23 +46,13 @@ export const InsightsScreen: React.FC = () => {
 
   const isCurrentMonth = selectedMonth === (now.getMonth() + 1) && selectedYear === now.getFullYear();
 
-  // Month navigation handlers
-  const handlePrevMonth = () => {
-    if (selectedMonth === 1) {
-      setSelectedMonth(12);
-      setSelectedYear((y) => y - 1);
-    } else {
-      setSelectedMonth((m) => m - 1);
-    }
+  // Year navigation handlers: clicking arrows changes the year without shifting the selected month
+  const handlePrevYear = () => {
+    setSelectedYear((y) => y - 1);
   };
 
-  const handleNextMonth = () => {
-    if (selectedMonth === 12) {
-      setSelectedMonth(1);
-      setSelectedYear((y) => y + 1);
-    } else {
-      setSelectedMonth((m) => m + 1);
-    }
+  const handleNextYear = () => {
+    setSelectedYear((y) => y + 1);
   };
 
   // Filter expenses for selected month using transaction date (e.date || e.createdAt)
@@ -306,8 +296,8 @@ export const InsightsScreen: React.FC = () => {
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
               isCurrentMonth={isCurrentMonth}
-              onPrevMonth={handlePrevMonth}
-              onNextMonth={handleNextMonth}
+              onPrevYear={handlePrevYear}
+              onNextYear={handleNextYear}
               onSelectMonth={(m, y) => {
                 setSelectedMonth(m);
                 setSelectedYear(y);

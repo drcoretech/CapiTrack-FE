@@ -10,8 +10,10 @@ interface MonthSelectorBarProps {
   selectedMonth: number;
   selectedYear: number;
   isCurrentMonth: boolean;
-  onPrevMonth: () => void;
-  onNextMonth: () => void;
+  onPrevMonth?: () => void;
+  onNextMonth?: () => void;
+  onPrevYear?: () => void;
+  onNextYear?: () => void;
   onSelectMonth: (month: number, year: number) => void;
 }
 
@@ -21,15 +23,27 @@ export const MonthSelectorBar: React.FC<MonthSelectorBarProps> = ({
   isCurrentMonth,
   onPrevMonth,
   onNextMonth,
+  onPrevYear,
+  onNextYear,
   onSelectMonth,
 }) => {
   const { t, getMonth } = useTranslation();
   const monthPillList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
+  const handleArrowLeft = () => {
+    if (onPrevYear) onPrevYear();
+    else if (onPrevMonth) onPrevMonth();
+  };
+
+  const handleArrowRight = () => {
+    if (onNextYear) onNextYear();
+    else if (onNextMonth) onNextMonth();
+  };
+
   return (
     <View style={styles.monthNavCard}>
       <View style={styles.monthNavRow}>
-        <AnimatedPressable style={styles.chevronBtn} onPress={onPrevMonth}>
+        <AnimatedPressable style={styles.chevronBtn} onPress={handleArrowLeft}>
           <ChevronLeft size={20} color={Colors.ink} />
         </AnimatedPressable>
 
@@ -46,7 +60,7 @@ export const MonthSelectorBar: React.FC<MonthSelectorBarProps> = ({
           )}
         </View>
 
-        <AnimatedPressable style={styles.chevronBtn} onPress={onNextMonth}>
+        <AnimatedPressable style={styles.chevronBtn} onPress={handleArrowRight}>
           <ChevronRight size={20} color={Colors.ink} />
         </AnimatedPressable>
       </View>

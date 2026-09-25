@@ -9,6 +9,7 @@ export const createUiSlice: StateCreator<AppState, [], [], UiSlice> = (set, get)
   ledgerSubTab: 'personal',
   insightsSubTab: 'personal',
   editingExpense: null,
+  editingLedgerTxn: null,
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   setLedgerSubTab: (tab) => set({ ledgerSubTab: tab }),
@@ -25,12 +26,18 @@ export const createUiSlice: StateCreator<AppState, [], [], UiSlice> = (set, get)
     }
   },
 
-  closeModal: () => set({ activeModal: null, selectedPersonId: null, selectedProjectId: null }),
+  closeModal: () => set({ activeModal: null, selectedPersonId: null, selectedProjectId: null, editingLedgerTxn: null }),
 
   setEditingExpense: (expense) =>
     set({
       editingExpense: expense,
       activeModal: expense ? 'edit_expense' : null,
+    }),
+
+  setEditingLedgerTxn: (data) =>
+    set({
+      editingLedgerTxn: data,
+      activeModal: data ? 'edit_ledger_entry' : null,
     }),
 
   authInitialMode: 'signup',

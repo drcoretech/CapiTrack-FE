@@ -40,6 +40,7 @@ import { FloatingNavBar } from './src/components/FloatingNavBar';
 import { AddExpenseModal } from './src/screens/Expenses/AddExpenseModal';
 import { EditExpenseModal } from './src/screens/Expenses/EditExpenseModal';
 import { AddLedgerEntryModal } from './src/screens/Ledger/AddLedgerEntryModal';
+import { EditLedgerEntryModal } from './src/screens/Ledger/EditLedgerEntryModal';
 import { PersonDetailModal } from './src/screens/Ledger/PersonDetailModal';
 import { AddProjectModal } from './src/screens/Ledger/components/AddProjectModal';
 import { ProjectDetailModal } from './src/screens/Ledger/components/ProjectDetailModal';
@@ -178,6 +179,7 @@ export default function App() {
         <AddExpenseModal />
         <EditExpenseModal />
         <AddLedgerEntryModal />
+        <EditLedgerEntryModal />
         <PersonDetailModal />
         <AddProjectModal />
         <ProjectDetailModal />

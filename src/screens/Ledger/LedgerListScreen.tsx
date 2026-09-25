@@ -8,7 +8,7 @@ import { useTranslation } from '../../i18n/translations';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
 import { LedgerSkeleton } from './components/LedgerSkeleton';
 import { ClientProjectsView } from './components/ClientProjectsView';
-import { Settings } from 'lucide-react-native';
+import { Settings, Pencil } from 'lucide-react-native';
 
 export const LedgerListScreen: React.FC = () => {
   const contacts = useAppStore((state) => state.contacts);
@@ -19,6 +19,7 @@ export const LedgerListScreen: React.FC = () => {
   const isSyncing = useAppStore((state) => state.isSyncing);
   const refreshDashboard = useAppStore((state) => state.refreshDashboard);
   const openModal = useAppStore((state) => state.openModal);
+  const setEditingLedgerTxn = useAppStore((state) => state.setEditingLedgerTxn);
   const { t } = useTranslation();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -202,22 +203,36 @@ export const LedgerListScreen: React.FC = () => {
                               ? '₹0'
                               : `-₹${Math.abs(person.netBalance).toLocaleString()}`}
                           </Text>
-                          <View
-                            style={[
-                              styles.pill,
-                              person.status === 'settled' ? styles.pillSettled : styles.pillPending,
-                            ]}
-                          >
-                            <Text
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                            <View
                               style={[
-                                styles.pillText,
-                                person.status === 'settled'
-                                  ? styles.pillTextSettled
-                                  : styles.pillTextPending,
+                                styles.pill,
+                                person.status === 'settled' ? styles.pillSettled : styles.pillPending,
                               ]}
                             >
-                              {person.status === 'settled' ? t('statusSettled') : t('statusPending')}
-                            </Text>
+                              <Text
+                                style={[
+                                  styles.pillText,
+                                  person.status === 'settled'
+                                    ? styles.pillTextSettled
+                                    : styles.pillTextPending,
+                                ]}
+                              >
+                                {person.status === 'settled' ? t('statusSettled') : t('statusPending')}
+                              </Text>
+                            </View>
+                            {person.transactions.length > 0 && (
+                              <TouchableOpacity
+                                activeOpacity={0.7}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                onPress={() => {
+                                  setEditingLedgerTxn({ personId: person.id, txn: person.transactions[0] });
+                                }}
+                                style={styles.editPill}
+                              >
+                                <Pencil size={11} color={Colors.inkSoft} />
+                              </TouchableOpacity>
+                            )}
                           </View>
                         </View>
                       </AnimatedPressable>
@@ -393,6 +408,14 @@ const styles = StyleSheet.create({
   },
   pillTextSettled: {
     color: Colors.moss,
+  },
+  editPill: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.mist,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   segmentContainer: {
     flexDirection: 'row',

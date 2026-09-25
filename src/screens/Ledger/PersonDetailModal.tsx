@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
+import { X, Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
@@ -13,6 +13,7 @@ export const PersonDetailModal: React.FC = () => {
   const contacts = useAppStore((state) => state.contacts);
   const closeModal = useAppStore((state) => state.closeModal);
   const openModal = useAppStore((state) => state.openModal);
+  const setEditingLedgerTxn = useAppStore((state) => state.setEditingLedgerTxn);
   const settlePerson = useAppStore((state) => state.settlePerson);
   const { t } = useTranslation();
 
@@ -67,6 +68,16 @@ export const PersonDetailModal: React.FC = () => {
                 ? t('allSettledUp')
                 : `${t('youOweText')} ₹${Math.abs(person.netBalance).toLocaleString()}`}
             </Text>
+            {person.transactions.length > 0 && (
+              <TouchableOpacity
+                activeOpacity={0.75}
+                onPress={() => setEditingLedgerTxn({ personId: person.id, txn: person.transactions[0] })}
+                style={styles.heroEditBtn}
+              >
+                <Pencil size={12} color={Colors.moss} />
+                <Text style={styles.heroEditText}>Edit Entry / Amount</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Transactions list */}
@@ -76,28 +87,38 @@ export const PersonDetailModal: React.FC = () => {
               <Text style={styles.emptyText}>{t('noEntriesYet')}</Text>
             ) : (
               person.transactions.map((txn) => (
-                <View key={txn.id} style={styles.txnRow}>
-                  <View>
+                <TouchableOpacity
+                  key={txn.id}
+                  activeOpacity={0.75}
+                  onPress={() => setEditingLedgerTxn({ personId: person.id, txn })}
+                  style={styles.txnRow}
+                >
+                  <View style={{ flex: 1, marginRight: 12 }}>
                     <Text style={styles.txnNote}>{txn.note}</Text>
                     <Text style={styles.txnDate}>{txn.date === 'Today' ? t('dayToday') : txn.date}</Text>
                   </View>
-                  <Text
-                    style={[
-                      styles.txnAmount,
-                      txn.direction === 'LENT'
-                        ? { color: Colors.moss }
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text
+                      style={[
+                        styles.txnAmount,
+                        txn.direction === 'LENT'
+                          ? { color: Colors.moss }
+                          : txn.direction === 'BORROWED'
+                          ? { color: Colors.brick }
+                          : { color: Colors.inkSoft },
+                      ]}
+                    >
+                      {txn.direction === 'LENT'
+                        ? `+₹${txn.amount}`
                         : txn.direction === 'BORROWED'
-                        ? { color: Colors.brick }
-                        : { color: Colors.inkSoft },
-                    ]}
-                  >
-                    {txn.direction === 'LENT'
-                      ? `+₹${txn.amount}`
-                      : txn.direction === 'BORROWED'
-                      ? `-₹${txn.amount}`
-                      : `₹${txn.amount} (${t('statusSettled')})`}
-                  </Text>
-                </View>
+                        ? `-₹${txn.amount}`
+                        : `₹${txn.amount} (${t('statusSettled')})`}
+                    </Text>
+                    <View style={styles.editPill}>
+                      <Pencil size={11} color={Colors.inkSoft} />
+                    </View>
+                  </View>
+                </TouchableOpacity>
               ))
             )}
           </View>
@@ -229,6 +250,31 @@ const styles = StyleSheet.create({
   txnAmount: {
     fontFamily: Fonts.monoMedium,
     fontSize: 14,
+  },
+  heroEditBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginTop: 6,
+  },
+  heroEditText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    color: Colors.moss,
+  },
+  editPill: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.mist,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   footer: {
     paddingHorizontal: 22,
