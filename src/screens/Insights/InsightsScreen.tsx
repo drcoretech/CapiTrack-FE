@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Settings, Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { useTranslation } from '../../i18n/translations';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 import { MonthSelectorBar } from './components/MonthSelectorBar';
 import { MonthHeroCard } from './components/MonthHeroCard';
 import { SpendChartsCard } from './components/SpendChartsCard';
@@ -25,12 +27,22 @@ export const InsightsScreen: React.FC = () => {
   const refreshDashboard = useAppStore((state) => state.refreshDashboard);
   const currencySymbol = useAppStore((state) => state.currencySymbol) || '₹';
   const openModal = useAppStore((state) => state.openModal);
+  const setEditingExpense = useAppStore((state) => state.setEditingExpense);
 
   // Active Month & Year (defaults to current calendar month & year)
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [chartMode, setChartMode] = useState<'trend' | 'weekly'>('trend');
+
+  // Year-wise trend controls for Personal Spends
+  const [personalTrendYear, setPersonalTrendYear] = useState<number>(now.getFullYear());
+  const [personalTrendHalf, setPersonalTrendHalf] = useState<'H1' | 'H2'>(now.getMonth() + 1 <= 6 ? 'H1' : 'H2');
+
+  useEffect(() => {
+    setPersonalTrendYear(selectedYear);
+    setPersonalTrendHalf(selectedMonth <= 6 ? 'H1' : 'H2');
+  }, [selectedMonth, selectedYear]);
 
   const isCurrentMonth = selectedMonth === (now.getMonth() + 1) && selectedYear === now.getFullYear();
 
@@ -131,14 +143,14 @@ export const InsightsScreen: React.FC = () => {
 
   const topCategory = categoryBreakdown[0] || null;
 
-  // 6-Month Trend Data
-  const sixMonthsTrend = useMemo(() => {
+  // Year-wise Half-Year Trend Data for Personal Spends
+  const { sixMonthsTrend, personalTrendTotal } = useMemo(() => {
     const monthsList: { month: number; year: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const startMonth = personalTrendHalf === 'H1' ? 1 : 7;
+    for (let m = startMonth; m < startMonth + 6; m++) {
       monthsList.push({
-        month: targetDate.getMonth() + 1,
-        year: targetDate.getFullYear(),
+        month: m,
+        year: personalTrendYear,
       });
     }
 
@@ -158,12 +170,17 @@ export const InsightsScreen: React.FC = () => {
     });
 
     const maxTotal = Math.max(...monthData.map((m) => m.total), 1);
-    return monthData.map((m) => ({
-      ...m,
-      percentage: Math.max(14, Math.round((m.total / maxTotal) * 100)),
-      isPeak: m.total === maxTotal && m.total > 0,
-    }));
-  }, [expenses, selectedMonth, selectedYear, currencySymbol]);
+    const periodTotal = monthData.reduce((sum, m) => sum + m.total, 0);
+
+    return {
+      personalTrendTotal: periodTotal,
+      sixMonthsTrend: monthData.map((m) => ({
+        ...m,
+        percentage: Math.max(14, Math.round((m.total / maxTotal) * 100)),
+        isPeak: m.total === maxTotal && m.total > 0,
+      })),
+    };
+  }, [expenses, selectedMonth, selectedYear, currencySymbol, personalTrendYear, personalTrendHalf]);
 
   // Weekly flow for selected month
   const weeklyFlowData = useMemo(() => {
@@ -228,10 +245,19 @@ export const InsightsScreen: React.FC = () => {
           <InsightsSkeleton />
         ) : (
           <>
-            {/* Header */}
+            {/* Header with Settings Badge */}
             <View style={styles.header}>
-              <Text style={styles.eyebrow}>{t('monthlyTracker')}</Text>
-              <Text style={styles.title}>{t('insightsTitle')}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.eyebrow}>{t('monthlyTracker')}</Text>
+                <Text style={styles.title}>{t('insightsTitle')}</Text>
+              </View>
+              <AnimatedPressable
+                scaleTo={0.9}
+                onPress={() => openModal('profile_details')}
+                style={styles.settingsBadge}
+              >
+                <Settings size={20} color={Colors.ink} />
+              </AnimatedPressable>
             </View>
 
             {/* Segmented Sub-Tab Switcher (Personal Spends vs Freelance Revenue) */}
@@ -308,9 +334,13 @@ export const InsightsScreen: React.FC = () => {
               />
             ) : (
               <>
-                {/* Lump-Sum Monthly Total Banner (if present for this month) */}
+                {/* Lump-Sum Monthly Total Banner (if present for this month, tap to edit) */}
                 {monthlyTotalExpense && (
-                  <View style={styles.lumpSumBanner}>
+                  <TouchableOpacity
+                    activeOpacity={0.75}
+                    onPress={() => setEditingExpense(monthlyTotalExpense)}
+                    style={styles.lumpSumBanner}
+                  >
                     <View style={styles.lumpSumIconCircle}>
                       <Text style={{ fontSize: 18 }}>📅</Text>
                     </View>
@@ -325,7 +355,10 @@ export const InsightsScreen: React.FC = () => {
                         Includes {currencySymbol}{monthlyTotalExpense.amount.toLocaleString()} logged as your full month total from notes ({monthlyTotalExpense.note?.replace(/\[Monthly Total\]\s*/g, '').trim() || 'Manual Record'}).
                       </Text>
                     </View>
-                  </View>
+                    <View style={styles.editPencilBadge}>
+                      <Pencil size={12} color={Colors.inkSoft} />
+                    </View>
+                  </TouchableOpacity>
                 )}
 
                 {/* Monthly Summary Hero Card */}
@@ -348,6 +381,13 @@ export const InsightsScreen: React.FC = () => {
                     setSelectedMonth(m);
                     setSelectedYear(y);
                   }}
+                  trendYear={personalTrendYear}
+                  trendHalf={personalTrendHalf}
+                  onPrevTrendYear={() => setPersonalTrendYear((y) => y - 1)}
+                  onNextTrendYear={() => setPersonalTrendYear((y) => y + 1)}
+                  onSelectTrendHalf={setPersonalTrendHalf}
+                  periodTotal={personalTrendTotal}
+                  currencySymbol={currencySymbol}
                 />
 
                 {/* Dynamic Category Breakdown Card */}
@@ -383,7 +423,36 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 2,
+  },
+  settingsBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.ink,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  editPencilBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.mist,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.line,
+    marginLeft: 4,
   },
   eyebrow: {
     fontFamily: Fonts.monoMedium,

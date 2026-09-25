@@ -31,7 +31,8 @@ import { useAppStore } from '../../store/useAppStore';
 import { useKeyboard } from '../../hooks/useKeyboard';
 
 export const AuthScreen: React.FC = () => {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const authInitialMode = useAppStore((state) => state.authInitialMode);
+  const [mode, setMode] = useState<'signin' | 'signup'>(authInitialMode || 'signup');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -43,6 +44,12 @@ export const AuthScreen: React.FC = () => {
   const login = useAppStore((state) => state.login);
   const signup = useAppStore((state) => state.signup);
   const setFirstRunStep = useAppStore((state) => state.setFirstRunStep);
+
+  React.useEffect(() => {
+    if (authInitialMode) {
+      setMode(authInitialMode);
+    }
+  }, [authInitialMode]);
 
   const handleSubmit = async () => {
     setErrorMessage('');

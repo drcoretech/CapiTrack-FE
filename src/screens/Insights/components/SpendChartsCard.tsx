@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useTranslation } from '../../../i18n/translations';
@@ -28,6 +29,13 @@ interface SpendChartsCardProps {
   sixMonthsTrend: TrendItem[];
   weeklyFlowData: WeeklyItem[];
   onSelectTrendMonth: (month: number, year: number) => void;
+  trendYear?: number;
+  trendHalf?: 'H1' | 'H2';
+  onPrevTrendYear?: () => void;
+  onNextTrendYear?: () => void;
+  onSelectTrendHalf?: (half: 'H1' | 'H2') => void;
+  periodTotal?: number;
+  currencySymbol?: string;
 }
 
 export const SpendChartsCard: React.FC<SpendChartsCardProps> = ({
@@ -36,6 +44,13 @@ export const SpendChartsCard: React.FC<SpendChartsCardProps> = ({
   sixMonthsTrend,
   weeklyFlowData,
   onSelectTrendMonth,
+  trendYear,
+  trendHalf,
+  onPrevTrendYear,
+  onNextTrendYear,
+  onSelectTrendHalf,
+  periodTotal = 0,
+  currencySymbol = '₹',
 }) => {
   const { t, getMonth } = useTranslation();
 
@@ -88,38 +103,90 @@ export const SpendChartsCard: React.FC<SpendChartsCardProps> = ({
 
       {/* 6-Month Trend Bar Chart */}
       {chartMode === 'trend' && (
-        <View style={styles.barChart}>
-          {sixMonthsTrend.map((item) => (
-            <TouchableOpacity
-              key={`${item.year}-${item.month}`}
-              style={styles.barColumn}
-              onPress={() => onSelectTrendMonth(item.month, item.year)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.barTrack}>
-                <View
+        <>
+          {trendYear !== undefined && onPrevTrendYear && onNextTrendYear && (
+            <View style={styles.trendControlsRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.trendPeriodSub}>
+                  {trendYear} • {trendHalf === 'H1' ? 'Jan – Jun' : 'Jul – Dec'} (Total: {currencySymbol}{periodTotal.toLocaleString()})
+                </Text>
+              </View>
+              <View style={styles.trendYearSwitcher}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={onPrevTrendYear}
+                  style={styles.yearArrowBtn}
+                >
+                  <ChevronLeft size={16} color={Colors.ink} />
+                </TouchableOpacity>
+                <Text style={styles.trendYearLabel}>{trendYear}</Text>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={onNextTrendYear}
+                  style={styles.yearArrowBtn}
+                >
+                  <ChevronRight size={16} color={Colors.ink} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {trendHalf && onSelectTrendHalf && (
+            <View style={styles.halfYearTabContainer}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => onSelectTrendHalf('H1')}
+                style={[styles.halfYearTab, trendHalf === 'H1' && styles.halfYearTabActive]}
+              >
+                <Text style={[styles.halfYearTabText, trendHalf === 'H1' && styles.halfYearTabTextActive]}>
+                  Jan – Jun (H1)
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => onSelectTrendHalf('H2')}
+                style={[styles.halfYearTab, trendHalf === 'H2' && styles.halfYearTabActive]}
+              >
+                <Text style={[styles.halfYearTabText, trendHalf === 'H2' && styles.halfYearTabTextActive]}>
+                  Jul – Dec (H2)
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.barChart}>
+            {sixMonthsTrend.map((item) => (
+              <TouchableOpacity
+                key={`${item.year}-${item.month}`}
+                style={styles.barColumn}
+                onPress={() => onSelectTrendMonth(item.month, item.year)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.barTrack}>
+                  <View
+                    style={[
+                      styles.barFill,
+                      { height: `${item.percentage}%` },
+                      item.isPeak ? styles.barFillAmber : styles.barFillStandard,
+                      item.isSelected && styles.barFillSelected,
+                    ]}
+                  >
+                    <Text style={styles.barValueText}>{item.label}</Text>
+                  </View>
+                </View>
+                <Text
                   style={[
-                    styles.barFill,
-                    { height: `${item.percentage}%` },
-                    item.isPeak ? styles.barFillAmber : styles.barFillStandard,
-                    item.isSelected && styles.barFillSelected,
+                    styles.barLabel,
+                    item.isSelected && styles.barLabelSelected,
                   ]}
                 >
-                  <Text style={styles.barValueText}>{item.label}</Text>
-                </View>
-              </View>
-              <Text
-                style={[
-                  styles.barLabel,
-                  item.isSelected && styles.barLabelSelected,
-                ]}
-              >
-                {getMonth(item.month, 'short')}
-              </Text>
-              {item.isSelected && <View style={styles.activeDot} />}
-            </TouchableOpacity>
-          ))}
-        </View>
+                  {getMonth(item.month, 'short')}
+                </Text>
+                {item.isSelected && <View style={styles.activeDot} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
       )}
 
       {/* Weekly Flow Bar Chart */}
@@ -270,5 +337,64 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     color: Colors.inkSoft,
     marginTop: 2,
+  },
+  trendControlsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 8,
+  },
+  trendPeriodSub: {
+    fontFamily: Fonts.monoRegular,
+    fontSize: 11,
+    color: Colors.inkSoft,
+  },
+  trendYearSwitcher: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.mist,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    gap: 4,
+  },
+  yearArrowBtn: {
+    padding: 4,
+  },
+  trendYearLabel: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 12,
+    color: Colors.ink,
+  },
+  halfYearTabContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.mist,
+    borderRadius: 10,
+    padding: 3,
+    marginBottom: 14,
+  },
+  halfYearTab: {
+    flex: 1,
+    paddingVertical: 6,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  halfYearTabActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  halfYearTabText: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 11.5,
+    color: Colors.inkSoft,
+  },
+  halfYearTabTextActive: {
+    fontFamily: Fonts.sansSemiBold,
+    color: Colors.ink,
   },
 });

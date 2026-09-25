@@ -8,6 +8,7 @@ import { useTranslation } from '../../i18n/translations';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
 import { LedgerSkeleton } from './components/LedgerSkeleton';
 import { ClientProjectsView } from './components/ClientProjectsView';
+import { Settings } from 'lucide-react-native';
 
 export const LedgerListScreen: React.FC = () => {
   const contacts = useAppStore((state) => state.contacts);
@@ -65,14 +66,23 @@ export const LedgerListScreen: React.FC = () => {
               transform: [{ translateY: slideAnim }],
             }}
           >
-          {/* Header */}
+          {/* Header with Settings Badge */}
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>
-              {ledgerSubTab === 'projects' ? 'BUSINESS & FREELANCE' : t('udhaarKhata')}
-            </Text>
-            <Text style={styles.title}>
-              {ledgerSubTab === 'projects' ? 'Client Projects & Dues' : t('ledgerTitle')}
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.eyebrow}>
+                {ledgerSubTab === 'projects' ? 'BUSINESS & FREELANCE' : t('udhaarKhata')}
+              </Text>
+              <Text style={styles.title}>
+                {ledgerSubTab === 'projects' ? 'Client Projects & Dues' : t('ledgerTitle')}
+              </Text>
+            </View>
+            <AnimatedPressable
+              scaleTo={0.9}
+              onPress={() => openModal('profile_details')}
+              style={styles.settingsBadge}
+            >
+              <Settings size={20} color={Colors.ink} />
+            </AnimatedPressable>
           </View>
 
           {/* Segmented Sub-Tab Switcher (Personal Udhar vs Client Projects) */}
@@ -236,7 +246,26 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 4,
+    paddingTop: 4,
+  },
+  settingsBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.ink,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   eyebrow: {
     fontFamily: Fonts.monoMedium,

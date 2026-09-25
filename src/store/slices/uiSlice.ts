@@ -32,4 +32,7 @@ export const createUiSlice: StateCreator<AppState, [], [], UiSlice> = (set, get)
       editingExpense: expense,
       activeModal: expense ? 'edit_expense' : null,
     }),
+
+  authInitialMode: 'signup',
+  setAuthInitialMode: (mode) => set({ authInitialMode: mode }),
 });

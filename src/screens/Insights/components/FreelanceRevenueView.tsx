@@ -123,10 +123,12 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
     return monthContracts.reduce((sum, p) => sum + p.totalValue, 0);
   }, [monthContracts]);
 
-  // Total collected in selected month
+  // Total collected in selected month (falls back to contract deal value if cash receipts are 0)
   const totalCollectedMonth = useMemo(() => {
-    return monthPayments.reduce((sum, p) => sum + p.amount, 0);
-  }, [monthPayments]);
+    const cashRec = monthPayments.reduce((sum, p) => sum + p.amount, 0);
+    if (cashRec > 0) return cashRec;
+    return contractsValueSignedMonth;
+  }, [monthPayments, contractsValueSignedMonth]);
 
   // Previous month collected for comparison
   const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
@@ -195,13 +197,28 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
     const data = monthsList.map((m) => {
       let monthSum = 0;
       projects.forEach((proj) => {
-        (proj.payments || []).forEach((p) => {
-          const rawDate = p.date || proj.createdAt;
-          const d = parseDateSafe(rawDate);
-          if (d.getMonth() + 1 === m.month && d.getFullYear() === m.year) {
-            monthSum += p.amount;
-          }
-        });
+        const projDate = parseDateSafe(proj.createdAt);
+        const projCreatedInThisMonth =
+          projDate.getMonth() + 1 === m.month && projDate.getFullYear() === m.year;
+
+        const payments = proj.payments || [];
+        let projectMonthPayments = 0;
+        if (payments.length > 0) {
+          payments.forEach((p) => {
+            const rawDate = p.date || proj.createdAt;
+            const d = parseDateSafe(rawDate);
+            if (d.getMonth() + 1 === m.month && d.getFullYear() === m.year) {
+              projectMonthPayments += p.amount;
+            }
+          });
+        }
+
+        if (projectMonthPayments > 0) {
+          monthSum += projectMonthPayments;
+        } else if (projCreatedInThisMonth) {
+          // If no payment milestone has been collected yet, count the contracted deal value
+          monthSum += proj.totalValue;
+        }
       });
 
       return {
@@ -228,30 +245,6 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
       })),
     };
   }, [projects, selectedMonth, selectedYear, currencySymbol, trendYear, trendHalf]);
-
-  // Client-wise Revenue Contribution for selected month
-  const clientBreakdown = useMemo(() => {
-    const map = new Map<string, { clientName: string; projectTitle: string; amount: number; count: number }>();
-    monthPayments.forEach((p) => {
-      const key = p.clientName;
-      const existing = map.get(key) || {
-        clientName: p.clientName,
-        projectTitle: p.projectTitle,
-        amount: 0,
-        count: 0,
-      };
-      existing.amount += p.amount;
-      existing.count += 1;
-      map.set(key, existing);
-    });
-
-    const list = Array.from(map.values());
-    list.sort((a, b) => b.amount - a.amount);
-    return list.map((item) => ({
-      ...item,
-      percentage: totalCollectedMonth > 0 ? Math.round((item.amount / totalCollectedMonth) * 100) : 0,
-    }));
-  }, [monthPayments, totalCollectedMonth]);
 
   // Projects with outstanding balances
   const activeDuesProjects = useMemo(() => {
@@ -566,44 +559,7 @@ export const FreelanceRevenueView: React.FC<FreelanceRevenueViewProps> = ({
         </View>
       </View>
 
-      {/* 4. Client Revenue Contribution Breakdown */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>{t('clientShareTitle')}</Text>
-        {clientBreakdown.length === 0 ? (
-          <Text style={styles.emptyNote}>{t('noMilestonesThisMonth')}</Text>
-        ) : (
-          clientBreakdown.map((item, index) => (
-            <View key={index} style={styles.clientRow}>
-              <View style={styles.clientTop}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.clientName}>{item.clientName}</Text>
-                  <Text style={styles.clientProj}>{item.projectTitle}</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.clientAmount}>
-                    {currencySymbol}
-                    {item.amount.toLocaleString()}
-                  </Text>
-                  <Text style={styles.clientPercent}>{item.percentage}% share</Text>
-                </View>
-              </View>
-              <View style={styles.clientBarTrack}>
-                <View
-                  style={[
-                    styles.clientBarFill,
-                    {
-                      width: `${item.percentage}%`,
-                      backgroundColor: index === 0 ? Colors.moss : Colors.amber,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-          ))
-        )}
-      </View>
-
-      {/* 5. Milestone Receipts Activity Log */}
+      {/* 4. Milestone Receipts Activity Log */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>{t('milestonesReceived')}</Text>
         {monthPayments.length === 0 ? (

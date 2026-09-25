@@ -64,7 +64,9 @@ export const EditExpenseModal: React.FC = () => {
       const isMonthLumpSum = !!editingExpense.note?.includes('[Monthly Total]');
       setIsMonthlyTotal(isMonthLumpSum);
 
-      const expDate = editingExpense.date ? new Date(editingExpense.date) : new Date(editingExpense.createdAt);
+      const rawDate = editingExpense.date || editingExpense.createdAt;
+      const parsedDate = rawDate ? new Date(rawDate) : new Date();
+      const expDate = isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
       const expYear = expDate.getFullYear();
       const expMonth = expDate.getMonth() + 1;
 
@@ -130,13 +132,15 @@ export const EditExpenseModal: React.FC = () => {
       }
     }
 
-    updateExpense(editingExpense.id, {
+    Keyboard.dismiss();
+    const expId = editingExpense.id || (editingExpense as any)._id;
+    updateExpense(expId, {
       amount: num,
       category: selectedCategory,
       note: finalNote,
       date: targetDate,
     });
-    Keyboard.dismiss();
+    closeModal();
   };
 
   const handleDelete = () => {
@@ -149,7 +153,11 @@ export const EditExpenseModal: React.FC = () => {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => deleteExpense(editingExpense.id),
+          onPress: () => {
+            const expId = editingExpense.id || (editingExpense as any)._id;
+            deleteExpense(expId);
+            closeModal();
+          },
         },
       ]
     );

@@ -225,7 +225,7 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
 
   updateExpense: async (id, updates) => {
     const prevExpenses = get().expenses;
-    const target = prevExpenses.find((e) => e.id === id);
+    const target = prevExpenses.find((e) => e.id === id || (e as any)._id === id);
     if (!target) return;
 
     const updatedDate = updates.date ? updates.date : (target.date || target.createdAt);
@@ -242,11 +242,17 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
       dayGroup: updatedDayGroup,
     };
 
-    set((state) => ({
-      expenses: state.expenses.map((e) => (e.id === id ? updatedExpense : e)),
+    const nextExpenses = prevExpenses.map((e) =>
+      (e.id === id || (e as any)._id === id) ? updatedExpense : e
+    );
+
+    set({
+      expenses: nextExpenses,
       editingExpense: null,
       activeModal: null,
-    }));
+    });
+
+    AsyncStorage.setItem('@capitrack_expenses', JSON.stringify(nextExpenses)).catch(() => {});
 
     try {
       await api.updateExpense(id, {
@@ -263,11 +269,17 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
   },
 
   deleteExpense: async (id) => {
-    set((state) => ({
-      expenses: state.expenses.filter((e) => e.id !== id),
+    const nextExpenses = get().expenses.filter(
+      (e) => e.id !== id && (e as any)._id !== id
+    );
+
+    set({
+      expenses: nextExpenses,
       editingExpense: null,
       activeModal: null,
-    }));
+    });
+
+    AsyncStorage.setItem('@capitrack_expenses', JSON.stringify(nextExpenses)).catch(() => {});
 
     try {
       await api.deleteExpense(id);

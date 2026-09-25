@@ -69,10 +69,12 @@ export interface UiSlice {
   insightsSubTab: 'personal' | 'revenue';
   setInsightsSubTab: (tab: 'personal' | 'revenue') => void;
   editingExpense: Expense | null;
+  authInitialMode: 'signin' | 'signup';
   setActiveTab: (tab: TabScreen) => void;
   openModal: (modal: ModalType, entityId?: string) => void;
   closeModal: () => void;
   setEditingExpense: (expense: Expense | null) => void;
+  setAuthInitialMode: (mode: 'signin' | 'signup') => void;
 }
 
 export interface ExpenseSlice {

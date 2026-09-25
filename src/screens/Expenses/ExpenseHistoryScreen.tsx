@@ -8,7 +8,8 @@ import { useTranslation } from '../../i18n/translations';
 import { Expense } from '../../types';
 import { ExpenseSkeleton } from './components/ExpenseSkeleton';
 import { CategoryIcon } from '../../components/CategoryIcon';
-import { Pencil } from 'lucide-react-native';
+import { Pencil, Settings } from 'lucide-react-native';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 
 export const ExpenseHistoryScreen: React.FC = () => {
@@ -16,6 +17,7 @@ export const ExpenseHistoryScreen: React.FC = () => {
   const isSyncing = useAppStore((state) => state.isSyncing);
   const refreshDashboard = useAppStore((state) => state.refreshDashboard);
   const setEditingExpense = useAppStore((state) => state.setEditingExpense);
+  const openModal = useAppStore((state) => state.openModal);
   const { t, getCategoryName } = useTranslation();
 
   const getLocalizedDayGroup = (group: string) => {
@@ -99,9 +101,19 @@ export const ExpenseHistoryScreen: React.FC = () => {
           <ExpenseSkeleton />
         ) : (
           <>
+            {/* Header with Settings Badge */}
             <View style={styles.header}>
-              <Text style={styles.eyebrow}>{t('thisMonth')}</Text>
-              <Text style={styles.title}>{t('expensesTitle')}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.eyebrow}>{t('thisMonth')}</Text>
+                <Text style={styles.title}>{t('expensesTitle')}</Text>
+              </View>
+              <AnimatedPressable
+                scaleTo={0.9}
+                onPress={() => openModal('profile_details')}
+                style={styles.settingsBadge}
+              >
+                <Settings size={20} color={Colors.ink} />
+              </AnimatedPressable>
             </View>
 
             {orderedGroups.map(({ groupName: dayGroup, items }) => {
@@ -193,7 +205,26 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 4,
+    paddingTop: 4,
+  },
+  settingsBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.ink,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   eyebrow: {
     fontFamily: Fonts.monoMedium,

@@ -24,7 +24,7 @@ export const MonthSelectorBar: React.FC<MonthSelectorBarProps> = ({
   onSelectMonth,
 }) => {
   const { t, getMonth } = useTranslation();
-  const monthPillList = [4, 5, 6, 7, 8, 9, 10, 11, 12];
+  const monthPillList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
   return (
     <View style={styles.monthNavCard}>
@@ -58,12 +58,12 @@ export const MonthSelectorBar: React.FC<MonthSelectorBarProps> = ({
         contentContainerStyle={styles.monthPillsContainer}
       >
         {monthPillList.map((m) => {
-          const isSelected = m === selectedMonth && selectedYear === 2026;
+          const isSelected = m === selectedMonth;
           return (
             <AnimatedPressable
               key={m}
               style={[styles.monthPill, isSelected && styles.monthPillActive]}
-              onPress={() => onSelectMonth(m, 2026)}
+              onPress={() => onSelectMonth(m, selectedYear)}
             >
               <Text
                 style={[

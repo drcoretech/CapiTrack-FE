@@ -36,6 +36,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export const OnboardingScreen: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const setFirstRunStep = useAppStore((state) => state.setFirstRunStep);
+  const setAuthInitialMode = useAppStore((state) => state.setAuthInitialMode);
   const { t } = useTranslation();
 
   const scrollRef = useRef<ScrollView>(null);
@@ -69,12 +70,19 @@ export const OnboardingScreen: React.FC = () => {
     if (currentIndex < totalPages - 1) {
       goToPage(currentIndex + 1);
     } else {
-      // Transition directly to Login / Sign Up screen
+      // "Get Started" routes directly to Sign Up
+      setAuthInitialMode('signup');
       setFirstRunStep('auth');
     }
   };
 
   const handleSkip = () => {
+    // If on the last step ("Already have an account? Sign In"), route to Sign In
+    if (isLastStep) {
+      setAuthInitialMode('signin');
+    } else {
+      setAuthInitialMode('signup');
+    }
     setFirstRunStep('auth');
   };
 
