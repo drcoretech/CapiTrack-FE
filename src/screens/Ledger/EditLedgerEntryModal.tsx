@@ -19,6 +19,8 @@ import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { useTranslation } from '../../i18n/translations';
 
+import { ConfirmDeleteModal } from '../../components/ConfirmDeleteModal';
+
 export const EditLedgerEntryModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
   const editingLedgerTxn = useAppStore((state) => state.editingLedgerTxn);
@@ -32,6 +34,7 @@ export const EditLedgerEntryModal: React.FC = () => {
   const [direction, setDirection] = useState<'LENT' | 'BORROWED'>('LENT');
   const [amountStr, setAmountStr] = useState('');
   const [note, setNote] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isVisible = activeModal === 'edit_ledger_entry' && !!editingLedgerTxn;
 
@@ -43,6 +46,7 @@ export const EditLedgerEntryModal: React.FC = () => {
       setDirection(txn.direction === 'BORROWED' ? 'BORROWED' : 'LENT');
       setAmountStr(txn.amount ? String(txn.amount) : '');
       setNote(txn.note || '');
+      setShowDeleteConfirm(false);
     }
   }, [editingLedgerTxn, contacts]);
 
@@ -65,23 +69,11 @@ export const EditLedgerEntryModal: React.FC = () => {
     closeModal();
   };
 
-  const handleDelete = () => {
+  const handleConfirmDelete = () => {
     if (!editingLedgerTxn) return;
-    Alert.alert(
-      'Delete Entry',
-      `Are you sure you want to delete this ${direction === 'LENT' ? 'lent' : 'borrowed'} entry of ₹${editingLedgerTxn.txn.amount}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            deleteLedgerEntry(editingLedgerTxn.personId, editingLedgerTxn.txn.id);
-            closeModal();
-          },
-        },
-      ]
-    );
+    deleteLedgerEntry(editingLedgerTxn.personId, editingLedgerTxn.txn.id);
+    setShowDeleteConfirm(false);
+    closeModal();
   };
 
   if (!editingLedgerTxn) return null;
@@ -192,7 +184,7 @@ export const EditLedgerEntryModal: React.FC = () => {
           <View style={styles.footer}>
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={handleDelete}
+              onPress={() => setShowDeleteConfirm(true)}
               style={styles.deleteBtn}
             >
               <Trash2 size={18} color={Colors.brick} />
@@ -207,6 +199,18 @@ export const EditLedgerEntryModal: React.FC = () => {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
+
+        {/* Custom Confirmation Modal for Deletion */}
+        <ConfirmDeleteModal
+          visible={showDeleteConfirm}
+          title="Delete Entry?"
+          message="Are you sure you want to delete this lent/borrowed entry? Your contact balance will be updated automatically."
+          itemBadge={`${direction === 'LENT' ? 'I Lent' : 'I Borrowed'} ₹${amountStr} · ${personName}`}
+          confirmLabel="Delete Entry"
+          cancelLabel="Cancel"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       </SafeAreaView>
     </Modal>
   );

@@ -4,6 +4,7 @@ import { AppState, ExpenseSlice, PendingNudge } from '../types';
 import { Expense, AppCategory } from '../../types';
 import { api } from '../../services/api';
 import { INITIAL_CATEGORIES, INITIAL_EXPENSES } from '../initialData';
+import { markEntityDeleted } from './syncSlice';
 
 export const computeDayGroup = (dateInput?: string | Date): 'Today' | 'Yesterday' | string => {
   if (!dateInput) return 'Today';
@@ -279,6 +280,7 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
       activeModal: null,
     });
 
+    markEntityDeleted(id);
     AsyncStorage.setItem('@capitrack_expenses', JSON.stringify(nextExpenses)).catch(() => {});
 
     try {

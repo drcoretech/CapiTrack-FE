@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, LedgerSlice } from '../types';
 import { Person, ClientProject } from '../../types';
 import { api } from '../../services/api';
+import { markEntityDeleted } from './syncSlice';
 
 export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (set, get) => ({
   contacts: [],
@@ -124,8 +125,11 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
 
     const remainingTxns = targetContact.transactions.filter((t) => t.id !== txnId);
 
+    markEntityDeleted(txnId);
+
     let nextContacts: Person[];
     if (remainingTxns.length === 0) {
+      markEntityDeleted(personId);
       nextContacts = contacts.filter((c) => c.id !== personId);
     } else {
       const newNetBalance = remainingTxns.reduce((sum, t) => {
@@ -432,6 +436,7 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
   },
 
   deleteClientProject: async (projectId) => {
+    markEntityDeleted(projectId);
     set((state) => {
       const updated = state.clientProjects.filter((p) => p.id !== projectId);
       AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(updated)).catch(() => {});

@@ -24,6 +24,7 @@ import { CalendarDatePickerModal, formatHumanDate } from '../../components/Calen
 import { MonthPickerModal, formatMonthLabel, getMonthEndISOString } from '../../components/MonthPickerModal';
 import { CategoryIcon } from '../../components/CategoryIcon';
 import { useKeyboard } from '../../hooks/useKeyboard';
+import { ConfirmDeleteModal } from '../../components/ConfirmDeleteModal';
 
 export const EditExpenseModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -53,6 +54,7 @@ export const EditExpenseModal: React.FC = () => {
     label: formatMonthLabel(new Date().getFullYear(), new Date().getMonth() + 1),
   });
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isVisible = activeModal === 'edit_expense' && editingExpense !== null;
 
@@ -143,24 +145,12 @@ export const EditExpenseModal: React.FC = () => {
     closeModal();
   };
 
-  const handleDelete = () => {
+  const handleConfirmDelete = () => {
     if (!editingExpense) return;
-    Alert.alert(
-      'Delete Expense',
-      `Are you sure you want to delete this expense of ₹${editingExpense.amount}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            const expId = editingExpense.id || (editingExpense as any)._id;
-            deleteExpense(expId);
-            closeModal();
-          },
-        },
-      ]
-    );
+    const expId = editingExpense.id || (editingExpense as any)._id;
+    deleteExpense(expId);
+    setShowDeleteConfirm(false);
+    closeModal();
   };
 
   return (
@@ -353,7 +343,7 @@ export const EditExpenseModal: React.FC = () => {
             {/* Delete Button */}
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={handleDelete}
+              onPress={() => setShowDeleteConfirm(true)}
               style={styles.deleteBtn}
             >
               <Trash2 size={16} color={Colors.brick} />
@@ -390,6 +380,18 @@ export const EditExpenseModal: React.FC = () => {
             setSelectedMonthYear({ year, month, label });
           }}
           onClose={() => setShowMonthPicker(false)}
+        />
+
+        {/* Custom Confirmation Modal for Deletion */}
+        <ConfirmDeleteModal
+          visible={showDeleteConfirm}
+          title="Delete Expense?"
+          message="Are you sure you want to delete this expense? This action cannot be undone."
+          itemBadge={`₹${amountStr} · ${note.trim() || selectedCategory}`}
+          confirmLabel="Delete Expense"
+          cancelLabel="Cancel"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
         />
       </SafeAreaView>
     </Modal>
