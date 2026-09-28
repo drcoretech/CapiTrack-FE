@@ -24,6 +24,8 @@ import {
   Sparkles,
   ShieldCheck,
   BellRing,
+  Split,
+  QrCode,
 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
@@ -41,12 +43,13 @@ export const OnboardingScreen: React.FC = () => {
 
   const scrollRef = useRef<ScrollView>(null);
 
-  // Exactly 3 feature introduction pages total:
+  // Exactly 4 feature introduction pages total:
   // Page 0: Combined Expenses & Khata
-  // Page 1: Personal & Freelance Workflows
-  // Page 2: Auto-Capture & Security
-  const totalPages = 3;
-  const isLastStep = currentIndex === 2;
+  // Page 1: Split Bills & Settle via UPI
+  // Page 2: Personal & Freelance Workflows
+  // Page 3: Auto-Capture & Security
+  const totalPages = 4;
+  const isLastStep = currentIndex === 3;
 
   const handleScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = e.nativeEvent.contentOffset.x;
@@ -115,7 +118,100 @@ export const OnboardingScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Screen 2: Informative Workflow Preview (Personal & Freelance) */}
+        {/* Screen 2: Split Bills & Instant UPI Settlement (Google Pay Style) */}
+        <View style={styles.page}>
+          <View style={styles.pageInner}>
+            <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
+              <Split size={40} color={Colors.moss} strokeWidth={2} />
+            </View>
+
+            <Text style={styles.title}>Split Bills & Settle via UPI</Text>
+            <Text style={styles.desc}>
+              Split dinner, rent, and trips with friends in seconds. Pay or collect your share instantly with Google Pay & PhonePe.
+            </Text>
+
+            {/* Informational Feature Cards */}
+            <View style={styles.modeContainer}>
+              {/* Feature 1: 1-Tap Google Pay & UPI Intent */}
+              <View style={styles.modeCard}>
+                <View style={styles.modeCardTop}>
+                  <View style={[styles.modeIconCircle, { backgroundColor: '#E8F5E9' }]}>
+                    <Zap size={20} color={Colors.moss} />
+                  </View>
+                  <View style={styles.modeHeaderTexts}>
+                    <View style={styles.modeTitleRow}>
+                      <Text style={styles.modeTitle}>Google Pay & UPI Intent</Text>
+                      <View style={[styles.modeTagPill, { backgroundColor: '#F0FDF4' }]}>
+                        <Text style={[styles.modeTagText, { color: Colors.mossDark }]}>
+                          Zero Fee
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.modeDesc}>
+                      One tap opens Google Pay, PhonePe, or Paytm with the exact amount and UPI ID pre-filled.
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Feature Chips */}
+                <View style={styles.chipRow}>
+                  <View style={styles.featureChip}>
+                    <Zap size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>1-Click GPay</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <CheckCircle2 size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Direct Bank P2P</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <Users size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Equal & Custom</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Feature 2: WhatsApp Pay Links & QR Codes */}
+              <View style={styles.modeCard}>
+                <View style={styles.modeCardTop}>
+                  <View style={[styles.modeIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                    <QrCode size={20} color={Colors.amber} />
+                  </View>
+                  <View style={styles.modeHeaderTexts}>
+                    <View style={styles.modeTitleRow}>
+                      <Text style={styles.modeTitle}>WhatsApp Links & QR Codes</Text>
+                      <View style={[styles.modeTagPill, { backgroundColor: '#FFFBEB' }]}>
+                        <Text style={[styles.modeTagText, { color: '#B45309' }]}>
+                          Instant Collect
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.modeDesc}>
+                      Send payment reminders with 1-tap UPI links on WhatsApp or show dynamic QR codes to scan.
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Feature Chips */}
+                <View style={styles.chipRow}>
+                  <View style={styles.featureChip}>
+                    <QrCode size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Dynamic QR</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <TrendingUp size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Auto-Khata Sync</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <Sparkles size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Live Status</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Screen 3: Informative Workflow Preview (Personal & Freelance) */}
         <View style={styles.page}>
           <View style={styles.pageInner}>
             <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>

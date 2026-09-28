@@ -13,7 +13,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Trash2 } from 'lucide-react-native';
+import { X, Trash2, Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
@@ -93,13 +93,26 @@ export const EditLedgerEntryModal: React.FC = () => {
         >
           {/* Top Bar */}
           <View style={styles.topBar}>
-            <View>
-              <Text style={styles.eyebrow}>EDIT ENTRY</Text>
-              <Text style={styles.title}>Edit Lent / Borrowed</Text>
-            </View>
-            <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.closeBtn}>
+            <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.iconButton}>
               <X size={20} color={Colors.inkSoft} />
             </TouchableOpacity>
+            <Text style={styles.topBarTitle}>Edit Lent / Borrowed</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleSave}
+                style={styles.iconButton}
+              >
+                <Pencil size={18} color={Colors.inkSoft} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setShowDeleteConfirm(true)}
+                style={styles.iconButton}
+              >
+                <Trash2 size={18} color={Colors.brick} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <ScrollView
@@ -183,17 +196,9 @@ export const EditLedgerEntryModal: React.FC = () => {
           {/* Action Buttons */}
           <View style={styles.footer}>
             <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => setShowDeleteConfirm(true)}
-              style={styles.deleteBtn}
-            >
-              <Trash2 size={18} color={Colors.brick} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
               activeOpacity={0.88}
               onPress={handleSave}
-              style={styles.saveBtn}
+              style={[styles.saveBtn, { flex: 1 }]}
             >
               <Text style={styles.saveBtnText}>Save Changes</Text>
             </TouchableOpacity>
@@ -226,36 +231,20 @@ const styles = StyleSheet.create({
   },
   topBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: Colors.line,
   },
-  eyebrow: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 10,
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
-    color: Colors.inkSoft,
+  iconButton: {
+    padding: 6,
   },
-  title: {
-    fontFamily: Fonts.serifMedium,
-    fontSize: 22,
+  topBarTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 15,
     color: Colors.ink,
-    marginTop: 2,
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,

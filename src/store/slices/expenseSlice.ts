@@ -270,15 +270,23 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
   },
 
   deleteExpense: async (id) => {
-    const nextExpenses = get().expenses.filter(
+    const prevExpenses = get().expenses;
+    const target = prevExpenses.find((e) => e.id === id || (e as any)._id === id);
+    const nextExpenses = prevExpenses.filter(
       (e) => e.id !== id && (e as any)._id !== id
     );
 
-    set({
+    set((state) => ({
       expenses: nextExpenses,
       editingExpense: null,
       activeModal: null,
-    });
+      dashboardData: state.dashboardData && target && target.dayGroup === 'Today'
+        ? {
+            ...state.dashboardData,
+            spentToday: Math.max(0, (state.dashboardData.spentToday || 0) - target.amount),
+          }
+        : state.dashboardData,
+    }));
 
     markEntityDeleted(id);
     AsyncStorage.setItem('@capitrack_expenses', JSON.stringify(nextExpenses)).catch(() => {});
@@ -288,6 +296,35 @@ export const createExpenseSlice: StateCreator<AppState, [], [], ExpenseSlice> = 
       get().refreshDashboard();
     } catch (err) {
       console.warn('Delete expense error:', err);
+    }
+  },
+
+  clearAllExpenses: async () => {
+    const all = get().expenses;
+    all.forEach((e) => markEntityDeleted(e.id || (e as any)._id));
+
+    set((state) => ({
+      expenses: [],
+      editingExpense: null,
+      activeModal: null,
+      dashboardData: state.dashboardData
+        ? {
+            ...state.dashboardData,
+            spentToday: 0,
+            spentDeltaFormatted: 'No change vs yesterday',
+          }
+        : null,
+    }));
+
+    AsyncStorage.setItem('@capitrack_expenses', JSON.stringify([])).catch(() => {});
+
+    try {
+      await Promise.allSettled(
+        all.map((e) => api.deleteExpense(e.id || (e as any)._id))
+      );
+      get().refreshDashboard();
+    } catch (err) {
+      console.warn('Clear all expenses error:', err);
     }
   },
 });

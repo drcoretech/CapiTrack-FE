@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
@@ -8,8 +8,9 @@ import { useTranslation } from '../../i18n/translations';
 import { Expense } from '../../types';
 import { ExpenseSkeleton } from './components/ExpenseSkeleton';
 import { CategoryIcon } from '../../components/CategoryIcon';
-import { Pencil, Settings } from 'lucide-react-native';
+import { Pencil, Settings, Trash2 } from 'lucide-react-native';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
+import { ConfirmDeleteModal } from '../../components/ConfirmDeleteModal';
 
 
 export const ExpenseHistoryScreen: React.FC = () => {
@@ -17,8 +18,10 @@ export const ExpenseHistoryScreen: React.FC = () => {
   const isSyncing = useAppStore((state) => state.isSyncing);
   const refreshDashboard = useAppStore((state) => state.refreshDashboard);
   const setEditingExpense = useAppStore((state) => state.setEditingExpense);
+  const deleteExpense = useAppStore((state) => state.deleteExpense);
   const openModal = useAppStore((state) => state.openModal);
   const { t, getCategoryName } = useTranslation();
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
 
   const getLocalizedDayGroup = (group: string) => {
     if (group === 'Today') return t('dayToday');
@@ -175,6 +178,17 @@ export const ExpenseHistoryScreen: React.FC = () => {
                           </View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <Text style={styles.amount}>₹{item.amount.toLocaleString()}</Text>
+                            <TouchableOpacity
+                              activeOpacity={0.7}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                setExpenseToDelete(item);
+                              }}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              style={styles.deletePill}
+                            >
+                              <Trash2 size={12} color={Colors.brick} />
+                            </TouchableOpacity>
                             <View style={styles.editPill}>
                               <Pencil size={11} color={Colors.inkSoft} />
                             </View>
@@ -189,6 +203,27 @@ export const ExpenseHistoryScreen: React.FC = () => {
           </>
         )}
       </ScrollView>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        visible={expenseToDelete !== null}
+        title="Delete Expense?"
+        message="Are you sure you want to delete this expense? This action cannot be undone."
+        itemBadge={
+          expenseToDelete
+            ? `₹${expenseToDelete.amount.toLocaleString()} · ${(expenseToDelete.note || '').replace(/\[Monthly Total\]\s*/g, '').trim() || expenseToDelete.category}`
+            : undefined
+        }
+        confirmLabel="Delete Expense"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          if (expenseToDelete) {
+            deleteExpense(expenseToDelete.id || (expenseToDelete as any)._id);
+            setExpenseToDelete(null);
+          }
+        }}
+        onCancel={() => setExpenseToDelete(null)}
+      />
     </SafeAreaView>
   );
 };
@@ -325,6 +360,16 @@ const styles = StyleSheet.create({
     color: Colors.ink,
     flexShrink: 0,
     textAlign: 'right',
+  },
+  deletePill: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   editPill: {
     width: 22,

@@ -357,6 +357,14 @@ export const api = {
       method: 'POST',
     }),
 
+  deleteContact: (id: string, name?: string) =>
+    request<{ success: boolean; message: string }>(
+      `/ledger/contacts/${id}${name ? `?name=${encodeURIComponent(name)}` : ''}`,
+      {
+        method: 'DELETE',
+      }
+    ),
+
   // User & Preferences
   getUserProfile: () =>
     request<{
@@ -468,5 +476,46 @@ export const api = {
       message: string;
     }>(`/projects/${projectId}`, {
       method: 'DELETE',
+    }),
+
+  // Split Bills API
+  getSplitBills: () =>
+    request<{
+      success: boolean;
+      splitBills: any[];
+    }>('/splits'),
+
+  createSplitBill: (bill: any) =>
+    request<{
+      success: boolean;
+      splitBill: any;
+    }>('/splits', {
+      method: 'POST',
+      body: JSON.stringify(bill),
+    }),
+
+  settleSplitParticipant: (billId: string, participantId: string) =>
+    request<{
+      success: boolean;
+      splitBill: any;
+    }>(`/splits/${billId}/settle/${participantId}`, {
+      method: 'POST',
+    }),
+
+  deleteSplitBill: (billId: string) =>
+    request<{
+      success: boolean;
+      message: string;
+    }>(`/splits/${billId}`, {
+      method: 'DELETE',
+    }),
+
+  updateSplitBill: (billId: string, updates: any) =>
+    request<{
+      success: boolean;
+      splitBill: any;
+    }>(`/splits/${billId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
     }),
 };

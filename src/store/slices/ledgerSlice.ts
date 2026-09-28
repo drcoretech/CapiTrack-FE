@@ -58,12 +58,29 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
     AsyncStorage.setItem('@capitrack_contacts', JSON.stringify(get().contacts)).catch(() => {});
 
     try {
-      await api.addTransaction({
+      const res = await api.addTransaction({
         personName: trimmedName,
         amount,
         type: direction,
         note,
       });
+      if (res && res.success && res.person) {
+        set((state) => {
+          const updated = state.contacts.map((c) => {
+            if (c.name.toLowerCase() === trimmedName.toLowerCase()) {
+              return {
+                ...c,
+                id: res.person.id || c.id,
+                netBalance: res.person.netBalance !== undefined ? res.person.netBalance : c.netBalance,
+                status: res.person.status || c.status,
+              };
+            }
+            return c;
+          });
+          AsyncStorage.setItem('@capitrack_contacts', JSON.stringify(updated)).catch(() => {});
+          return { contacts: updated };
+        });
+      }
       get().refreshDashboard();
     } catch {}
   },
@@ -73,7 +90,8 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
     const targetContact = contacts.find((c) => c.id === personId);
     if (!targetContact) return;
 
-    const updatedTxns = targetContact.transactions.map((t) => {
+    const currentTxns = targetContact.transactions || [];
+    const updatedTxns = currentTxns.map((t) => {
       if (t.id === txnId) {
         return {
           ...t,
@@ -123,13 +141,15 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
     const targetContact = contacts.find((c) => c.id === personId);
     if (!targetContact) return;
 
-    const remainingTxns = targetContact.transactions.filter((t) => t.id !== txnId);
+    const currentTxns = targetContact.transactions || [];
+    const remainingTxns = currentTxns.filter((t) => t.id !== txnId);
 
     markEntityDeleted(txnId);
 
     let nextContacts: Person[];
     if (remainingTxns.length === 0) {
       markEntityDeleted(personId);
+      if (targetContact.name) markEntityDeleted(targetContact.name);
       nextContacts = contacts.filter((c) => c.id !== personId);
     } else {
       const newNetBalance = remainingTxns.reduce((sum, t) => {
@@ -159,6 +179,40 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
 
     AsyncStorage.setItem('@capitrack_contacts', JSON.stringify(nextContacts)).catch(() => {});
     get().refreshDashboard();
+  },
+
+  deletePerson: async (personId, personName) => {
+    const contacts = get().contacts;
+    const target = contacts.find(
+      (c) => c.id === personId || (personName && c.name.toLowerCase() === personName.toLowerCase())
+    );
+    const finalId = target?.id || personId;
+    const finalName = target?.name || personName || '';
+
+    markEntityDeleted(finalId);
+    if (finalName) markEntityDeleted(finalName);
+    if (target?.transactions && Array.isArray(target.transactions)) {
+      target.transactions.forEach((t) => t?.id && markEntityDeleted(t.id));
+    }
+
+    const nextContacts = contacts.filter(
+      (c) => c.id !== finalId && (!finalName || c.name.toLowerCase() !== finalName.toLowerCase())
+    );
+    set({
+      contacts: nextContacts,
+      editingLedgerTxn: null,
+      selectedPersonId: null,
+      activeModal: null,
+    });
+
+    AsyncStorage.setItem('@capitrack_contacts', JSON.stringify(nextContacts)).catch(() => {});
+
+    try {
+      await api.deleteContact(finalId, finalName);
+      get().refreshDashboard();
+    } catch (err) {
+      console.warn('Delete contact API failed, preserved locally:', err);
+    }
   },
 
   loadPersonDetail: async (personId) => {

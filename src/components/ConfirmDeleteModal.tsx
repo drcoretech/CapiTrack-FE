@@ -28,65 +28,63 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   if (!visible) return null;
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onCancel}
-    >
+    <View style={styles.overlay} pointerEvents="auto">
       <TouchableWithoutFeedback onPress={onCancel}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.card}>
-              {/* Trash Icon Badge */}
-              <View style={styles.iconCircle}>
-                <Trash2 size={24} color={Colors.brick} />
-              </View>
-
-              {/* Title & Message */}
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.message}>{message}</Text>
-
-              {/* Optional Item Highlight Badge */}
-              {!!itemBadge && (
-                <View style={styles.badgeContainer}>
-                  <Text style={styles.badgeText}>{itemBadge}</Text>
-                </View>
-              )}
-
-              {/* Action Buttons */}
-              <View style={styles.btnRow}>
-                <TouchableOpacity
-                  activeOpacity={0.75}
-                  onPress={onCancel}
-                  style={styles.cancelBtn}
-                >
-                  <Text style={styles.cancelBtnText}>{cancelLabel}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={onConfirm}
-                  style={styles.deleteBtn}
-                >
-                  <Text style={styles.deleteBtnText}>{confirmLabel}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </View>
+        <View style={StyleSheet.absoluteFill} />
       </TouchableWithoutFeedback>
-    </Modal>
+      <View style={styles.card}>
+        {/* Trash Icon Badge */}
+        <View style={styles.iconCircle}>
+          <Trash2 size={24} color={Colors.brick} />
+        </View>
+
+        {/* Title & Message */}
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.message}>{message}</Text>
+
+        {/* Optional Item Highlight Badge */}
+        {!!itemBadge && (
+          <View style={styles.badgeContainer}>
+            <Text style={styles.badgeText}>{itemBadge}</Text>
+          </View>
+        )}
+
+        {/* Action Buttons */}
+        <View style={styles.btnRow}>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={onCancel}
+            style={styles.cancelBtn}
+          >
+            <Text style={styles.cancelBtnText}>{cancelLabel}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={onConfirm}
+            style={styles.deleteBtn}
+          >
+            <Text style={styles.deleteBtnText}>{confirmLabel}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
+    zIndex: 99999,
+    elevation: 99999,
   },
   card: {
     width: '100%',

@@ -1,4 +1,15 @@
-import { Expense, Person, LedgerTransaction, TabScreen, AppCategory, ExpenseCategory, ClientProject, ProjectPayment } from '../types';
+import {
+  Expense,
+  Person,
+  LedgerTransaction,
+  TabScreen,
+  AppCategory,
+  ExpenseCategory,
+  ClientProject,
+  ProjectPayment,
+  SplitBill,
+  SplitParticipant,
+} from '../types';
 
 export interface PendingNudge {
   id: string;
@@ -30,7 +41,10 @@ export type ModalType =
   | 'profile_details'
   | 'add_project'
   | 'project_detail'
-  | 'edit_ledger_entry';
+  | 'edit_ledger_entry'
+  | 'add_split'
+  | 'split_detail'
+  | 'upi_qr';
 
 export interface UserSlice {
   userName: string;
@@ -65,6 +79,8 @@ export interface UiSlice {
   activeModal: ModalType | null;
   selectedPersonId: string | null;
   selectedProjectId: string | null;
+  selectedSplitBillId: string | null;
+  qrModalData: { upiId: string; name: string; amount: number; note: string } | null;
   ledgerSubTab: 'personal' | 'projects';
   setLedgerSubTab: (tab: 'personal' | 'projects') => void;
   insightsSubTab: 'personal' | 'revenue';
@@ -77,6 +93,7 @@ export interface UiSlice {
   closeModal: () => void;
   setEditingExpense: (expense: Expense | null) => void;
   setEditingLedgerTxn: (data: { personId: string; txn: LedgerTransaction } | null) => void;
+  setQrModalData: (data: { upiId: string; name: string; amount: number; note: string } | null) => void;
   setAuthInitialMode: (mode: 'signin' | 'signup') => void;
 }
 
@@ -101,6 +118,7 @@ export interface ExpenseSlice {
   addExpense: (amount: number, category: Expense['category'], note: string, customDate?: string) => Promise<void>;
   updateExpense: (id: string, updates: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
+  clearAllExpenses: () => Promise<void>;
 }
 
 export interface LedgerSlice {
@@ -119,6 +137,7 @@ export interface LedgerSlice {
     }
   ) => Promise<void>;
   deleteLedgerEntry: (personId: string, txnId: string) => Promise<void>;
+  deletePerson: (personId: string, personName?: string) => Promise<void>;
   settlePerson: (personId: string) => Promise<void>;
   loadPersonDetail: (personId: string) => Promise<void>;
   addClientProject: (
@@ -154,6 +173,15 @@ export interface LedgerSlice {
   deleteClientProject: (projectId: string) => Promise<void>;
 }
 
+export interface SplitSlice {
+  splitBills: SplitBill[];
+  activeSplitFilter: 'ALL' | 'YOU_OWE' | 'OWED_TO_YOU' | 'SETTLED';
+  setActiveSplitFilter: (filter: 'ALL' | 'YOU_OWE' | 'OWED_TO_YOU' | 'SETTLED') => void;
+  addSplitBill: (bill: Omit<SplitBill, 'id' | 'createdAt' | 'status'>, syncWithLedger?: boolean) => Promise<void>;
+  settleSplitParticipant: (billId: string, participantId: string) => Promise<void>;
+  deleteSplitBill: (billId: string) => Promise<void>;
+  updateSplitBill: (billId: string, updates: Partial<SplitBill>) => Promise<void>;
+}
 
 export interface SyncSlice {
   isSyncing: boolean;
@@ -163,4 +191,4 @@ export interface SyncSlice {
   refreshDashboard: () => Promise<void>;
 }
 
-export type AppState = UserSlice & UiSlice & ExpenseSlice & LedgerSlice & SyncSlice;
+export type AppState = UserSlice & UiSlice & ExpenseSlice & LedgerSlice & SplitSlice & SyncSlice;

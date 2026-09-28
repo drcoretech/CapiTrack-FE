@@ -31,6 +31,7 @@ import { AuthScreen } from './src/screens/Auth/AuthScreen';
 // Main tab screens
 import { HomeScreen } from './src/screens/Home/HomeScreen';
 import { ExpenseHistoryScreen } from './src/screens/Expenses/ExpenseHistoryScreen';
+import { SplitListScreen } from './src/screens/Split/SplitListScreen';
 import { LedgerListScreen } from './src/screens/Ledger/LedgerListScreen';
 import { InsightsScreen } from './src/screens/Insights/InsightsScreen';
 import { SettingsScreen } from './src/screens/Settings/SettingsScreen';
@@ -44,6 +45,9 @@ import { EditLedgerEntryModal } from './src/screens/Ledger/EditLedgerEntryModal'
 import { PersonDetailModal } from './src/screens/Ledger/PersonDetailModal';
 import { AddProjectModal } from './src/screens/Ledger/components/AddProjectModal';
 import { ProjectDetailModal } from './src/screens/Ledger/components/ProjectDetailModal';
+import { AddSplitModal } from './src/screens/Split/AddSplitModal';
+import { SplitDetailModal } from './src/screens/Split/SplitDetailModal';
+import { UPIQRModal } from './src/screens/Split/UPIQRModal';
 import { AutomationModal } from './src/screens/Automation/AutomationModal';
 import { ManageCategoriesModal } from './src/screens/Settings/ManageCategoriesModal';
 import { ProfileDetailsModal } from './src/screens/Home/components/ProfileDetailsModal';
@@ -157,6 +161,8 @@ export default function App() {
         return <HomeScreen />;
       case 'expenses':
         return <ExpenseHistoryScreen />;
+      case 'split':
+        return <SplitListScreen />;
       case 'ledger':
         return <LedgerListScreen />;
       case 'insights':
@@ -183,6 +189,9 @@ export default function App() {
         <PersonDetailModal />
         <AddProjectModal />
         <ProjectDetailModal />
+        <AddSplitModal />
+        <SplitDetailModal />
+        <UPIQRModal />
         <AutomationModal />
         <ManageCategoriesModal />
         <ProfileDetailsModal />

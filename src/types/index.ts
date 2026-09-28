@@ -48,7 +48,7 @@ export interface LanguageOption {
   roman: string;
 }
 
-export type TabScreen = 'home' | 'expenses' | 'ledger' | 'insights' | 'settings';
+export type TabScreen = 'home' | 'expenses' | 'split' | 'ledger' | 'insights' | 'settings';
 
 export interface ProjectPayment {
   id: string;
@@ -70,5 +70,36 @@ export interface ClientProject {
   dueDate?: string;
   createdAt: string;
   notes?: string;
+}
+
+export interface SplitParticipant {
+  id: string;
+  name: string;
+  phone?: string;
+  upiId?: string;
+  amount: number;
+  isPaid: boolean;
+  paidAt?: string;
+  isCurrentUser?: boolean;
+}
+
+export interface SplitBill {
+  id: string;
+  title: string;
+  totalAmount: number;
+  category: ExpenseCategory;
+  date: string;
+  paidBy: {
+    participantId: string;
+    name: string;
+    isCurrentUser: boolean;
+    upiId?: string;
+  };
+  splitType: 'EQUAL' | 'EXACT' | 'PERCENTAGE';
+  participants: SplitParticipant[];
+  groupName?: string;
+  notes?: string;
+  status: 'PENDING' | 'SETTLED';
+  createdAt: string;
 }
 

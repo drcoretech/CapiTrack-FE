@@ -13,7 +13,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Trash2, Calendar as CalendarIcon } from 'lucide-react-native';
+import { X, Trash2, Pencil, Calendar as CalendarIcon } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
@@ -168,17 +168,28 @@ export const EditExpenseModal: React.FC = () => {
         >
           {/* Top Bar */}
           <View style={styles.topBar}>
-            <View>
-              <Text style={styles.eyebrow}>
-                {isMonthlyTotal ? 'LUMP SUM RECORD' : 'EDIT ENTRY'}
-              </Text>
-              <Text style={styles.title}>
-                {isMonthlyTotal ? 'Edit Month Total' : 'Edit Expense'}
-              </Text>
-            </View>
-            <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.closeBtn}>
+            <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.iconButton}>
               <X size={20} color={Colors.inkSoft} />
             </TouchableOpacity>
+            <Text style={styles.topBarTitle}>
+              {isMonthlyTotal ? 'Month Total' : 'Edit Expense'}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleSave}
+                style={styles.iconButton}
+              >
+                <Pencil size={18} color={Colors.inkSoft} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setShowDeleteConfirm(true)}
+                style={styles.iconButton}
+              >
+                <Trash2 size={18} color={Colors.brick} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <ScrollView
@@ -339,16 +350,6 @@ export const EditExpenseModal: React.FC = () => {
                 </View>
               </View>
             )}
-
-            {/* Delete Button */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => setShowDeleteConfirm(true)}
-              style={styles.deleteBtn}
-            >
-              <Trash2 size={16} color={Colors.brick} />
-              <Text style={styles.deleteBtnText}>Delete this expense</Text>
-            </TouchableOpacity>
           </ScrollView>
 
           {/* Action Button with spring bounce */}
@@ -408,34 +409,20 @@ const styles = StyleSheet.create({
   },
   topBar: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 22,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.line,
   },
-  eyebrow: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 10,
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
-    color: Colors.inkSoft,
+  iconButton: {
+    padding: 6,
   },
-  title: {
-    fontFamily: Fonts.serifMedium,
-    fontSize: 24,
+  topBarTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 15,
     color: Colors.ink,
-    marginTop: 2,
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,

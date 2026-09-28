@@ -33,6 +33,9 @@ AsyncStorage.getItem('@capitrack_deleted_ids')
   })
   .catch(() => {});
 
+// Check if an ID is a MongoDB ObjectId (24-character hexadecimal)
+const isMongoId = (id: any) => typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id);
+
 // Helper to safely merge remote projects with local state, preserving local edits & payments
 const mergeProjects = (remoteList: any[] = [], localList: any[] = []): any[] => {
   const localMap = new Map((localList || []).map((p) => [p.id, p]));
@@ -41,26 +44,30 @@ const mergeProjects = (remoteList: any[] = [], localList: any[] = []): any[] => 
   const merged = (remoteList || [])
     .filter((rp) => !deletedEntityIds.has(rp.id))
     .map((rp) => {
-    const lp = localMap.get(rp.id);
-    if (!lp) return rp;
+      const lp = localMap.get(rp.id);
+      if (!lp) return rp;
 
-    // Prefer local edits for user-customizable fields so refresh never wipes user changes
-    const payments = lp.payments && lp.payments.length > 0 ? lp.payments : rp.payments || [];
-    return {
-      ...rp,
-      ...lp,
-      clientName: lp.clientName || rp.clientName,
-      clientPhone: lp.clientPhone !== undefined ? lp.clientPhone : rp.clientPhone,
-      projectTitle: lp.projectTitle || rp.projectTitle,
-      totalValue: lp.totalValue !== undefined ? lp.totalValue : rp.totalValue,
-      status: lp.status || rp.status,
-      notes: lp.notes !== undefined ? lp.notes : rp.notes,
-      createdAt: lp.createdAt || rp.createdAt,
-      payments,
-    };
-  });
+      const payments = lp.payments && lp.payments.length > 0 ? lp.payments : rp.payments || [];
+      return {
+        ...lp,
+        ...rp,
+        id: rp.id,
+        clientName: lp.clientName || rp.clientName,
+        clientPhone: lp.clientPhone !== undefined ? lp.clientPhone : rp.clientPhone,
+        projectTitle: lp.projectTitle || rp.projectTitle,
+        totalValue: lp.totalValue !== undefined ? lp.totalValue : rp.totalValue,
+        status: lp.status || rp.status,
+        notes: lp.notes !== undefined ? lp.notes : rp.notes,
+        createdAt: lp.createdAt || rp.createdAt,
+        payments,
+      };
+    });
 
   (localList || []).forEach((lp) => {
+    // If it was synced to server (has ObjectId) and server no longer has it, it was deleted on server
+    if (isMongoId(lp.id) && !remoteIds.has(lp.id)) {
+      return;
+    }
     if (!remoteIds.has(lp.id) && !deletedEntityIds.has(lp.id)) {
       merged.push(lp);
     }
@@ -77,22 +84,27 @@ const mergeExpenses = (remoteList: any[] = [], localList: any[] = []): any[] => 
   const merged = (remoteList || [])
     .filter((re) => !deletedEntityIds.has(re.id))
     .map((re) => {
-    const le = localMap.get(re.id);
-    if (!le) return re;
-    return {
-      ...re,
-      ...le,
-      amount: le.amount !== undefined ? le.amount : re.amount,
-      note: le.note !== undefined ? le.note : re.note,
-      category: le.category || re.category,
-      date: le.date || re.date,
-      time: le.time || re.time,
-      icon: le.icon || re.icon,
-      dayGroup: le.dayGroup || re.dayGroup,
-    };
-  });
+      const le = localMap.get(re.id);
+      if (!le) return re;
+      return {
+        ...le,
+        ...re,
+        id: re.id,
+        amount: le.amount !== undefined ? le.amount : re.amount,
+        note: le.note !== undefined ? le.note : re.note,
+        category: le.category || re.category,
+        date: le.date || re.date,
+        time: le.time || re.time,
+        icon: le.icon || re.icon,
+        dayGroup: le.dayGroup || re.dayGroup,
+      };
+    });
 
   (localList || []).forEach((le) => {
+    // If it was synced to server (has ObjectId) and server no longer has it, it was deleted on server
+    if (isMongoId(le.id) && !remoteIds.has(le.id)) {
+      return;
+    }
     if (!remoteIds.has(le.id) && !deletedEntityIds.has(le.id)) {
       merged.push(le);
     }
@@ -116,41 +128,67 @@ const mergeContacts = (remoteList: any[] = [], localList: any[] = []): any[] => 
   const remoteNames = new Set((remoteList || []).map((c) => (c.name || '').toLowerCase().trim()));
 
   const merged = (remoteList || [])
-    .filter((rc) => !deletedEntityIds.has(rc.id))
+    .filter((rc) => {
+      const normName = (rc.name || '').toLowerCase().trim();
+      return !deletedEntityIds.has(rc.id) && !deletedEntityIds.has(normName) && !deletedEntityIds.has(rc.name);
+    })
     .map((rc) => {
-    const normalizedName = (rc.name || '').toLowerCase().trim();
-    const lc = localMap.get(rc.id) || localNameMap.get(normalizedName);
-    if (!lc) return rc;
+      const normalizedName = (rc.name || '').toLowerCase().trim();
+      const lc = localMap.get(rc.id) || localNameMap.get(normalizedName);
+      if (!lc) {
+        return {
+          ...rc,
+          id: rc.id,
+          transactions: rc.transactions || [],
+        };
+      }
 
-    const localTxns = lc.transactions && lc.transactions.length > 0 ? lc.transactions : rc.transactions || [];
-    let netBalance = rc.netBalance;
-    let status = rc.status;
+      const remoteTxns = rc.transactions || [];
+      const localTxns = lc.transactions || [];
+      const transactions = remoteTxns.length > 0 ? remoteTxns : localTxns;
 
-    if (lc.transactions && lc.transactions.length > 0) {
-      netBalance = lc.transactions.reduce((sum: number, t: any) => {
-        if (t.direction === 'LENT') return sum + t.amount;
-        if (t.direction === 'BORROWED') return sum - t.amount;
-        return sum;
-      }, 0);
-      status = netBalance === 0 ? 'settled' : 'pending';
-    }
+      let netBalance = rc.netBalance !== undefined ? rc.netBalance : lc.netBalance;
+      let status = rc.status || lc.status;
 
-    return {
-      ...rc,
-      ...lc,
-      name: lc.name || rc.name,
-      initial: (lc.name || rc.name || 'F')[0].toUpperCase(),
-      netBalance,
-      status,
-      lastDate: lc.lastDate || rc.lastDate,
-      transactions: localTxns,
-    };
-  });
+      if (transactions.length > 0 && rc.netBalance === undefined) {
+        netBalance = transactions.reduce((sum: number, t: any) => {
+          if (t.direction === 'LENT') return sum + t.amount;
+          if (t.direction === 'BORROWED') return sum - t.amount;
+          return sum;
+        }, 0);
+        status = netBalance === 0 ? 'settled' : 'pending';
+      }
+
+      return {
+        ...lc,
+        ...rc,
+        id: rc.id,
+        name: rc.name || lc.name,
+        initial: (rc.name || lc.name || 'F')[0].toUpperCase(),
+        netBalance,
+        status,
+        lastDate: rc.lastDate || lc.lastDate,
+        transactions,
+      };
+    });
 
   (localList || []).forEach((lc) => {
+    // If it was synced to server (has ObjectId) and server no longer has it, it was deleted on server
+    if (isMongoId(lc.id) && !remoteIds.has(lc.id)) {
+      return;
+    }
     const normalizedName = (lc.name || '').toLowerCase().trim();
-    if (!remoteIds.has(lc.id) && !remoteNames.has(normalizedName) && !deletedEntityIds.has(lc.id)) {
-      merged.push(lc);
+    if (
+      !remoteIds.has(lc.id) &&
+      !remoteNames.has(normalizedName) &&
+      !deletedEntityIds.has(lc.id) &&
+      !deletedEntityIds.has(normalizedName) &&
+      !deletedEntityIds.has(lc.name)
+    ) {
+      merged.push({
+        ...lc,
+        transactions: lc.transactions || [],
+      });
     }
   });
 
@@ -191,6 +229,7 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
         localOnboarding,
         localExpensesRaw,
         localContactsRaw,
+        localSplitsRaw,
       ] = await Promise.allSettled([
         api.getDashboardSummary(),
         api.getExpenses(),
@@ -203,10 +242,21 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
         AsyncStorage.getItem('@capitrack_onboarding_completed'),
         AsyncStorage.getItem('@capitrack_expenses'),
         AsyncStorage.getItem('@capitrack_contacts'),
+        AsyncStorage.getItem('@capitrack_split_bills'),
       ]);
 
       set((state) => {
         const nextState: Partial<AppState> = { isSyncing: false, lastSyncedAt: new Date() };
+
+        // Split Bills
+        if (localSplitsRaw && localSplitsRaw.status === 'fulfilled' && localSplitsRaw.value) {
+          try {
+            const parsed = JSON.parse(localSplitsRaw.value);
+            if (Array.isArray(parsed)) {
+              nextState.splitBills = parsed;
+            }
+          } catch {}
+        }
 
         // 1. Client Projects
         let currentProjects = state.clientProjects || [];

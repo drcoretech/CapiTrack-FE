@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Pencil } from 'lucide-react-native';
+import { X, Pencil, Trash2 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { useTranslation } from '../../i18n/translations';
+import { ConfirmDeleteModal } from '../../components/ConfirmDeleteModal';
 
 export const PersonDetailModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -14,14 +15,17 @@ export const PersonDetailModal: React.FC = () => {
   const closeModal = useAppStore((state) => state.closeModal);
   const openModal = useAppStore((state) => state.openModal);
   const setEditingLedgerTxn = useAppStore((state) => state.setEditingLedgerTxn);
+  const deletePerson = useAppStore((state) => state.deletePerson);
   const settlePerson = useAppStore((state) => state.settlePerson);
   const { t } = useTranslation();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isVisible = activeModal === 'person_detail';
   const person = contacts.find((c) => c.id === selectedPersonId);
 
   if (!person) return null;
 
+  const transactions = person.transactions || [];
   const isOwed = person.netBalance > 0;
   const isSettled = person.netBalance === 0;
 
@@ -43,9 +47,30 @@ export const PersonDetailModal: React.FC = () => {
       <SafeAreaView style={styles.container}>
         {/* Top bar */}
         <View style={styles.topBar}>
-          <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.closeBtn}>
+          <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.iconButton}>
             <X size={20} color={Colors.inkSoft} />
           </TouchableOpacity>
+          <Text style={styles.topBarTitle}>Ledger Details</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                if (transactions.length > 0) {
+                  setEditingLedgerTxn({ personId: person.id, txn: transactions[0] });
+                }
+              }}
+              style={styles.iconButton}
+            >
+              <Pencil size={18} color={Colors.inkSoft} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setShowDeleteConfirm(true)}
+              style={styles.iconButton}
+            >
+              <Trash2 size={18} color={Colors.brick} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -68,25 +93,15 @@ export const PersonDetailModal: React.FC = () => {
                 ? t('allSettledUp')
                 : `${t('youOweText')} ₹${Math.abs(person.netBalance).toLocaleString()}`}
             </Text>
-            {person.transactions.length > 0 && (
-              <TouchableOpacity
-                activeOpacity={0.75}
-                onPress={() => setEditingLedgerTxn({ personId: person.id, txn: person.transactions[0] })}
-                style={styles.heroEditBtn}
-              >
-                <Pencil size={12} color={Colors.moss} />
-                <Text style={styles.heroEditText}>Edit Entry / Amount</Text>
-              </TouchableOpacity>
-            )}
           </View>
 
           {/* Transactions list */}
           <View style={styles.txnSection}>
             <Text style={styles.sectionHeader}>{t('transactionHistory')}</Text>
-            {person.transactions.length === 0 ? (
+            {transactions.length === 0 ? (
               <Text style={styles.emptyText}>{t('noEntriesYet')}</Text>
             ) : (
-              person.transactions.map((txn) => (
+              transactions.map((txn) => (
                 <TouchableOpacity
                   key={txn.id}
                   activeOpacity={0.75}
@@ -114,9 +129,6 @@ export const PersonDetailModal: React.FC = () => {
                         ? `-₹${txn.amount}`
                         : `₹${txn.amount} (${t('statusSettled')})`}
                     </Text>
-                    <View style={styles.editPill}>
-                      <Pencil size={11} color={Colors.inkSoft} />
-                    </View>
                   </View>
                 </TouchableOpacity>
               ))
@@ -138,6 +150,28 @@ export const PersonDetailModal: React.FC = () => {
             )}
           </View>
         </View>
+
+        {/* Delete Contact Confirmation */}
+        <ConfirmDeleteModal
+          visible={showDeleteConfirm}
+          title="Delete Contact & Records?"
+          message={`Are you sure you want to delete ${person.name} and all associated ledger transaction history? This cannot be undone.`}
+          itemBadge={`${person.name} · ${transactions.length} entries`}
+          confirmLabel="Delete Contact"
+          cancelLabel="Cancel"
+          onConfirm={async () => {
+            const personId = person.id;
+            const personName = person.name;
+            setShowDeleteConfirm(false);
+            closeModal();
+            try {
+              await deletePerson(personId, personName);
+            } catch (err) {
+              console.warn('Failed to delete contact:', err);
+            }
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       </SafeAreaView>
     </Modal>
   );
@@ -149,19 +183,21 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.mist,
   },
   topBar: {
-    alignItems: 'flex-end',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.line,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.line,
+  },
+  iconButton: {
+    padding: 6,
+  },
+  topBarTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 15,
+    color: Colors.ink,
   },
   scrollContent: {
     paddingHorizontal: 22,

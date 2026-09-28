@@ -4,6 +4,7 @@ import { createUserSlice } from './slices/userSlice';
 import { createUiSlice } from './slices/uiSlice';
 import { createExpenseSlice, computeDayGroup } from './slices/expenseSlice';
 import { createLedgerSlice } from './slices/ledgerSlice';
+import { createSplitSlice } from './slices/splitSlice';
 import { createSyncSlice } from './slices/syncSlice';
 
 export const useAppStore = create<AppState>((...a) => ({
@@ -11,6 +12,7 @@ export const useAppStore = create<AppState>((...a) => ({
   ...createUiSlice(...a),
   ...createExpenseSlice(...a),
   ...createLedgerSlice(...a),
+  ...createSplitSlice(...a),
   ...createSyncSlice(...a),
 }));
 
