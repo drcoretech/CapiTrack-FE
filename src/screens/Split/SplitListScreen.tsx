@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,10 @@ import {
   Settings as SettingsIcon,
   ChevronRight,
   Zap,
+  Users,
+  Gift,
+  Share2,
+  ArrowRight,
 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
@@ -26,7 +30,11 @@ import { useTranslation } from '../../i18n/translations';
 import { SplitBill } from '../../types';
 
 export const SplitListScreen: React.FC = () => {
+  const [viewMode, setViewMode] = useState<'bills' | 'groups'>('bills');
   const splitBills = useAppStore((state) => state.splitBills);
+  const groups = useAppStore((state) => state.groups);
+  const rewardsData = useAppStore((state) => state.rewardsData);
+  const rewardPoints = useAppStore((state) => state.rewardPoints);
   const activeFilter = useAppStore((state) => state.activeSplitFilter);
   const setActiveFilter = useAppStore((state) => state.setActiveSplitFilter);
   const openModal = useAppStore((state) => state.openModal);
@@ -101,13 +109,26 @@ export const SplitListScreen: React.FC = () => {
           <Text style={styles.headerSubtitle}>Share expenses & settle up instantly</Text>
         </View>
 
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={handleOpenSettings}
-          style={styles.settingsBtn}
-        >
-          <SettingsIcon size={20} color={Colors.ink} />
-        </TouchableOpacity>
+        <View style={styles.headerRightRow}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => openModal('rewards_modal')}
+            style={styles.rewardsPill}
+          >
+            <Gift size={13} color="#B45309" />
+            <Text style={styles.rewardsPillText}>
+              {rewardsData?.pointsBalance ?? rewardPoints ?? 50} PTS
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleOpenSettings}
+            style={styles.settingsBtn}
+          >
+            <SettingsIcon size={20} color={Colors.ink} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -148,74 +169,187 @@ export const SplitListScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Quick Action Button */}
-        <TouchableOpacity
-          activeOpacity={0.88}
-          onPress={handleCreateSplit}
-          style={styles.newSplitBtn}
-        >
-          <View style={styles.newSplitBtnIcon}>
-            <Plus size={18} color="#FFFFFF" strokeWidth={2.6} />
-          </View>
-          <Text style={styles.newSplitBtnText}>Create New Split Bill</Text>
-          <Zap size={15} color="#FFFFFF" style={{ marginLeft: 4 }} />
-        </TouchableOpacity>
+        {/* View Switcher: All Splits vs Groups */}
+        <View style={styles.viewSegmentContainer}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setViewMode('bills')}
+            style={[styles.viewSegmentBtn, viewMode === 'bills' && styles.viewSegmentBtnActive]}
+          >
+            <Split size={14} color={viewMode === 'bills' ? Colors.moss : Colors.inkSoft} />
+            <Text style={[styles.viewSegmentText, viewMode === 'bills' && styles.viewSegmentTextActive]}>
+              All Splits ({splitBills.length})
+            </Text>
+          </TouchableOpacity>
 
-        {/* Filter Pills */}
-        <View style={styles.filterBar}>
-          {(
-            [
-              { key: 'ALL', label: 'All' },
-              { key: 'OWED_TO_YOU', label: 'Owed to You' },
-              { key: 'YOU_OWE', label: 'You Owe' },
-              { key: 'SETTLED', label: 'Settled' },
-            ] as const
-          ).map((item) => {
-            const isActive = activeFilter === item.key;
-            return (
-              <TouchableOpacity
-                key={item.key}
-                activeOpacity={0.8}
-                onPress={() => setActiveFilter(item.key)}
-                style={[styles.filterChip, isActive && styles.filterChipActive]}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    isActive && styles.filterChipTextActive,
-                  ]}
-                >
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setViewMode('groups')}
+            style={[styles.viewSegmentBtn, viewMode === 'groups' && styles.viewSegmentBtnActive]}
+          >
+            <Users size={14} color={viewMode === 'groups' ? Colors.moss : Colors.inkSoft} />
+            <Text style={[styles.viewSegmentText, viewMode === 'groups' && styles.viewSegmentTextActive]}>
+              Groups ({groups.length})
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Bills List */}
-        {filteredBills.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <View style={styles.emptyIconCircle}>
-              <Split size={32} color={Colors.moss} />
-            </View>
-            <Text style={styles.emptyTitle}>No Split Bills Found</Text>
-            <Text style={styles.emptyText}>
-              {activeFilter === 'ALL'
-                ? 'Splitting dinner, rent, or a trip with friends? Create your first split and settle up with 1 tap!'
-                : `No bills matching "${activeFilter.toLowerCase().replace('_', ' ')}"`}
-            </Text>
-            {activeFilter === 'ALL' && (
+        {viewMode === 'groups' ? (
+          /* Groups View (Google Pay Style) */
+          <View style={styles.groupsContainer}>
+            {/* Group Action Buttons Row */}
+            <View style={styles.groupActionsRow}>
               <TouchableOpacity
                 activeOpacity={0.85}
-                onPress={handleCreateSplit}
-                style={styles.emptyBtn}
+                onPress={() => openModal('create_group')}
+                style={styles.createGroupBtn}
               >
-                <Text style={styles.emptyBtnText}>+ Start a Split</Text>
+                <Plus size={16} color="#FFFFFF" strokeWidth={2.5} style={{ marginRight: 6 }} />
+                <Text style={styles.createGroupBtnText}>Create Group</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => openModal('join_group')}
+                style={styles.joinGroupBtn}
+              >
+                <Users size={15} color={Colors.moss} style={{ marginRight: 6 }} />
+                <Text style={styles.joinGroupBtnText}>Join with Code</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Groups List */}
+            {groups.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <View style={[styles.emptyIconCircle, { backgroundColor: '#E8F5E9' }]}>
+                  <Users size={32} color={Colors.moss} />
+                </View>
+                <Text style={styles.emptyTitle}>No Split Groups Yet</Text>
+                <Text style={styles.emptyText}>
+                  Create a shared group with friends for trips, flat rent, or outings. Live sync & instant UPI settlements!
+                </Text>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => openModal('create_group')}
+                  style={styles.emptyBtn}
+                >
+                  <Text style={styles.emptyBtnText}>+ Create First Group</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              groups.map((group) => {
+                const groupBills = splitBills.filter(
+                  (b) => b.groupId === group.id || b.groupName?.toLowerCase() === group.name.toLowerCase()
+                );
+                const totalGroupSpends = groupBills.reduce((acc, b) => acc + (b.totalAmount || 0), 0);
+
+                return (
+                  <TouchableOpacity
+                    key={group.id}
+                    activeOpacity={0.85}
+                    onPress={() => openModal('group_detail', group.id)}
+                    style={styles.groupCard}
+                  >
+                    <View style={styles.groupIconCircle}>
+                      <Users size={22} color={Colors.moss} />
+                    </View>
+
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.groupTitleRow}>
+                        <Text style={styles.groupCardTitle}>{group.name}</Text>
+                        <View style={styles.groupCodeBadgeMini}>
+                          <Text style={styles.groupCodeTextMini}>{group.groupCode}</Text>
+                        </View>
+                      </View>
+
+                      <Text style={styles.groupCardSub}>
+                        {group.members?.length || 1} members • {groupBills.length} bills
+                      </Text>
+                    </View>
+
+                    <View style={{ alignItems: 'flex-end', marginLeft: 8 }}>
+                      <Text style={styles.groupSpendAmount}>₹{totalGroupSpends.toLocaleString()}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                        <Text style={styles.groupViewText}>Details</Text>
+                        <ChevronRight size={13} color={Colors.moss} />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
             )}
           </View>
         ) : (
-          filteredBills.map((bill) => {
+          /* Bills View */
+          <>
+            {/* Quick Action Button */}
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={handleCreateSplit}
+              style={styles.newSplitBtn}
+            >
+              <View style={styles.newSplitBtnIcon}>
+                <Plus size={18} color="#FFFFFF" strokeWidth={2.6} />
+              </View>
+              <Text style={styles.newSplitBtnText}>Create New Split Bill</Text>
+              <Zap size={15} color="#FFFFFF" style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+
+            {/* Filter Pills */}
+            <View style={styles.filterBar}>
+              {(
+                [
+                  { key: 'ALL', label: 'All' },
+                  { key: 'OWED_TO_YOU', label: 'Owed to You' },
+                  { key: 'YOU_OWE', label: 'You Owe' },
+                  { key: 'SETTLED', label: 'Settled' },
+                ] as const
+              ).map((item) => {
+                const isActive = activeFilter === item.key;
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    activeOpacity={0.8}
+                    onPress={() => setActiveFilter(item.key)}
+                    style={[styles.filterChip, isActive && styles.filterChipActive]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        isActive && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Bills List */}
+            {filteredBills.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <View style={styles.emptyIconCircle}>
+                  <Split size={32} color={Colors.moss} />
+                </View>
+                <Text style={styles.emptyTitle}>No Split Bills Found</Text>
+                <Text style={styles.emptyText}>
+                  {activeFilter === 'ALL'
+                    ? 'Splitting dinner, rent, or a trip with friends? Create your first split and settle up with 1 tap!'
+                    : `No bills matching "${activeFilter.toLowerCase().replace('_', ' ')}"`}
+                </Text>
+                {activeFilter === 'ALL' && (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={handleCreateSplit}
+                    style={styles.emptyBtn}
+                  >
+                    <Text style={styles.emptyBtnText}>+ Start a Split</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : (
+              filteredBills.map((bill) => {
             const paidCount = bill.participants.filter((p) => p.isPaid).length;
             const totalCount = bill.participants.length;
             const progressPct = totalCount > 0 ? (paidCount / totalCount) * 100 : 0;
@@ -324,6 +458,8 @@ export const SplitListScreen: React.FC = () => {
               </TouchableOpacity>
             );
           })
+        )}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -650,4 +786,164 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     color: '#FFFFFF',
   },
+  headerRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  rewardsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 5,
+  },
+  rewardsPillText: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#B45309',
+  },
+  viewSegmentContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#E2E8F0',
+    borderRadius: 14,
+    padding: 3,
+    marginBottom: 6,
+  },
+  viewSegmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    borderRadius: 11,
+    gap: 6,
+  },
+  viewSegmentBtnActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  viewSegmentText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 13,
+    color: Colors.inkSoft,
+  },
+  viewSegmentTextActive: {
+    fontFamily: Fonts.sansSemiBold,
+    color: Colors.ink,
+  },
+  groupsContainer: {
+    gap: 12,
+  },
+  groupActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  createGroupBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.moss,
+    paddingVertical: 12,
+    borderRadius: 14,
+    shadowColor: Colors.moss,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  createGroupBtnText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 13.5,
+    color: '#FFFFFF',
+  },
+  joinGroupBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.2,
+    borderColor: Colors.line,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  joinGroupBtnText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 13.5,
+    color: Colors.mossDark,
+  },
+  groupCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1.2,
+    borderColor: Colors.line,
+    padding: 16,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  groupIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.mossLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  groupTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 3,
+  },
+  groupCardTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 15,
+    color: Colors.ink,
+  },
+  groupCodeBadgeMini: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+  },
+  groupCodeTextMini: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 9.5,
+    color: Colors.mossDark,
+    fontWeight: '700',
+  },
+  groupCardSub: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 12,
+    color: Colors.inkSoft,
+  },
+  groupSpendAmount: {
+    fontFamily: Fonts.serifSemiBold,
+    fontSize: 15,
+    color: Colors.ink,
+  },
+  groupViewText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    color: Colors.moss,
+    marginRight: 2,
+  },
 });
+

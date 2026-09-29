@@ -25,6 +25,8 @@ import {
   Layers,
   LogOut,
   Trash2,
+  Gift,
+  Share2,
 } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
@@ -32,6 +34,7 @@ import { useAppStore } from '../../../store/useAppStore';
 import { useTranslation } from '../../../i18n/translations';
 import { notificationListener } from '../../../services/notificationListener';
 import { ConfirmDeleteModal } from '../../../components/ConfirmDeleteModal';
+import { shareInviteLink } from '../../../services/upiPayment';
 
 export const ProfileDetailsModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -186,6 +189,68 @@ export const ProfileDetailsModal: React.FC = () => {
               </View>
               <Text style={styles.statNumber}>{contacts.length}</Text>
               <Text style={styles.statLabel}>Ledger Contacts</Text>
+            </View>
+          </View>
+
+          {/* CapiTrack ID & Referral Rewards Card */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionHeader}>CAPITRACK ID & REFERRAL REWARDS</Text>
+
+            <View style={styles.rewardCard}>
+              <View style={styles.rewardCardTop}>
+                <View style={styles.rewardIconBadge}>
+                  <Gift size={24} color={Colors.amber} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.rewardTitleRow}>
+                    <Text style={styles.rewardTitle}>CapiPoints Balance</Text>
+                    <View style={styles.pointsBadge}>
+                      <Text style={styles.pointsBadgeText}>50 PTS</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.rewardSub}>
+                    Redeem for Cash & Gift Cards (Coming Soon)
+                  </Text>
+                </View>
+              </View>
+
+              {/* ID & Referral Code Details */}
+              <View style={styles.idCodesRow}>
+                <View style={styles.idCodeBox}>
+                  <Text style={styles.idCodeLabel}>CapiTrack ID</Text>
+                  <Text style={styles.idCodeValue}>
+                    @{userName ? userName.toLowerCase().replace(/[^a-z0-9]/g, '') : 'capitrack'}
+                  </Text>
+                </View>
+
+                <View style={styles.idCodeBox}>
+                  <Text style={styles.idCodeLabel}>Referral Code</Text>
+                  <Text style={styles.idCodeValue}>
+                    CT-{(userName ? userName.slice(0, 3) : 'CAP').toUpperCase()}
+                    {Math.abs(((userName ? userName.charCodeAt(0) : 67) * 23) % 900 + 100)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* WhatsApp Share Button */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  const refCode = `CT-${(userName ? userName.slice(0, 3) : 'CAP').toUpperCase()}${Math.abs(((userName ? userName.charCodeAt(0) : 67) * 23) % 900 + 100)}`;
+                  const handle = userName ? userName.toLowerCase().replace(/[^a-z0-9]/g, '') : 'capitrack';
+                  shareInviteLink({
+                    userName,
+                    referralCode: refCode,
+                    capitrackId: handle,
+                  });
+                }}
+                style={styles.shareRewardBtn}
+              >
+                <Share2 size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.shareRewardBtnText}>
+                  Invite Friends on WhatsApp (+50 Pts)
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -697,4 +762,106 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF',
   },
+  rewardCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1.2,
+    borderColor: '#FEF3C7',
+    padding: 16,
+    shadowColor: Colors.amber,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+    gap: 14,
+  },
+  rewardCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  rewardIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rewardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  rewardTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 15,
+    color: Colors.ink,
+  },
+  pointsBadge: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 8,
+  },
+  pointsBadgeText: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 11,
+    color: '#B45309',
+    fontWeight: '700',
+  },
+  rewardSub: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 12,
+    color: Colors.inkSoft,
+  },
+  idCodesRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  idCodeBox: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  idCodeLabel: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 9.5,
+    color: Colors.inkSoft,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  idCodeValue: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 13,
+    color: Colors.mossDark,
+    fontWeight: '700',
+  },
+  shareRewardBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#16A34A',
+    borderRadius: 14,
+    paddingVertical: 12,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  shareRewardBtnText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 13.5,
+    color: '#FFFFFF',
+  },
 });
+

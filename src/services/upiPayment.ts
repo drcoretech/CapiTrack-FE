@@ -122,3 +122,36 @@ export const getUPIQRCodeUrl = (params: UPIPaymentParams, size: number = 240): s
   const upiUrl = buildUPIUrl(params);
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(upiUrl)}&margin=10`;
 };
+
+/**
+ * Share referral invite link with CapiTrack ID & Referral Code on WhatsApp
+ */
+export const shareInviteLink = async ({
+  userName,
+  referralCode,
+  capitrackId,
+}: {
+  userName: string;
+  referralCode?: string;
+  capitrackId?: string;
+}): Promise<void> => {
+  const code = referralCode || 'CAPITRACK';
+  const handle = capitrackId ? `@${capitrackId}` : `@${(userName || 'friend').toLowerCase().replace(/\s+/g, '')}`;
+  const message = `Hey! 👋 I use CapiTrack to track daily expenses and split bills with friends.\n\nJoin my group using my CapiTrack ID *${handle}* or enter my invite code *${code}* to get 25 welcome CapiPoints! 🎁\n\nDownload CapiTrack:\nhttps://capitrack.vercel.app/?ref=${code}`;
+
+  const waUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
+
+  try {
+    const supported = await Linking.canOpenURL(waUrl);
+    if (supported) {
+      await Linking.openURL(waUrl);
+    } else {
+      const webUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      await Linking.openURL(webUrl);
+    }
+  } catch (error) {
+    console.warn('Share invite error:', error);
+    Alert.alert('Notice', 'WhatsApp could not be opened.');
+  }
+};
+

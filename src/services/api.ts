@@ -145,6 +145,7 @@ export const api = {
     preferredLanguage?: string;
     businessTrackingEnabled?: boolean;
     deviceId?: string;
+    referralCode?: string;
   }) =>
     request<{
       success: boolean;
@@ -153,6 +154,9 @@ export const api = {
       user: {
         id: string;
         name: string;
+        capitrackId?: string;
+        referralCode?: string;
+        rewardPoints?: number;
         preferredLanguage: string;
         currencySymbol: string;
         preferences: {
@@ -174,6 +178,9 @@ export const api = {
       user: {
         id: string;
         name: string;
+        capitrackId?: string;
+        referralCode?: string;
+        rewardPoints?: number;
         preferredLanguage: string;
         currencySymbol: string;
         preferences: {
@@ -193,6 +200,9 @@ export const api = {
       user: {
         id: string;
         name: string;
+        capitrackId?: string;
+        referralCode?: string;
+        rewardPoints?: number;
         preferredLanguage: string;
         currencySymbol: string;
         preferences: {
@@ -518,4 +528,52 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(updates),
     }),
+
+  // Groups & Rewards API
+  checkMember: (query: string) =>
+    request<{
+      success: boolean;
+      exists: boolean;
+      user?: { id: string; name: string; capitrackId: string; phone: string };
+    }>(`/users/check-member?query=${encodeURIComponent(query)}`),
+
+  getRewards: () =>
+    request<{
+      success: boolean;
+      rewards: any;
+    }>('/users/rewards'),
+
+  getGroups: () =>
+    request<{
+      success: boolean;
+      groups: any[];
+    }>('/groups'),
+
+  createGroup: (groupData: { name: string; category?: string; initialMembers?: any[] }) =>
+    request<{
+      success: boolean;
+      message: string;
+      group: any;
+    }>('/groups', {
+      method: 'POST',
+      body: JSON.stringify(groupData),
+    }),
+
+  joinGroupByCode: (code: string) =>
+    request<{
+      success: boolean;
+      message: string;
+      group?: any;
+    }>('/groups/join', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
+  getGroupDetails: (groupId: string) =>
+    request<{
+      success: boolean;
+      group: any;
+      bills: any[];
+    }>(`/groups/${groupId}`),
 };
+

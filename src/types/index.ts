@@ -98,8 +98,48 @@ export interface SplitBill {
   splitType: 'EQUAL' | 'EXACT' | 'PERCENTAGE';
   participants: SplitParticipant[];
   groupName?: string;
+  groupId?: string;
+  groupCode?: string;
   notes?: string;
   status: 'PENDING' | 'SETTLED';
   createdAt: string;
 }
+
+export interface GroupMember {
+  id?: string;
+  userId?: string | null;
+  name: string;
+  phone?: string;
+  capitrackId?: string;
+  role?: 'admin' | 'member';
+  joinedAt?: string;
+}
+
+export interface SplitGroup {
+  id: string;
+  name: string;
+  groupCode: string;
+  category: 'trip' | 'home' | 'couple' | 'food' | 'project' | 'other';
+  createdBy: string;
+  members: GroupMember[];
+  totalExpense: number;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface RewardData {
+  pointsBalance: number;
+  referralCode: string;
+  capitrackId: string;
+  totalFriendsReferred: number;
+  inviteUrl: string;
+  referrals: Array<{
+    id: string;
+    name: string;
+    points: number;
+    date: string;
+  }>;
+  redemptionStatus: 'coming_soon' | 'active';
+}
+
 

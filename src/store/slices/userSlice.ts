@@ -6,6 +6,9 @@ import { api, setCurrentApiUser, setAuthSession, clearAuthSession } from '../../
 export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, get) => ({
   userName: '',
   userId: null,
+  capitrackId: '',
+  referralCode: '',
+  rewardPoints: 0,
   isAuthenticated: false,
   currencySymbol: '₹',
   selectedLanguage: 'en',
@@ -105,6 +108,9 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
           isAuthenticated: true,
           userId: res.user.id,
           userName: res.user.name,
+          capitrackId: res.user.capitrackId || '',
+          referralCode: res.user.referralCode || '',
+          rewardPoints: res.user.rewardPoints || 0,
           currencySymbol: res.user.currencySymbol || '₹',
           selectedLanguage: (res.user.preferredLanguage as any) || 'en',
           businessTrackingEnabled: !!res.user.preferences?.businessTrackingEnabled,
@@ -127,12 +133,13 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
     }
   },
 
-  signup: async (name: string, password: string, businessTrackingEnabled = false) => {
+  signup: async (name: string, password: string, businessTrackingEnabled = false, referralCode?: string) => {
     try {
       const res = await api.signup({
         name,
         password,
         businessTrackingEnabled,
+        referralCode,
         preferredLanguage: get().selectedLanguage,
       });
       if (res.success && res.user) {
@@ -140,6 +147,9 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
           isAuthenticated: true,
           userId: res.user.id,
           userName: res.user.name,
+          capitrackId: res.user.capitrackId || '',
+          referralCode: res.user.referralCode || '',
+          rewardPoints: res.user.rewardPoints || 0,
           currencySymbol: res.user.currencySymbol || '₹',
           selectedLanguage: (res.user.preferredLanguage as any) || 'en',
           businessTrackingEnabled: !!businessTrackingEnabled,

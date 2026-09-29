@@ -9,6 +9,8 @@ import {
   ProjectPayment,
   SplitBill,
   SplitParticipant,
+  SplitGroup,
+  RewardData,
 } from '../types';
 
 export interface PendingNudge {
@@ -44,11 +46,18 @@ export type ModalType =
   | 'edit_ledger_entry'
   | 'add_split'
   | 'split_detail'
-  | 'upi_qr';
+  | 'upi_qr'
+  | 'create_group'
+  | 'group_detail'
+  | 'join_group'
+  | 'rewards_modal';
 
 export interface UserSlice {
   userName: string;
   userId: string | null;
+  capitrackId?: string;
+  referralCode?: string;
+  rewardPoints?: number;
   isAuthenticated: boolean;
   currencySymbol: string;
   selectedLanguage: 'en' | 'hi' | 'mr';
@@ -69,7 +78,8 @@ export interface UserSlice {
   signup: (
     name: string,
     password: string,
-    businessTrackingEnabled?: boolean
+    businessTrackingEnabled?: boolean,
+    referralCode?: string
   ) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
 }
@@ -80,6 +90,7 @@ export interface UiSlice {
   selectedPersonId: string | null;
   selectedProjectId: string | null;
   selectedSplitBillId: string | null;
+  selectedGroupId: string | null;
   qrModalData: { upiId: string; name: string; amount: number; note: string } | null;
   ledgerSubTab: 'personal' | 'projects';
   setLedgerSubTab: (tab: 'personal' | 'projects') => void;
@@ -91,6 +102,7 @@ export interface UiSlice {
   setActiveTab: (tab: TabScreen) => void;
   openModal: (modal: ModalType, entityId?: string) => void;
   closeModal: () => void;
+  setSelectedGroupId: (id: string | null) => void;
   setEditingExpense: (expense: Expense | null) => void;
   setEditingLedgerTxn: (data: { personId: string; txn: LedgerTransaction } | null) => void;
   setQrModalData: (data: { upiId: string; name: string; amount: number; note: string } | null) => void;
@@ -175,12 +187,20 @@ export interface LedgerSlice {
 
 export interface SplitSlice {
   splitBills: SplitBill[];
+  groups: SplitGroup[];
+  activeGroupId: string | null;
   activeSplitFilter: 'ALL' | 'YOU_OWE' | 'OWED_TO_YOU' | 'SETTLED';
+  rewardsData: RewardData | null;
   setActiveSplitFilter: (filter: 'ALL' | 'YOU_OWE' | 'OWED_TO_YOU' | 'SETTLED') => void;
+  setActiveGroupId: (id: string | null) => void;
   addSplitBill: (bill: Omit<SplitBill, 'id' | 'createdAt' | 'status'>, syncWithLedger?: boolean) => Promise<void>;
   settleSplitParticipant: (billId: string, participantId: string) => Promise<void>;
   deleteSplitBill: (billId: string) => Promise<void>;
   updateSplitBill: (billId: string, updates: Partial<SplitBill>) => Promise<void>;
+  createGroup: (name: string, category?: string, initialMembers?: any[]) => Promise<SplitGroup | null>;
+  joinGroupByCode: (code: string) => Promise<{ success: boolean; message: string; group?: SplitGroup }>;
+  loadGroups: () => Promise<void>;
+  loadRewards: () => Promise<void>;
 }
 
 export interface SyncSlice {

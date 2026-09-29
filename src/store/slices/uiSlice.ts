@@ -7,6 +7,7 @@ export const createUiSlice: StateCreator<AppState, [], [], UiSlice> = (set, get)
   selectedPersonId: null,
   selectedProjectId: null,
   selectedSplitBillId: null,
+  selectedGroupId: null,
   qrModalData: null,
   ledgerSubTab: 'personal',
   insightsSubTab: 'personal',
@@ -16,14 +17,17 @@ export const createUiSlice: StateCreator<AppState, [], [], UiSlice> = (set, get)
   setActiveTab: (tab) => set({ activeTab: tab }),
   setLedgerSubTab: (tab) => set({ ledgerSubTab: tab }),
   setInsightsSubTab: (tab) => set({ insightsSubTab: tab }),
+  setSelectedGroupId: (id) => set({ selectedGroupId: id }),
 
   openModal: (modal, entityId) => {
     if (modal === 'project_detail') {
-      set({ activeModal: modal, selectedProjectId: entityId || null, selectedPersonId: null, selectedSplitBillId: null });
+      set({ activeModal: modal, selectedProjectId: entityId || null, selectedPersonId: null, selectedSplitBillId: null, selectedGroupId: null });
     } else if (modal === 'split_detail') {
-      set({ activeModal: modal, selectedSplitBillId: entityId || null, selectedPersonId: null, selectedProjectId: null });
+      set({ activeModal: modal, selectedSplitBillId: entityId || null, selectedPersonId: null, selectedProjectId: null, selectedGroupId: null });
+    } else if (modal === 'group_detail') {
+      set({ activeModal: modal, selectedGroupId: entityId || null, selectedPersonId: null, selectedProjectId: null, selectedSplitBillId: null });
     } else {
-      set({ activeModal: modal, selectedPersonId: entityId || null, selectedProjectId: null, selectedSplitBillId: null });
+      set({ activeModal: modal, selectedPersonId: entityId || null, selectedProjectId: null, selectedSplitBillId: null, selectedGroupId: null });
       if (modal === 'person_detail' && entityId) {
         get().loadPersonDetail(entityId);
       }
@@ -36,6 +40,7 @@ export const createUiSlice: StateCreator<AppState, [], [], UiSlice> = (set, get)
       selectedPersonId: null,
       selectedProjectId: null,
       selectedSplitBillId: null,
+      selectedGroupId: null,
       qrModalData: null,
       editingLedgerTxn: null,
     }),

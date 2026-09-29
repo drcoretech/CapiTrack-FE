@@ -5,12 +5,93 @@ import { SplitBill, SplitParticipant } from '../../types';
 import { api } from '../../services/api';
 
 const STORAGE_KEY = '@capitrack_split_bills';
+const GROUPS_STORAGE_KEY = '@capitrack_split_groups';
 
 export const createSplitSlice: StateCreator<AppState, [], [], SplitSlice> = (set, get) => ({
   splitBills: [],
+  groups: [],
+  activeGroupId: null,
   activeSplitFilter: 'ALL',
+  rewardsData: null,
 
   setActiveSplitFilter: (filter) => set({ activeSplitFilter: filter }),
+  setActiveGroupId: (id) => set({ activeGroupId: id }),
+
+  loadGroups: async () => {
+    try {
+      const stored = await AsyncStorage.getItem(GROUPS_STORAGE_KEY);
+      if (stored) {
+        set({ groups: JSON.parse(stored) });
+      }
+      const res = await api.getGroups();
+      if (res?.success && Array.isArray(res.groups)) {
+        set({ groups: res.groups });
+        AsyncStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(res.groups)).catch(() => {});
+      }
+    } catch (err) {
+      console.warn('Failed to load groups:', err);
+    }
+  },
+
+  loadRewards: async () => {
+    try {
+      const res = await api.getRewards();
+      if (res?.success && res.rewards) {
+        set({ rewardsData: res.rewards });
+      }
+    } catch (err) {
+      console.warn('Failed to load rewards:', err);
+    }
+  },
+
+  createGroup: async (name, category = 'trip', initialMembers = []) => {
+    try {
+      const res = await api.createGroup({ name, category, initialMembers });
+      if (res?.success && res.group) {
+        const next = [res.group, ...get().groups];
+        set({ groups: next, activeGroupId: res.group.id || res.group._id });
+        AsyncStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+        return res.group;
+      }
+    } catch (err) {
+      console.warn('Failed to create group on server, creating local:', err);
+      const localGroup = {
+        id: 'grp_' + Date.now(),
+        name,
+        groupCode: 'GRP-' + Math.floor(100 + Math.random() * 900),
+        category: category as any,
+        createdBy: get().userId || 'me',
+        members: [
+          { name: get().userName || 'Me', role: 'admin' as const },
+          ...initialMembers,
+        ],
+        totalExpense: 0,
+        active: true,
+        createdAt: new Date().toISOString(),
+      };
+      const next = [localGroup, ...get().groups];
+      set({ groups: next, activeGroupId: localGroup.id });
+      AsyncStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+      return localGroup;
+    }
+    return null;
+  },
+
+  joinGroupByCode: async (code) => {
+    try {
+      const res = await api.joinGroupByCode(code);
+      if (res?.success && res.group) {
+        const exists = get().groups.some((g) => g.id === res.group.id || g.groupCode === res.group.groupCode);
+        const next = exists ? get().groups : [res.group, ...get().groups];
+        set({ groups: next, activeGroupId: res.group.id });
+        AsyncStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+        return { success: true, message: res.message, group: res.group };
+      }
+      return { success: false, message: res?.message || 'Failed to join group' };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Error joining group' };
+    }
+  },
 
   addSplitBill: async (billData, syncWithLedger = true) => {
     const newBill: SplitBill = {
@@ -126,3 +207,4 @@ export const createSplitSlice: StateCreator<AppState, [], [], SplitSlice> = (set
     }
   },
 });
+

@@ -48,6 +48,10 @@ import { ProjectDetailModal } from './src/screens/Ledger/components/ProjectDetai
 import { AddSplitModal } from './src/screens/Split/AddSplitModal';
 import { SplitDetailModal } from './src/screens/Split/SplitDetailModal';
 import { UPIQRModal } from './src/screens/Split/UPIQRModal';
+import { CreateGroupModal } from './src/screens/Split/CreateGroupModal';
+import { GroupDetailModal } from './src/screens/Split/GroupDetailModal';
+import { JoinGroupModal } from './src/screens/Split/JoinGroupModal';
+import { RewardsModal } from './src/screens/Split/RewardsModal';
 import { AutomationModal } from './src/screens/Automation/AutomationModal';
 import { ManageCategoriesModal } from './src/screens/Settings/ManageCategoriesModal';
 import { ProfileDetailsModal } from './src/screens/Home/components/ProfileDetailsModal';
@@ -192,6 +196,10 @@ export default function App() {
         <AddSplitModal />
         <SplitDetailModal />
         <UPIQRModal />
+        <CreateGroupModal />
+        <GroupDetailModal />
+        <JoinGroupModal />
+        <RewardsModal />
         <AutomationModal />
         <ManageCategoriesModal />
         <ProfileDetailsModal />

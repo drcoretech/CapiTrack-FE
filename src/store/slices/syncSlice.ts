@@ -361,6 +361,15 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
           if (userRes.value.user.name) {
             nextState.userName = userRes.value.user.name;
           }
+          if ((userRes.value.user as any).capitrackId) {
+            nextState.capitrackId = (userRes.value.user as any).capitrackId;
+          }
+          if ((userRes.value.user as any).referralCode) {
+            nextState.referralCode = (userRes.value.user as any).referralCode;
+          }
+          if (typeof (userRes.value.user as any).rewardPoints === 'number') {
+            nextState.rewardPoints = (userRes.value.user as any).rewardPoints;
+          }
           if (userRes.value.user.preferredLanguage) {
             const lang = userRes.value.user.preferredLanguage;
             if (lang === 'hi' || lang === 'mr' || lang === 'en') {
@@ -385,6 +394,10 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
 
         return nextState;
       });
+
+      // Load groups and rewards asynchronously
+      get().loadGroups?.().catch(() => {});
+      get().loadRewards?.().catch(() => {});
     } catch {
       set({ isSyncing: false });
     }

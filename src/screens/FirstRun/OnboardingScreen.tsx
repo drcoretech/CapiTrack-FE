@@ -26,6 +26,8 @@ import {
   BellRing,
   Split,
   QrCode,
+  Gift,
+  Share2,
 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
@@ -43,13 +45,14 @@ export const OnboardingScreen: React.FC = () => {
 
   const scrollRef = useRef<ScrollView>(null);
 
-  // Exactly 4 feature introduction pages total:
+  // Exactly 5 feature introduction pages total:
   // Page 0: Combined Expenses & Khata
   // Page 1: Split Bills & Settle via UPI
-  // Page 2: Personal & Freelance Workflows
-  // Page 3: Auto-Capture & Security
-  const totalPages = 4;
-  const isLastStep = currentIndex === 3;
+  // Page 2: Split Groups, CapiTrack ID & Referral Rewards
+  // Page 3: Personal & Freelance Workflows
+  // Page 4: Auto-Capture & Security
+  const totalPages = 5;
+  const isLastStep = currentIndex === 4;
 
   const handleScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = e.nativeEvent.contentOffset.x;
@@ -211,7 +214,106 @@ export const OnboardingScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Screen 3: Informative Workflow Preview (Personal & Freelance) */}
+        {/* Screen 3: Split Groups, CapiTrack ID & Referral Rewards */}
+        <View style={styles.page}>
+          <View style={styles.pageInner}>
+            <View style={[styles.heroIcon, { backgroundColor: '#FEF3C7' }]}>
+              <Gift size={38} color={Colors.amber} strokeWidth={2} />
+            </View>
+
+            <Text style={styles.title}>{t('onboardingGroupsTitle')}</Text>
+            <Text style={styles.desc}>{t('onboardingGroupsDesc')}</Text>
+
+            {/* Informational Feature Cards */}
+            <View style={styles.modeContainer}>
+              {/* Feature 1: Google Pay-Style Shared Groups & CapiTrack ID */}
+              <View style={styles.modeCard}>
+                <View style={styles.modeCardTop}>
+                  <View style={[styles.modeIconCircle, { backgroundColor: '#E8F5E9' }]}>
+                    <Users size={20} color={Colors.moss} />
+                  </View>
+                  <View style={styles.modeHeaderTexts}>
+                    <View style={styles.modeTitleRow}>
+                      <Text style={styles.modeTitle}>Shared Groups & CapiTrack ID</Text>
+                      <View style={[styles.modeTagPill, { backgroundColor: '#F0FDF4' }]}>
+                        <Text style={[styles.modeTagText, { color: Colors.mossDark }]}>
+                          Google Pay Style
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.modeDesc}>
+                      Connect with friends via unique @CapiTrackID or phone. When Suresh adds a bill, it syncs instantly to Ramesh!
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Feature Chips */}
+                <View style={styles.chipRow}>
+                  <View style={styles.featureChip}>
+                    <Zap size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Instant Cloud Sync</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <Users size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Trip & Flat Groups</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <CheckCircle2 size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Unique @Handle</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Feature 2: Invite Friends & Earn Rewards (CapiPoints) */}
+              <View style={styles.modeCard}>
+                <View style={styles.modeCardTop}>
+                  <View style={[styles.modeIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                    <Gift size={20} color={Colors.amber} />
+                  </View>
+                  <View style={styles.modeHeaderTexts}>
+                    <View style={styles.modeTitleRow}>
+                      <Text style={styles.modeTitle}>Invite Friends & Earn Rewards</Text>
+                      <View style={[styles.modeTagPill, { backgroundColor: '#FFFBEB' }]}>
+                        <Text style={[styles.modeTagText, { color: '#B45309' }]}>
+                          50 Pts / Invite
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.modeDesc}>
+                      Invite friends via WhatsApp with your referral link. Collect CapiPoints now and redeem for Cash & Gift Cards (Coming Soon)!
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Feature Chips */}
+                <View style={styles.chipRow}>
+                  <View style={styles.featureChip}>
+                    <Gift size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>+50 CapiPoints</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <Share2 size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>1-Tap WhatsApp Link</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <ShieldCheck size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>1-Time Protected</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Informational Guidance Notice */}
+              <View style={styles.infoNoticeBox}>
+                <Sparkles size={14} color={Colors.mossDark} style={{ marginRight: 8 }} />
+                <Text style={styles.infoNoticeText}>
+                  Points are collected immediately. 1-time referral security prevents duplicate loops and ensures 100% fair rewards.
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Screen 4: Informative Workflow Preview (Personal & Freelance) */}
         <View style={styles.page}>
           <View style={styles.pageInner}>
             <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
