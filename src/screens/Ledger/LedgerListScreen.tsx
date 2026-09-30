@@ -8,7 +8,19 @@ import { useTranslation } from '../../i18n/translations';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
 import { LedgerSkeleton } from './components/LedgerSkeleton';
 import { ClientProjectsView } from './components/ClientProjectsView';
-import { Settings, Pencil, Plus, Users, Briefcase, ArrowUpRight, ArrowDownLeft } from 'lucide-react-native';
+import {
+  Settings,
+  Pencil,
+  Plus,
+  Users,
+  Briefcase,
+  ArrowUpRight,
+  ArrowDownLeft,
+  CheckCheck,
+  Trash2,
+} from 'lucide-react-native';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
+import { haptics } from '../../services/haptics';
 
 export const LedgerListScreen: React.FC = () => {
   const contacts = useAppStore((state) => state.contacts);
@@ -20,6 +32,8 @@ export const LedgerListScreen: React.FC = () => {
   const refreshDashboard = useAppStore((state) => state.refreshDashboard);
   const openModal = useAppStore((state) => state.openModal);
   const setEditingLedgerTxn = useAppStore((state) => state.setEditingLedgerTxn);
+  const settlePerson = useAppStore((state) => state.settlePerson);
+  const deletePerson = useAppStore((state) => state.deletePerson);
   const { t } = useTranslation();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -91,7 +105,10 @@ export const LedgerListScreen: React.FC = () => {
               <View style={styles.segmentContainer}>
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => setLedgerSubTab('personal')}
+                  onPress={() => {
+                    haptics.selection();
+                    setLedgerSubTab('personal');
+                  }}
                   style={[
                     styles.segmentBtn,
                     ledgerSubTab === 'personal' && styles.segmentBtnActive,
@@ -114,7 +131,10 @@ export const LedgerListScreen: React.FC = () => {
 
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => setLedgerSubTab('projects')}
+                  onPress={() => {
+                    haptics.selection();
+                    setLedgerSubTab('projects');
+                  }}
                   style={[
                     styles.segmentBtn,
                     ledgerSubTab === 'projects' && styles.segmentBtnActive,
@@ -199,74 +219,114 @@ export const LedgerListScreen: React.FC = () => {
                       const isSettled = person.netBalance === 0;
                       const dateStr = person.lastDate === 'Today' ? t('dayToday') : person.lastDate;
 
-                      return (
-                        <AnimatedPressable
-                          key={person.id}
-                          scaleTo={0.96}
-                          onPress={() => openModal('person_detail', person.id)}
-                          style={styles.personItem}
-                        >
-                          <View style={styles.personLeft}>
-                            <View style={styles.avatar}>
-                              <Text style={styles.avatarText}>{person.initial}</Text>
-                            </View>
-                            <View style={styles.personDetails}>
-                              <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
-                                {person.name}
-                              </Text>
-                              <Text style={styles.meta} numberOfLines={1} ellipsizeMode="tail">
-                                {t('lastPrefix')} {dateStr}
-                              </Text>
-                            </View>
-                          </View>
-
-                          <View style={styles.personRight}>
-                            <Text
-                              style={[
-                                styles.amount,
-                                isOwed ? styles.amountOwed : styles.amountOwe,
-                                isSettled && styles.amountSettled,
-                              ]}
+                      const renderPersonRightActions = () => (
+                        <View style={styles.swipeActionsRow}>
+                          {!isSettled && (
+                            <TouchableOpacity
+                              activeOpacity={0.85}
+                              onPress={() => {
+                                haptics.success();
+                                settlePerson(person.id);
+                              }}
+                              style={styles.swipeSettleAction}
                             >
-                              {isOwed
-                                ? `+₹${person.netBalance.toLocaleString()}`
-                                : isSettled
-                                ? '₹0'
-                                : `-₹${Math.abs(person.netBalance).toLocaleString()}`}
-                            </Text>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                              <View
-                                style={[
-                                  styles.pill,
-                                  person.status === 'settled' ? styles.pillSettled : styles.pillPending,
-                                ]}
-                              >
-                                <Text
-                                  style={[
-                                    styles.pillText,
-                                    person.status === 'settled'
-                                      ? styles.pillTextSettled
-                                      : styles.pillTextPending,
-                                  ]}
-                                >
-                                  {person.status === 'settled' ? t('statusSettled') : t('statusPending')}
+                              <CheckCheck size={18} color="#FFFFFF" strokeWidth={2.2} />
+                              <Text style={styles.swipeActionText}>Settle</Text>
+                            </TouchableOpacity>
+                          )}
+                          <TouchableOpacity
+                            activeOpacity={0.85}
+                            onPress={() => {
+                              haptics.medium();
+                              deletePerson(person.id, person.name);
+                            }}
+                            style={styles.swipeDeleteAction}
+                          >
+                            <Trash2 size={18} color="#FFFFFF" strokeWidth={2.2} />
+                            <Text style={styles.swipeActionText}>Delete</Text>
+                          </TouchableOpacity>
+                        </View>
+                      );
+
+                      return (
+                        <Swipeable
+                          key={person.id}
+                          renderRightActions={renderPersonRightActions}
+                          friction={2}
+                          rightThreshold={30}
+                          containerStyle={styles.swipeableContainer}
+                        >
+                          <AnimatedPressable
+                            scaleTo={0.97}
+                            onPress={() => {
+                              haptics.light();
+                              openModal('person_detail', person.id);
+                            }}
+                            style={styles.personItem}
+                          >
+                            <View style={styles.personLeft}>
+                              <View style={styles.avatar}>
+                                <Text style={styles.avatarText}>{person.initial}</Text>
+                              </View>
+                              <View style={styles.personDetails}>
+                                <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+                                  {person.name}
+                                </Text>
+                                <Text style={styles.meta} numberOfLines={1} ellipsizeMode="tail">
+                                  {t('lastPrefix')} {dateStr}
                                 </Text>
                               </View>
-                              {person.transactions.length > 0 && (
-                                <TouchableOpacity
-                                  activeOpacity={0.7}
-                                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                  onPress={() => {
-                                    setEditingLedgerTxn({ personId: person.id, txn: person.transactions[0] });
-                                  }}
-                                  style={styles.editPill}
-                                >
-                                  <Pencil size={11} color={Colors.inkSoft} />
-                                </TouchableOpacity>
-                              )}
                             </View>
-                          </View>
-                        </AnimatedPressable>
+
+                            <View style={styles.personRight}>
+                              <Text
+                                style={[
+                                  styles.amount,
+                                  isOwed ? styles.amountOwed : styles.amountOwe,
+                                  isSettled && styles.amountSettled,
+                                ]}
+                              >
+                                {isOwed
+                                  ? `+₹${person.netBalance.toLocaleString()}`
+                                  : isSettled
+                                  ? '₹0'
+                                  : `-₹${Math.abs(person.netBalance).toLocaleString()}`}
+                              </Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                                <View
+                                  style={[
+                                    styles.pill,
+                                    person.status === 'settled' ? styles.pillSettled : styles.pillPending,
+                                  ]}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.pillText,
+                                      person.status === 'settled'
+                                        ? styles.pillTextSettled
+                                        : styles.pillTextPending,
+                                    ]}
+                                  >
+                                    {person.status === 'settled' ? t('statusSettled') : t('statusPending')}
+                                  </Text>
+                                </View>
+                                {person.transactions.length > 0 && (
+                                  <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                    onPress={() => {
+                                      haptics.selection();
+                                      setEditingLedgerTxn({ personId: person.id, txn: person.transactions[0] });
+                                    }}
+                                    style={styles.editPill}
+                                  >
+                                    <Pencil size={11} color={Colors.inkSoft} />
+                                  </TouchableOpacity>
+                                )}
+                              </View>
+                            </View>
+                          </AnimatedPressable>
+                        </Swipeable>
                       );
                     })
                   )}
@@ -568,5 +628,37 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansSemiBold,
     fontSize: 12,
     color: '#FFFFFF',
+  },
+  swipeableContainer: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  swipeActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+    gap: 6,
+  },
+  swipeSettleAction: {
+    backgroundColor: Colors.moss,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 66,
+    height: '100%',
+    borderRadius: 16,
+  },
+  swipeDeleteAction: {
+    backgroundColor: Colors.brick,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 66,
+    height: '100%',
+    borderRadius: 16,
+  },
+  swipeActionText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 11,
+    color: '#FFFFFF',
+    marginTop: 3,
   },
 });

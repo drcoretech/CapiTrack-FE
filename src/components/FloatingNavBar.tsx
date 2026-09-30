@@ -7,6 +7,7 @@ import { Colors } from '../theme/colors';
 import { useAppStore } from '../store/useAppStore';
 import { TabScreen } from '../types';
 import { AnimatedPressable } from './AnimatedPressable';
+import { haptics } from '../services/haptics';
 
 interface NavItemConfig {
   key: TabScreen;
@@ -57,6 +58,7 @@ export const FloatingNavBar: React.FC = () => {
   }, []);
 
   const handleTabPress = (key: TabScreen) => {
+    haptics.selection();
     setActiveTab(key);
 
     const anim = tabScales[key];
@@ -78,6 +80,7 @@ export const FloatingNavBar: React.FC = () => {
         <AnimatedPressable
           scaleTo={0.9}
           onPress={() => {
+            haptics.light();
             if (activeTab === 'ledger') {
               if (ledgerSubTab === 'projects') {
                 openModal('add_project');

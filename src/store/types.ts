@@ -66,6 +66,8 @@ export interface UserSlice {
   autoCaptureEnabled: boolean;
   darkModeEnabled: boolean;
   businessTrackingEnabled: boolean;
+  isBiometricEnabled: boolean;
+  isAppLocked: boolean;
   setFirstRunStep: (step: 'splash' | 'language' | 'onboarding' | 'auth' | 'main') => void;
   setHasCompletedOnboarding: (completed: boolean) => void;
   setUserName: (name: string) => Promise<void>;
@@ -73,6 +75,8 @@ export interface UserSlice {
   toggleAutoCapture: () => Promise<void>;
   toggleDarkMode: () => Promise<void>;
   toggleBusinessTracking: () => Promise<void>;
+  setAppLocked: (locked: boolean) => void;
+  toggleBiometricLock: () => Promise<boolean>;
   resetOnboarding: () => void;
   login: (name: string, password: string) => Promise<{ success: boolean; message?: string }>;
   signup: (

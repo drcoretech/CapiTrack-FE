@@ -230,6 +230,7 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
         localExpensesRaw,
         localContactsRaw,
         localSplitsRaw,
+        localBiometric,
       ] = await Promise.allSettled([
         api.getDashboardSummary(),
         api.getExpenses(),
@@ -243,6 +244,7 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
         AsyncStorage.getItem('@capitrack_expenses'),
         AsyncStorage.getItem('@capitrack_contacts'),
         AsyncStorage.getItem('@capitrack_split_bills'),
+        AsyncStorage.getItem('@capitrack_biometric_enabled'),
       ]);
 
       set((state) => {
@@ -329,6 +331,13 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
         // 4. Preferences & Settings
         if (localBusiness.status === 'fulfilled' && localBusiness.value !== null) {
           nextState.businessTrackingEnabled = localBusiness.value === 'true';
+        }
+        if (localBiometric && localBiometric.status === 'fulfilled' && localBiometric.value !== null) {
+          const isBio = localBiometric.value === 'true';
+          nextState.isBiometricEnabled = isBio;
+          if (isBio) {
+            nextState.isAppLocked = true;
+          }
         }
 
         // 5. Dashboard Data

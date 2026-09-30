@@ -6,17 +6,27 @@ import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { useTranslation } from '../../i18n/translations';
 import { notificationListener } from '../../services/notificationListener';
+import { biometrics } from '../../services/biometrics';
+import { haptics } from '../../services/haptics';
 
 export const SettingsScreen: React.FC = () => {
   const autoCaptureEnabled = useAppStore((state) => state.autoCaptureEnabled);
   const toggleAutoCapture = useAppStore((state) => state.toggleAutoCapture);
   const businessTrackingEnabled = useAppStore((state) => state.businessTrackingEnabled);
   const toggleBusinessTracking = useAppStore((state) => state.toggleBusinessTracking);
+  const isBiometricEnabled = useAppStore((state) => state.isBiometricEnabled);
+  const toggleBiometricLock = useAppStore((state) => state.toggleBiometricLock);
   const selectedLanguage = useAppStore((state) => state.selectedLanguage);
   const categories = useAppStore((state) => state.categories);
   const openModal = useAppStore((state) => state.openModal);
   const setFirstRunStep = useAppStore((state) => state.setFirstRunStep);
   const { t } = useTranslation();
+
+  const [bioLabel, setBioLabel] = React.useState('Face ID / Fingerprint');
+
+  React.useEffect(() => {
+    biometrics.getTypeLabel().then(setBioLabel);
+  }, []);
 
   const activeCategoriesCount = categories.filter((c) => c.enabled).length;
 
@@ -70,6 +80,32 @@ export const SettingsScreen: React.FC = () => {
                 await toggleAutoCapture();
                 if (nextVal) {
                   await notificationListener.openSettings();
+                }
+              }}
+              trackColor={{ false: Colors.line, true: Colors.moss }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          {/* Biometric App Lock */}
+          <View style={styles.item}>
+            <View style={styles.itemLeft}>
+              <Text style={styles.itemName}>App Lock ({bioLabel})</Text>
+              <Text style={[styles.itemSub, { color: isBiometricEnabled ? Colors.moss : Colors.inkSoft }]}>
+                {isBiometricEnabled
+                  ? `Protected with ${bioLabel}`
+                  : `Require ${bioLabel} to open CapiTrack`}
+              </Text>
+            </View>
+            <Switch
+              value={isBiometricEnabled}
+              onValueChange={async () => {
+                haptics.selection();
+                const success = await toggleBiometricLock();
+                if (success) {
+                  haptics.success();
+                } else {
+                  haptics.warning();
                 }
               }}
               trackColor={{ false: Colors.line, true: Colors.moss }}

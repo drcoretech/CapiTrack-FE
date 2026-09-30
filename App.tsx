@@ -19,6 +19,7 @@ import {
   IBMPlexMono_600SemiBold,
 } from '@expo-google-fonts/ibm-plex-mono';
 
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAppStore } from './src/store/useAppStore';
 import { Colors } from './src/theme/colors';
 
@@ -27,6 +28,7 @@ import { SplashScreen } from './src/screens/FirstRun/SplashScreen';
 import { LanguageSelectScreen } from './src/screens/FirstRun/LanguageSelectScreen';
 import { OnboardingScreen } from './src/screens/FirstRun/OnboardingScreen';
 import { AuthScreen } from './src/screens/Auth/AuthScreen';
+import { BiometricLockScreen } from './src/screens/Auth/BiometricLockScreen';
 
 // Main tab screens
 import { HomeScreen } from './src/screens/Home/HomeScreen';
@@ -73,6 +75,8 @@ export default function App() {
 
   const firstRunStep = useAppStore((state) => state.firstRunStep);
   const isAuthenticated = useAppStore((state) => state.isAuthenticated);
+  const isBiometricEnabled = useAppStore((state) => state.isBiometricEnabled);
+  const isAppLocked = useAppStore((state) => state.isAppLocked);
   const activeTab = useAppStore((state) => state.activeTab);
   const activeModal = useAppStore((state) => state.activeModal);
   const loadInitialData = useAppStore((state) => state.loadInitialData);
@@ -88,6 +92,9 @@ export default function App() {
   React.useEffect(() => {
     const onBackPress = () => {
       const state = useAppStore.getState();
+      if (state.isBiometricEnabled && state.isAppLocked) {
+        return false; // Let Android handle exit from lock screen
+      }
       if (state.activeModal) {
         state.closeModal();
         return true;
@@ -103,16 +110,20 @@ export default function App() {
     return () => sub.remove();
   }, []);
 
-  // AppState monitoring: if the app is put in background and reopened after >3 minutes,
-  // gracefully return to the Home screen rather than remaining trapped on Settings.
+  // AppState monitoring: if the app is put in background and reopened,
+  // require biometric unlock if enabled, and return to Home if away >3 minutes.
   const lastBackgroundTime = React.useRef<number | null>(null);
   React.useEffect(() => {
     const sub = RNAppState.addEventListener('change', (nextState) => {
       if (nextState === 'background') {
         lastBackgroundTime.current = Date.now();
       } else if (nextState === 'active') {
+        const state = useAppStore.getState();
+        if (state.isBiometricEnabled) {
+          state.setAppLocked(true);
+        }
         if (lastBackgroundTime.current && Date.now() - lastBackgroundTime.current > 3 * 60 * 1000) {
-          useAppStore.getState().setActiveTab('home');
+          state.setActiveTab('home');
         }
         lastBackgroundTime.current = null;
       }
@@ -168,6 +179,18 @@ export default function App() {
     );
   }
 
+  // 3b. Biometric Lock Gate: If authenticated and biometric lock is active
+  if (isBiometricEnabled && isAppLocked) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <StatusBar style="light" />
+          <BiometricLockScreen />
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    );
+  }
+
   // 2. Main Dashboard & Tab Switcher
   const renderCurrentTab = () => {
     switch (activeTab) {
@@ -189,36 +212,38 @@ export default function App() {
   };
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <View style={styles.appContainer}>
-        {renderCurrentTab()}
-        <FloatingNavBar />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <View style={styles.appContainer}>
+          {renderCurrentTab()}
+          <FloatingNavBar />
 
-        {/* Global Modals & Nudges */}
-        <AddExpenseModal />
-        <EditExpenseModal />
-        <AddLedgerEntryModal />
-        <EditLedgerEntryModal />
-        <PersonDetailModal />
-        <AddProjectModal />
-        <ProjectDetailModal />
-        <AddSplitModal />
-        <SplitDetailModal />
-        <UPIQRModal />
-        <CreateGroupModal />
-        <GroupDetailModal />
-        <JoinGroupModal />
-        <RewardsModal />
-        <AutomationModal />
-        <ManageCategoriesModal />
-        <ProfileDetailsModal />
-        <AutoCaptureNudge />
+          {/* Global Modals & Nudges */}
+          <AddExpenseModal />
+          <EditExpenseModal />
+          <AddLedgerEntryModal />
+          <EditLedgerEntryModal />
+          <PersonDetailModal />
+          <AddProjectModal />
+          <ProjectDetailModal />
+          <AddSplitModal />
+          <SplitDetailModal />
+          <UPIQRModal />
+          <CreateGroupModal />
+          <GroupDetailModal />
+          <JoinGroupModal />
+          <RewardsModal />
+          <AutomationModal />
+          <ManageCategoriesModal />
+          <ProfileDetailsModal />
+          <AutoCaptureNudge />
 
-        {/* Modal-mode Language selector if opened from Settings */}
-        {activeModal === 'language_select' && <LanguageSelectScreen />}
-      </View>
-    </SafeAreaProvider>
+          {/* Modal-mode Language selector if opened from Settings */}
+          {activeModal === 'language_select' && <LanguageSelectScreen />}
+        </View>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

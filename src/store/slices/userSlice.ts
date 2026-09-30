@@ -2,6 +2,7 @@ import { StateCreator } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, UserSlice } from '../types';
 import { api, setCurrentApiUser, setAuthSession, clearAuthSession } from '../../services/api';
+import { biometrics } from '../../services/biometrics';
 
 export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, get) => ({
   userName: '',
@@ -17,6 +18,10 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
   autoCaptureEnabled: false,
   darkModeEnabled: false,
   businessTrackingEnabled: false,
+  isBiometricEnabled: false,
+  isAppLocked: false,
+
+  setAppLocked: (locked: boolean) => set({ isAppLocked: locked }),
 
   setFirstRunStep: (step) => {
     set({ firstRunStep: step });
@@ -93,6 +98,18 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
     const nextVal = !get().businessTrackingEnabled;
     set({ businessTrackingEnabled: nextVal });
     AsyncStorage.setItem('@capitrack_business_tracking_enabled', nextVal ? 'true' : 'false').catch(() => {});
+  },
+
+  toggleBiometricLock: async () => {
+    const current = get().isBiometricEnabled;
+    const nextVal = !current;
+    if (nextVal) {
+      const ok = await biometrics.authenticate('Authenticate to enable App Lock');
+      if (!ok) return false;
+    }
+    set({ isBiometricEnabled: nextVal, isAppLocked: false });
+    await AsyncStorage.setItem('@capitrack_biometric_enabled', nextVal ? 'true' : 'false');
+    return true;
   },
 
   resetOnboarding: () => {

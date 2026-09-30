@@ -27,6 +27,8 @@ import {
 } from 'lucide-react-native';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
 import { ConfirmDeleteModal } from '../../components/ConfirmDeleteModal';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
+import { haptics } from '../../services/haptics';
 
 export const ExpenseHistoryScreen: React.FC = () => {
   const expenses = useAppStore((state) => state.expenses);
@@ -319,60 +321,85 @@ export const ExpenseHistoryScreen: React.FC = () => {
                           ? item.note.replace(/\[Monthly Total\]\s*/g, '').trim() || 'Full Month Total'
                           : item.note;
 
-                        return (
+                        const renderRightActions = () => (
                           <TouchableOpacity
-                            key={item.id}
-                            activeOpacity={0.75}
-                            onPress={() => setEditingExpense(item)}
-                            style={[styles.expItem, isMonthlyTotal && styles.expItemMonthlyTotal]}
+                            activeOpacity={0.85}
+                            onPress={() => {
+                              haptics.medium();
+                              setExpenseToDelete(item);
+                            }}
+                            style={styles.swipeDeleteAction}
                           >
-                            <View style={styles.left}>
-                              <View
-                                style={[
-                                  styles.iconContainer,
-                                  isMonthlyTotal && styles.iconContainerMonthlyTotal,
-                                ]}
-                              >
-                                <CategoryIcon
-                                  category={isMonthlyTotal ? 'monthly' : item.category}
-                                  icon={item.icon}
-                                  size={18}
-                                  color={isMonthlyTotal ? Colors.amber : Colors.moss}
-                                />
-                              </View>
-                              <View style={styles.details}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                  <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
-                                    {cleanNote}
-                                  </Text>
-                                  {isMonthlyTotal && (
-                                    <View style={styles.lumpSumPill}>
-                                      <Text style={styles.lumpSumPillText}>Lump Sum</Text>
-                                    </View>
-                                  )}
-                                </View>
-                                <Text style={styles.meta} numberOfLines={1} ellipsizeMode="tail">
-                                  {isMonthlyTotal
-                                    ? `Full Month Total · ${getCategoryName(item.category)}`
-                                    : `${getCategoryName(item.category)}${item.time ? ` · ${item.time}` : ''}`}
-                                </Text>
-                              </View>
-                            </View>
-                            <View style={styles.rightActions}>
-                              <Text style={styles.amount}>₹{item.amount.toLocaleString()}</Text>
-                              <TouchableOpacity
-                                activeOpacity={0.7}
-                                onPress={(e) => {
-                                  e.stopPropagation();
-                                  setExpenseToDelete(item);
-                                }}
-                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                style={styles.deletePill}
-                              >
-                                <Trash2 size={12} color={Colors.brick} />
-                              </TouchableOpacity>
-                            </View>
+                            <Trash2 size={18} color="#FFFFFF" strokeWidth={2.2} />
+                            <Text style={styles.swipeDeleteText}>Delete</Text>
                           </TouchableOpacity>
+                        );
+
+                        return (
+                          <Swipeable
+                            key={item.id}
+                            renderRightActions={renderRightActions}
+                            friction={2}
+                            rightThreshold={30}
+                            containerStyle={styles.swipeableContainer}
+                          >
+                            <TouchableOpacity
+                              activeOpacity={0.75}
+                              onPress={() => {
+                                haptics.light();
+                                setEditingExpense(item);
+                              }}
+                              style={[styles.expItem, isMonthlyTotal && styles.expItemMonthlyTotal]}
+                            >
+                              <View style={styles.left}>
+                                <View
+                                  style={[
+                                    styles.iconContainer,
+                                    isMonthlyTotal && styles.iconContainerMonthlyTotal,
+                                  ]}
+                                >
+                                  <CategoryIcon
+                                    category={isMonthlyTotal ? 'monthly' : item.category}
+                                    icon={item.icon}
+                                    size={18}
+                                    color={isMonthlyTotal ? Colors.amber : Colors.moss}
+                                  />
+                                </View>
+                                <View style={styles.details}>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+                                      {cleanNote}
+                                    </Text>
+                                    {isMonthlyTotal && (
+                                      <View style={styles.lumpSumPill}>
+                                        <Text style={styles.lumpSumPillText}>Lump Sum</Text>
+                                      </View>
+                                    )}
+                                  </View>
+                                  <Text style={styles.meta} numberOfLines={1} ellipsizeMode="tail">
+                                    {isMonthlyTotal
+                                      ? `Full Month Total · ${getCategoryName(item.category)}`
+                                      : `${getCategoryName(item.category)}${item.time ? ` · ${item.time}` : ''}`}
+                                  </Text>
+                                </View>
+                              </View>
+                              <View style={styles.rightActions}>
+                                <Text style={styles.amount}>₹{item.amount.toLocaleString()}</Text>
+                                <TouchableOpacity
+                                  activeOpacity={0.7}
+                                  onPress={(e) => {
+                                    e.stopPropagation();
+                                    haptics.medium();
+                                    setExpenseToDelete(item);
+                                  }}
+                                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                  style={styles.deletePill}
+                                >
+                                  <Trash2 size={12} color={Colors.brick} />
+                                </TouchableOpacity>
+                              </View>
+                            </TouchableOpacity>
+                          </Swipeable>
                         );
                       })}
                     </View>
@@ -749,5 +776,23 @@ const styles = StyleSheet.create({
     borderColor: '#FECACA',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  swipeableContainer: {
+    borderRadius: 15,
+    overflow: 'hidden',
+  },
+  swipeDeleteAction: {
+    backgroundColor: Colors.brick,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 76,
+    borderRadius: 15,
+    marginLeft: 8,
+  },
+  swipeDeleteText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 11,
+    color: '#FFFFFF',
+    marginTop: 3,
   },
 });

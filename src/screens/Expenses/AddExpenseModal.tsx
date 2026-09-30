@@ -23,6 +23,7 @@ import { CalendarDatePickerModal } from '../../components/CalendarDatePickerModa
 import { MonthPickerModal, formatMonthLabel, getMonthEndISOString } from '../../components/MonthPickerModal';
 import { CategoryIcon } from '../../components/CategoryIcon';
 import { useKeyboard } from '../../hooks/useKeyboard';
+import { haptics } from '../../services/haptics';
 
 export const AddExpenseModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -68,17 +69,22 @@ export const AddExpenseModal: React.FC = () => {
   }, [categories]);
 
   const handleModeSwitch = (mode: 'single' | 'month_total') => {
+    haptics.selection();
     setEntryMode(mode);
     Keyboard.dismiss();
   };
 
   const handleMonthSelected = (year: number, month: number, label: string) => {
+    haptics.selection();
     setSelectedMonthYear({ year, month, label });
   };
 
   const handleSave = () => {
     const num = parseFloat(amountStr) || 0;
-    if (num <= 0) return;
+    if (num <= 0) {
+      haptics.warning();
+      return;
+    }
 
     let targetDate: string | undefined = undefined;
     let finalNote = note.trim();
@@ -105,6 +111,7 @@ export const AddExpenseModal: React.FC = () => {
       }
     }
 
+    haptics.success();
     addExpense(num, targetCategory, finalNote, targetDate);
     setAmountStr('');
     setNote('');
@@ -226,6 +233,7 @@ export const AddExpenseModal: React.FC = () => {
                     key={increment}
                     activeOpacity={0.7}
                     onPress={() => {
+                      haptics.selection();
                       const current = parseFloat(amountStr) || 0;
                       setAmountStr(String(current + increment));
                     }}

@@ -18,6 +18,7 @@ import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { useTranslation } from '../../i18n/translations';
 import { useKeyboard } from '../../hooks/useKeyboard';
+import { haptics } from '../../services/haptics';
 
 export const AddLedgerEntryModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -44,7 +45,11 @@ export const AddLedgerEntryModal: React.FC = () => {
 
   const handleSave = () => {
     const num = parseFloat(amountStr) || 0;
-    if (num <= 0 || !personName.trim()) return;
+    if (num <= 0 || !personName.trim()) {
+      haptics.warning();
+      return;
+    }
+    haptics.success();
     addLedgerEntry(personName, num, direction, note);
     setPersonName('');
     setAmountStr('');
@@ -99,7 +104,10 @@ export const AddLedgerEntryModal: React.FC = () => {
             <View style={styles.toggleContainer}>
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => setDirection('LENT')}
+                onPress={() => {
+                  haptics.selection();
+                  setDirection('LENT');
+                }}
                 style={[styles.toggleBtn, direction === 'LENT' && styles.toggleLentSelected]}
               >
                 <Text
@@ -114,7 +122,10 @@ export const AddLedgerEntryModal: React.FC = () => {
 
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => setDirection('BORROWED')}
+                onPress={() => {
+                  haptics.selection();
+                  setDirection('BORROWED');
+                }}
                 style={[styles.toggleBtn, direction === 'BORROWED' && styles.toggleBorrowedSelected]}
               >
                 <Text
@@ -150,6 +161,7 @@ export const AddLedgerEntryModal: React.FC = () => {
                     key={increment}
                     activeOpacity={0.7}
                     onPress={() => {
+                      haptics.selection();
                       const current = parseFloat(amountStr) || 0;
                       setAmountStr(String(current + increment));
                     }}
