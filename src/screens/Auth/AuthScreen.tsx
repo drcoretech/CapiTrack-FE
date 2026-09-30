@@ -40,7 +40,6 @@ export const AuthScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [workflowMode, setWorkflowMode] = useState<'personal' | 'both'>('personal');
   const [isLoading, setIsLoading] = useState(false);
-  const [isGuestLoading, setIsGuestLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [focusedField, setFocusedField] = useState<'name' | 'password' | null>(null);
   const { isKeyboardVisible, keyboardHeight } = useKeyboard();
@@ -87,35 +86,6 @@ export const AuthScreen: React.FC = () => {
       setErrorMessage(err.message || 'Network error. Please try again.');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleInstantGuestAccess = async () => {
-    setErrorMessage('');
-    setIsGuestLoading(true);
-    try {
-      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-      const guestName = `User ${randomSuffix}`;
-      const guestPass = `pass_${randomSuffix}_ct`;
-      const res = await signup(guestName, guestPass, false);
-      if (!res.success) {
-        // Fallback local entrance
-        useAppStore.setState({
-          userName: guestName,
-          isAuthenticated: true,
-          firstRunStep: 'main',
-          hasCompletedOnboarding: true,
-        });
-      }
-    } catch {
-      useAppStore.setState({
-        userName: 'Guest',
-        isAuthenticated: true,
-        firstRunStep: 'main',
-        hasCompletedOnboarding: true,
-      });
-    } finally {
-      setIsGuestLoading(false);
     }
   };
 
@@ -245,7 +215,7 @@ export const AuthScreen: React.FC = () => {
                   onBlur={() => setFocusedField(null)}
                   autoCapitalize="words"
                   autoCorrect={false}
-                  editable={!isLoading && !isGuestLoading}
+                  editable={!isLoading}
                 />
               </View>
             </View>
@@ -278,7 +248,7 @@ export const AuthScreen: React.FC = () => {
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  editable={!isLoading && !isGuestLoading}
+                  editable={!isLoading}
                 />
                 <TouchableOpacity
                   activeOpacity={0.7}
@@ -354,8 +324,8 @@ export const AuthScreen: React.FC = () => {
             <AnimatedPressable
               scaleTo={0.97}
               onPress={handleSubmit}
-              disabled={isLoading || isGuestLoading}
-              style={[styles.submitBtn, (isLoading || isGuestLoading) && styles.submitBtnDisabled]}
+              disabled={isLoading}
+              style={[styles.submitBtn, isLoading && styles.submitBtnDisabled]}
             >
               {isLoading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
@@ -369,29 +339,7 @@ export const AuthScreen: React.FC = () => {
               )}
             </AnimatedPressable>
 
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR QUICK ACCESS</Text>
-              <View style={styles.dividerLine} />
-            </View>
 
-            {/* 1-Tap Instant Guest Access */}
-            <AnimatedPressable
-              scaleTo={0.98}
-              onPress={handleInstantGuestAccess}
-              disabled={isLoading || isGuestLoading}
-              style={styles.guestBtn}
-            >
-              {isGuestLoading ? (
-                <ActivityIndicator size="small" color={Colors.moss} />
-              ) : (
-                <View style={styles.guestRow}>
-                  <Zap size={15} color={Colors.moss} />
-                  <Text style={styles.guestBtnText}>Continue with Instant Device ID</Text>
-                </View>
-              )}
-            </AnimatedPressable>
 
             {/* Toggle Helper Copy */}
             <View style={styles.toggleFooter}>
