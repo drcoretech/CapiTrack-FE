@@ -67,7 +67,7 @@ export const LedgerListScreen: React.FC = () => {
               transform: [{ translateY: slideAnim }],
             }}
           >
-            {/* Header with Quick Action & Settings Badge */}
+            {/* Header with Settings Badge */}
             <View style={styles.header}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.eyebrow}>
@@ -77,25 +77,13 @@ export const LedgerListScreen: React.FC = () => {
                   {ledgerSubTab === 'projects' ? 'Client Projects & Dues' : t('ledgerTitle')}
                 </Text>
               </View>
-              <View style={styles.headerActions}>
-                <AnimatedPressable
-                  scaleTo={0.92}
-                  onPress={() => openModal(ledgerSubTab === 'projects' ? 'add_project' : 'add_ledger')}
-                  style={styles.addBtn}
-                >
-                  <Plus size={16} color="#FFFFFF" strokeWidth={2.4} />
-                  <Text style={styles.addBtnText}>
-                    {ledgerSubTab === 'projects' ? 'New Project' : 'Add Entry'}
-                  </Text>
-                </AnimatedPressable>
-                <AnimatedPressable
-                  scaleTo={0.9}
-                  onPress={() => openModal('profile_details')}
-                  style={styles.settingsBadge}
-                >
-                  <Settings size={18} color={Colors.ink} />
-                </AnimatedPressable>
-              </View>
+              <AnimatedPressable
+                scaleTo={0.9}
+                onPress={() => openModal('profile_details')}
+                style={styles.settingsBadge}
+              >
+                <Settings size={18} color={Colors.ink} />
+              </AnimatedPressable>
             </View>
 
             {/* Segmented Sub-Tab Switcher (Friends Khata vs Client Projects) */}

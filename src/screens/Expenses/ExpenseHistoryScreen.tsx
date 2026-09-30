@@ -163,23 +163,13 @@ export const ExpenseHistoryScreen: React.FC = () => {
                 <Text style={styles.eyebrow}>{t('thisMonth')}</Text>
                 <Text style={styles.title}>{t('expensesTitle')}</Text>
               </View>
-              <View style={styles.headerActions}>
-                <AnimatedPressable
-                  scaleTo={0.92}
-                  onPress={() => openModal('add_expense')}
-                  style={styles.addBtn}
-                >
-                  <Plus size={16} color="#FFFFFF" strokeWidth={2.4} />
-                  <Text style={styles.addBtnText}>Log Spend</Text>
-                </AnimatedPressable>
-                <AnimatedPressable
-                  scaleTo={0.9}
-                  onPress={() => openModal('profile_details')}
-                  style={styles.settingsBadge}
-                >
-                  <Settings size={18} color={Colors.ink} />
-                </AnimatedPressable>
-              </View>
+              <AnimatedPressable
+                scaleTo={0.9}
+                onPress={() => openModal('profile_details')}
+                style={styles.settingsBadge}
+              >
+                <Settings size={18} color={Colors.ink} />
+              </AnimatedPressable>
             </View>
 
             {/* Total Spent Editorial Banner */}
@@ -283,9 +273,18 @@ export const ExpenseHistoryScreen: React.FC = () => {
                 <Text style={styles.emptySubtitle}>
                   {searchQuery.trim().length > 0 || selectedCategoryFilter !== 'ALL'
                     ? 'Try clearing the search query or category filter'
-                    : 'Tap "Log Spend" above to track your first payment'}
+                    : 'Tap the + button below or log your first spend'}
                 </Text>
-                {(searchQuery.trim().length > 0 || selectedCategoryFilter !== 'ALL') && (
+                {!(searchQuery.trim().length > 0 || selectedCategoryFilter !== 'ALL') ? (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => openModal('add_expense')}
+                    style={styles.emptyActionBtn}
+                  >
+                    <Plus size={14} color="#FFFFFF" strokeWidth={2.4} style={{ marginRight: 6 }} />
+                    <Text style={styles.emptyActionBtnText}>Log First Spend</Text>
+                  </TouchableOpacity>
+                ) : (
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => {
@@ -597,6 +596,25 @@ const styles = StyleSheet.create({
     color: Colors.inkSoft,
     textAlign: 'center',
     maxWidth: 240,
+  },
+  emptyActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    backgroundColor: Colors.moss,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    shadowColor: Colors.moss,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  emptyActionBtnText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 13,
+    color: '#FFFFFF',
   },
   clearFilterBtn: {
     marginTop: 8,
