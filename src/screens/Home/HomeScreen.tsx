@@ -4,11 +4,16 @@ import {
   ScrollView,
   RefreshControl,
   Animated,
+  View,
+  Text,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Plus, Users, Briefcase } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { useTranslation } from '../../i18n/translations';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 import { HomeHeader } from './components/HomeHeader';
 import { SpentTodayCard } from './components/SpentTodayCard';
 import { AiInsightCard } from './components/AiInsightCard';
@@ -163,8 +168,39 @@ export const HomeScreen: React.FC = () => {
               <SpentTodayCard
                 spentToday={spentToday}
                 deltaText={deltaText}
+                allExpenses={expenses}
               />
             </Animated.View>
+
+            {/* Quick Action Shortcuts Strip */}
+            <View style={styles.quickActionStrip}>
+              <AnimatedPressable
+                scaleTo={0.95}
+                onPress={() => openModal('add_expense')}
+                style={styles.quickActionBtn}
+              >
+                <Plus size={13} color={Colors.moss} strokeWidth={2.6} />
+                <Text style={styles.quickActionText}>Expense</Text>
+              </AnimatedPressable>
+
+              <AnimatedPressable
+                scaleTo={0.95}
+                onPress={() => openModal('add_ledger')}
+                style={styles.quickActionBtn}
+              >
+                <Users size={13} color={Colors.moss} strokeWidth={2.4} />
+                <Text style={styles.quickActionText}>Khata</Text>
+              </AnimatedPressable>
+
+              <AnimatedPressable
+                scaleTo={0.95}
+                onPress={() => openModal('add_project')}
+                style={styles.quickActionBtn}
+              >
+                <Briefcase size={13} color={Colors.moss} strokeWidth={2.4} />
+                <Text style={styles.quickActionText}>Project</Text>
+              </AnimatedPressable>
+            </View>
 
             {/* Cards Section with slide-up animation */}
             <Animated.View
@@ -220,5 +256,33 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 120, // Space for floating bottom nav
     gap: 16,
+  },
+  quickActionStrip: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: -4,
+  },
+  quickActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.card,
+    borderWidth: 1.5,
+    borderColor: Colors.line,
+    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 8,
+    gap: 6,
+    shadowColor: Colors.ink,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  quickActionText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 11.5,
+    color: Colors.ink,
   },
 });
