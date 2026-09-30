@@ -15,7 +15,7 @@
       "package": "com.capitrack.app",
       "versionCode": 2,
       "adaptiveIcon": {
-        "backgroundColor": "#1F2A24",
+        "backgroundColor": "#0E1411",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png"
       },
