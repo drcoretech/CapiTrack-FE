@@ -26,8 +26,8 @@ export const AddProjectModal: React.FC = () => {
 
   const [clientName, setClientName] = useState('');
   const [projectTitle, setProjectTitle] = useState('');
-  const [dealValueStr, setDealValueStr] = useState('12000');
-  const [advanceStr, setAdvanceStr] = useState('6000');
+  const [dealValueStr, setDealValueStr] = useState('');
+  const [advanceStr, setAdvanceStr] = useState('');
   const [addToIncome, setAddToIncome] = useState(true);
   const [notes, setNotes] = useState('');
 
@@ -62,8 +62,8 @@ export const AddProjectModal: React.FC = () => {
 
     setClientName('');
     setProjectTitle('');
-    setDealValueStr('12000');
-    setAdvanceStr('6000');
+    setDealValueStr('');
+    setAdvanceStr('');
     setNotes('');
     const resetDate = new Date();
     setSelectedYear(resetDate.getFullYear());
@@ -133,7 +133,7 @@ export const AddProjectModal: React.FC = () => {
               <TextInput
                 value={dealValueStr}
                 onChangeText={setDealValueStr}
-                placeholder="12000"
+                placeholder="e.g. 25000"
                 placeholderTextColor={Colors.inkSoft}
                 keyboardType="numeric"
                 style={[styles.input, styles.numInput]}

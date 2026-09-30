@@ -29,7 +29,7 @@ export const AddLedgerEntryModal: React.FC = () => {
 
   const [personName, setPersonName] = useState('');
   const [direction, setDirection] = useState<'LENT' | 'BORROWED'>('LENT');
-  const [amountStr, setAmountStr] = useState('1400');
+  const [amountStr, setAmountStr] = useState('');
   const [note, setNote] = useState('');
   const { isKeyboardVisible, keyboardHeight } = useKeyboard();
 
@@ -47,7 +47,7 @@ export const AddLedgerEntryModal: React.FC = () => {
     if (num <= 0 || !personName.trim()) return;
     addLedgerEntry(personName, num, direction, note);
     setPersonName('');
-    setAmountStr('1400');
+    setAmountStr('');
     setNote('');
     Keyboard.dismiss();
   };
@@ -131,14 +131,34 @@ export const AddLedgerEntryModal: React.FC = () => {
             {/* Amount Input */}
             <View style={styles.amountContainer}>
               <Text style={styles.curLabel}>{t('amountLabel')}</Text>
-              <TextInput
-                value={amountStr}
-                onChangeText={setAmountStr}
-                keyboardType="numeric"
-                style={styles.amountInput}
-                placeholder="1400"
-                placeholderTextColor={Colors.line}
-              />
+              <View style={styles.amountInputRow}>
+                <Text style={styles.currencySymbol}>₹</Text>
+                <TextInput
+                  value={amountStr}
+                  onChangeText={setAmountStr}
+                  keyboardType="numeric"
+                  style={styles.amountInput}
+                  placeholder="0"
+                  placeholderTextColor={Colors.line}
+                />
+              </View>
+
+              {/* Quick Amount Increment Presets */}
+              <View style={styles.quickAmountRow}>
+                {[100, 500, 1000, 2000].map((increment) => (
+                  <TouchableOpacity
+                    key={increment}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      const current = parseFloat(amountStr) || 0;
+                      setAmountStr(String(current + increment));
+                    }}
+                    style={styles.quickAmountChip}
+                  >
+                    <Text style={styles.quickAmountText}>+{increment}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
             {/* Note Input */}
@@ -270,6 +290,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.inkSoft,
   },
+  amountInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  currencySymbol: {
+    fontFamily: Fonts.serifMedium,
+    fontSize: 32,
+    color: Colors.inkSoft,
+    marginRight: 4,
+  },
   amountInput: {
     fontFamily: Fonts.serifMedium,
     fontSize: 48,
@@ -277,6 +309,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     minWidth: 140,
     marginTop: 2,
+  },
+  quickAmountRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  quickAmountChip: {
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  quickAmountText: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 11,
+    color: Colors.ink,
   },
   footer: {
     paddingHorizontal: 22,

@@ -48,7 +48,7 @@ export const AddExpenseModal: React.FC = () => {
   });
   const [showMonthPicker, setShowMonthPicker] = useState(false);
 
-  const [amountStr, setAmountStr] = useState('150');
+  const [amountStr, setAmountStr] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>(
     activeCategories[0]?.name || 'Food'
   );
@@ -106,7 +106,7 @@ export const AddExpenseModal: React.FC = () => {
     }
 
     addExpense(num, targetCategory, finalNote, targetDate);
-    setAmountStr('150');
+    setAmountStr('');
     setNote('');
     setDateChoice('today');
     setCustomDateStr('');
@@ -213,7 +213,7 @@ export const AddExpenseModal: React.FC = () => {
                   onChangeText={setAmountStr}
                   keyboardType="numeric"
                   style={styles.amountInput}
-                  placeholder={entryMode === 'month_total' ? '12500' : '150'}
+                  placeholder={entryMode === 'month_total' ? '12500' : '0'}
                   placeholderTextColor={Colors.line}
                   autoFocus={false}
                 />
