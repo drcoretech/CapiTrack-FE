@@ -192,67 +192,6 @@ export const ProfileDetailsModal: React.FC = () => {
             </View>
           </View>
 
-          {/* CapiTrack ID & Referral Rewards Card */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionHeader}>CAPITRACK ID & REFERRAL REWARDS</Text>
-
-            <View style={styles.rewardCard}>
-              <View style={styles.rewardCardTop}>
-                <View style={styles.rewardIconBadge}>
-                  <Gift size={24} color={Colors.amber} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={styles.rewardTitleRow}>
-                    <Text style={styles.rewardTitle}>CapiPoints Balance</Text>
-                    <View style={styles.pointsBadge}>
-                      <Text style={styles.pointsBadgeText}>50 PTS</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.rewardSub}>
-                    Redeem for Cash & Gift Cards (Coming Soon)
-                  </Text>
-                </View>
-              </View>
-
-              {/* ID & Referral Code Details */}
-              <View style={styles.idCodesRow}>
-                <View style={styles.idCodeBox}>
-                  <Text style={styles.idCodeLabel}>CapiTrack ID</Text>
-                  <Text style={styles.idCodeValue}>
-                    @{userName ? userName.toLowerCase().replace(/[^a-z0-9]/g, '') : 'capitrack'}
-                  </Text>
-                </View>
-
-                <View style={styles.idCodeBox}>
-                  <Text style={styles.idCodeLabel}>Referral Code</Text>
-                  <Text style={styles.idCodeValue}>
-                    CT-{(userName ? userName.slice(0, 3) : 'CAP').toUpperCase()}
-                    {Math.abs(((userName ? userName.charCodeAt(0) : 67) * 23) % 900 + 100)}
-                  </Text>
-                </View>
-              </View>
-
-              {/* WhatsApp Share Button */}
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => {
-                  const refCode = `CT-${(userName ? userName.slice(0, 3) : 'CAP').toUpperCase()}${Math.abs(((userName ? userName.charCodeAt(0) : 67) * 23) % 900 + 100)}`;
-                  const handle = userName ? userName.toLowerCase().replace(/[^a-z0-9]/g, '') : 'capitrack';
-                  shareInviteLink({
-                    userName,
-                    referralCode: refCode,
-                    capitrackId: handle,
-                  });
-                }}
-                style={styles.shareRewardBtn}
-              >
-                <Share2 size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                <Text style={styles.shareRewardBtnText}>
-                  Invite Friends on WhatsApp (+50 Pts)
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
 
           {/* App Preferences & Features */}
           <View style={styles.sectionContainer}>
