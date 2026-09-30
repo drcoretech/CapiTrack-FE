@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, Animated, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import { Home, Receipt, Users, BarChart2, Plus } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { useAppStore } from '../store/useAppStore';
@@ -60,7 +61,7 @@ export const FloatingNavBar: React.FC = () => {
 
     const anim = tabScales[key];
     if (anim) {
-      anim.setValue(0.78);
+      anim.setValue(0.82);
       Animated.spring(anim, {
         toValue: 1,
         useNativeDriver: true,
@@ -93,10 +94,10 @@ export const FloatingNavBar: React.FC = () => {
         </AnimatedPressable>
       )}
 
-      {/* Floating Frosted Bottom Bar with Entrance & Spring Transitions */}
+      {/* Floating iPhone Glass Frosted Bottom Bar */}
       <Animated.View
         style={[
-          styles.barContainer,
+          styles.shadowWrapper,
           {
             bottom: Math.max(insets.bottom, 14),
             opacity: barOpacity,
@@ -104,7 +105,12 @@ export const FloatingNavBar: React.FC = () => {
           },
         ]}
       >
-        <View style={styles.bar}>
+        <BlurView
+          intensity={Platform.OS === 'ios' ? 80 : 90}
+          tint="light"
+          experimentalBlurMethod="dimezisBlurView"
+          style={styles.blurBar}
+        >
           {NAV_ITEMS.map((item) => {
             const isActive = activeTab === item.key;
             const IconComponent = item.icon;
@@ -113,65 +119,76 @@ export const FloatingNavBar: React.FC = () => {
             return (
               <AnimatedPressable
                 key={item.key}
-                scaleTo={0.88}
+                scaleTo={0.92}
                 onPress={() => handleTabPress(item.key)}
                 style={[styles.navItem, isActive && styles.activeNavItem]}
               >
-                <Animated.View style={{ transform: [{ scale: animScale }] }}>
+                <Animated.View style={[styles.iconWrapper, { transform: [{ scale: animScale }] }]}>
                   <IconComponent
-                    size={23}
-                    color={isActive ? '#FFFFFF' : Colors.inkSoft}
-                    strokeWidth={isActive ? 2.5 : 2}
+                    size={22}
+                    color={isActive ? Colors.moss : Colors.inkSoft}
+                    strokeWidth={isActive ? 2.4 : 1.9}
                   />
+                  {isActive && <View style={styles.activeDot} />}
                 </Animated.View>
               </AnimatedPressable>
             );
           })}
-        </View>
+        </BlurView>
       </Animated.View>
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  barContainer: {
+  shadowWrapper: {
     position: 'absolute',
-    left: 14,
-    right: 14,
+    left: 18,
+    right: 18,
     alignItems: 'center',
     zIndex: 50,
+    shadowColor: '#0E1411',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 10,
+    borderRadius: 36,
   },
-  bar: {
+  blurBar: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    backgroundColor: 'rgba(251, 250, 246, 0.94)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 100,
+    borderRadius: 36,
+    overflow: 'hidden',
     paddingVertical: 7,
     paddingHorizontal: 8,
-    shadowColor: Colors.ink,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.16,
-    shadowRadius: 20,
-    elevation: 12,
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.75)',
+    backgroundColor: Platform.OS === 'ios' ? 'rgba(255, 255, 255, 0.60)' : 'rgba(251, 250, 246, 0.86)',
   },
   navItem: {
-    width: 48,
-    height: 44,
-    borderRadius: 22,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
   activeNavItem: {
+    backgroundColor: 'rgba(62, 107, 92, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(62, 107, 92, 0.22)',
+  },
+  iconWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: Colors.moss,
-    shadowColor: Colors.moss,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
+    marginTop: 3,
   },
   fab: {
     position: 'absolute',
@@ -183,10 +200,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: Colors.moss,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 14,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
     zIndex: 55,
   },
 });
+
