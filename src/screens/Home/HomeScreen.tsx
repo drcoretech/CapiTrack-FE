@@ -125,8 +125,8 @@ export const HomeScreen: React.FC = () => {
   const calculatedOwedToYou = contacts.reduce((sum, c) => (c.netBalance > 0 ? sum + c.netBalance : sum), 0);
   const calculatedYouOwe = contacts.reduce((sum, c) => (c.netBalance < 0 ? sum + Math.abs(c.netBalance) : sum), 0);
 
-  const owedToYou = dashboardData?.owedToYou ?? calculatedOwedToYou;
-  const youOwe = dashboardData?.youOwe ?? calculatedYouOwe;
+  const owedToYou = calculatedOwedToYou;
+  const youOwe = calculatedYouOwe;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>

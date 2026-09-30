@@ -351,8 +351,8 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
             spentYesterday: dashRes.value.spentYesterday,
             delta: dashRes.value.delta,
             insight: dashRes.value.insight,
-            owedToYou: dashRes.value.owedToYou ?? calcOwedToYou,
-            youOwe: dashRes.value.youOwe ?? calcYouOwe,
+            owedToYou: calcOwedToYou,
+            youOwe: calcYouOwe,
           };
           if (dashRes.value.currency) nextState.currencySymbol = dashRes.value.currency;
         } else {
@@ -460,8 +460,8 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
             spentYesterday: dashRes.spentYesterday,
             delta: dashRes.delta,
             insight: dashRes.insight,
-            owedToYou: dashRes.owedToYou ?? calcOwedToYou,
-            youOwe: dashRes.youOwe ?? calcYouOwe,
+            owedToYou: calcOwedToYou,
+            youOwe: calcYouOwe,
           } : (state.dashboardData ? {
             ...state.dashboardData,
             owedToYou: calcOwedToYou,

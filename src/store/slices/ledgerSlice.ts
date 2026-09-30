@@ -151,6 +151,9 @@ export const createLedgerSlice: StateCreator<AppState, [], [], LedgerSlice> = (s
       markEntityDeleted(personId);
       if (targetContact.name) markEntityDeleted(targetContact.name);
       nextContacts = contacts.filter((c) => c.id !== personId);
+      api.deleteContact(personId, targetContact.name).catch((err) => {
+        console.warn('Delete contact API call failed in deleteLedgerEntry:', err);
+      });
     } else {
       const newNetBalance = remainingTxns.reduce((sum, t) => {
         if (t.direction === 'LENT') return sum + t.amount;
