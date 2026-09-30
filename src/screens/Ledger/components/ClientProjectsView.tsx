@@ -318,6 +318,8 @@ const styles = StyleSheet.create({
     color: Colors.inkSoft,
   },
   statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
@@ -403,6 +405,8 @@ const styles = StyleSheet.create({
   },
   settledRow: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   settledText: {
     fontFamily: Fonts.sansMedium,
