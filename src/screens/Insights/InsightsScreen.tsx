@@ -525,14 +525,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   segmentBtnActive: {
-    backgroundColor: Colors.mist,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    backgroundColor: Colors.moss,
+    shadowColor: Colors.moss,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   segmentText: {
     fontFamily: Fonts.sansMedium,
@@ -541,6 +539,6 @@ const styles = StyleSheet.create({
   },
   segmentTextActive: {
     fontFamily: Fonts.sansSemiBold,
-    color: Colors.ink,
+    color: '#FFFFFF',
   },
 });

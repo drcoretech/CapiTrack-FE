@@ -4,7 +4,7 @@ import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { ClientProject } from '../../../types';
 import { AnimatedPressable } from '../../../components/AnimatedPressable';
-import { Plus, ChevronRight, Briefcase } from 'lucide-react-native';
+import { Plus, ChevronRight, Briefcase, Check, Clock } from 'lucide-react-native';
 
 interface ClientProjectsViewProps {
   projects: ClientProject[];
@@ -98,13 +98,18 @@ export const ClientProjectsView: React.FC<ClientProjectsViewProps> = ({
                     isCompleted ? styles.statusBadgeCompleted : styles.statusBadgePending,
                   ]}
                 >
+                  {isCompleted ? (
+                    <Check size={11} color={Colors.moss} strokeWidth={2.8} style={{ marginRight: 4 }} />
+                  ) : (
+                    <Clock size={11} color={Colors.amber} strokeWidth={2.4} style={{ marginRight: 4 }} />
+                  )}
                   <Text
                     style={[
                       styles.statusBadgeText,
                       isCompleted ? styles.statusTextCompleted : styles.statusTextPending,
                     ]}
                   >
-                    {isCompleted ? 'Fully Paid ✅' : `₹${pendingAmount.toLocaleString()} Due ⏳`}
+                    {isCompleted ? 'Fully Settled' : `₹${pendingAmount.toLocaleString()} Due`}
                   </Text>
                 </View>
               </View>
@@ -157,7 +162,8 @@ export const ClientProjectsView: React.FC<ClientProjectsViewProps> = ({
                   </TouchableOpacity>
                 ) : (
                   <View style={styles.settledRow}>
-                    <Text style={styles.settledText}>Project Completed & Settled ✅</Text>
+                    <Check size={13} color={Colors.moss} strokeWidth={2.6} style={{ marginRight: 5 }} />
+                    <Text style={styles.settledText}>Contract Fully Paid & Settled</Text>
                   </View>
                 )}
 

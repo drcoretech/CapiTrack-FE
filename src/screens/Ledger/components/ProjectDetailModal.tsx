@@ -366,7 +366,7 @@ export const ProjectDetailModal: React.FC = () => {
                         isCompleted ? styles.statusTextCompleted : styles.statusTextPending,
                       ]}
                     >
-                      {isCompleted ? 'Fully Settled & Paid ✅' : `₹${pendingDue.toLocaleString()} Due ⏳`}
+                      {isCompleted ? 'Fully Settled & Paid' : `₹${pendingDue.toLocaleString()} Due`}
                     </Text>
                   </View>
 

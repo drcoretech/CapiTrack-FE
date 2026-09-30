@@ -117,11 +117,11 @@ export const MonthHeroCard: React.FC<MonthHeroCardProps> = ({
         <View style={styles.statDivider} />
 
         <View style={styles.statCol}>
-          <Text style={styles.statLabel}>{t('monthTransactions')}</Text>
+          <Text style={styles.statLabel}>ENTRIES</Text>
           <Text style={styles.statValue}>
             {transactionCount}{' '}
             <Text style={styles.statSubText}>
-              {t('monthTransactions')}
+              {transactionCount === 1 ? 'record' : 'records'}
             </Text>
           </Text>
         </View>

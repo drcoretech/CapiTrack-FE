@@ -86,8 +86,7 @@ export const CategoryBreakdownCard: React.FC<CategoryBreakdownCardProps> = ({
 
               {/* Transaction count */}
               <Text style={styles.catTxnCount}>
-                {item.count}{' '}
-                {item.count === 1 ? 'transaction' : t('monthTransactions')}
+                {item.count} {item.count === 1 ? 'entry' : 'entries'}
               </Text>
             </View>
           );
