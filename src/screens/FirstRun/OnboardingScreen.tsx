@@ -11,25 +11,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  Briefcase,
-  User,
-  BookOpen,
-  SlidersHorizontal,
-  Zap,
-  PieChart,
-  Users,
-  Building2,
-  CheckCircle2,
-  TrendingUp,
-  Sparkles,
-  ShieldCheck,
-  BellRing,
-  Split,
-  QrCode,
-  Gift,
-  Share2,
   Receipt,
+  Users,
+  Zap,
   ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+  Briefcase,
 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
@@ -43,14 +31,15 @@ export const OnboardingScreen: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const setFirstRunStep = useAppStore((state) => state.setFirstRunStep);
   const setAuthInitialMode = useAppStore((state) => state.setAuthInitialMode);
+  const selectedLanguage = useAppStore((state) => state.selectedLanguage);
   const { t } = useTranslation();
 
   const scrollRef = useRef<ScrollView>(null);
 
-  // Exactly 3 feature introduction pages for Phase 1:
-  // Page 0: Combined Expenses & Khata
-  // Page 1: Personal & Freelance Workflows
-  // Page 2: Auto-Capture & Security
+  // Exactly 3 clean visual slides for Phase 1:
+  // Slide 0: Daily Expenses
+  // Slide 1: Friends Khata & Projects
+  // Slide 2: Smart Auto-Capture & Total Privacy
   const totalPages = 3;
   const isLastStep = currentIndex === 2;
 
@@ -76,14 +65,12 @@ export const OnboardingScreen: React.FC = () => {
     if (currentIndex < totalPages - 1) {
       goToPage(currentIndex + 1);
     } else {
-      // "Get Started" routes directly to Sign Up
       setAuthInitialMode('signup');
       setFirstRunStep('auth');
     }
   };
 
   const handleSkip = () => {
-    // If on the last step ("Already have an account? Sign In"), route to Sign In
     if (isLastStep) {
       setAuthInitialMode('signin');
     } else {
@@ -93,13 +80,36 @@ export const OnboardingScreen: React.FC = () => {
   };
 
   const getButtonText = () => {
-    if (isLastStep) return 'Get Started ›';
-    return t('nextBtn');
+    if (isLastStep) {
+      if (selectedLanguage === 'mr') return 'सुरू करा';
+      if (selectedLanguage === 'hi') return 'शुरू करें';
+      return 'Get Started';
+    }
+    if (selectedLanguage === 'mr') return 'पुढे जा';
+    if (selectedLanguage === 'hi') return 'आगे बढ़ें';
+    return 'Next Step';
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Horizontal Swipeable ScrollView */}
+      {/* Top Header Bar with Skip */}
+      <View style={styles.topBar}>
+        <View style={styles.brandTag}>
+          <Text style={styles.brandTagText}>CAPITRACK</Text>
+        </View>
+        {!isLastStep && (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleSkip}
+            style={styles.skipBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.skipBtnText}>{t('skipBtn')}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Horizontal Swipeable Carousel */}
       <ScrollView
         ref={scrollRef}
         horizontal
@@ -109,90 +119,164 @@ export const OnboardingScreen: React.FC = () => {
         scrollEventThrottle={16}
         contentContainerStyle={styles.horizontalScrollContent}
       >
-        {/* Screen 1: Combined Expenses & Khata */}
+        {/* ================= SLIDE 1: DAILY EXPENSES ================= */}
         <View style={styles.page}>
-          <View style={styles.pageInner}>
-            <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
-              <BookOpen size={40} color={Colors.moss} strokeWidth={2} />
+          <View style={styles.pageContent}>
+            {/* Ambient Hero Icon */}
+            <View style={styles.heroWrapper}>
+              <View style={[styles.haloRing, { backgroundColor: 'rgba(62, 107, 92, 0.15)' }]} />
+              <View style={[styles.heroIconBadge, { backgroundColor: Colors.mossLight }]}>
+                <Receipt size={36} color={Colors.moss} strokeWidth={2.2} />
+              </View>
             </View>
 
-            <Text style={styles.title}>{t('onboardingCombinedTitle')}</Text>
-            <Text style={styles.desc}>{t('onboardingCombinedDesc')}</Text>
+            {/* Punchy Text Copy */}
+            <View style={styles.textBlock}>
+              <Text style={styles.headline}>
+                {selectedLanguage === 'mr'
+                  ? 'दैनिक खर्च नोंदवा काही सेकंदात'
+                  : selectedLanguage === 'hi'
+                  ? 'दैनिक खर्चे दर्ज करें बिना किसी झंझट'
+                  : 'Track daily spends without the friction.'}
+              </Text>
+              <Text style={styles.subheadline}>
+                {selectedLanguage === 'mr'
+                  ? 'फक्त कॅटेगरी निवडा आणि रक्कम नोंदवा. सोपे आणि झटपट.'
+                  : selectedLanguage === 'hi'
+                  ? 'बस कैटेगरी चुनें और रकम दर्ज करें। कोई भारी फॉर्म नहीं।'
+                  : 'Log day-to-day expenses in seconds with one-tap categories. No complicated forms.'}
+              </Text>
+            </View>
 
-            {/* Informational Feature Cards */}
-            <View style={styles.modeContainer}>
-              {/* Feature 1: Daily Expense Tracker */}
-              <View style={styles.modeCard}>
-                <View style={styles.modeCardTop}>
-                  <View style={[styles.modeIconCircle, { backgroundColor: '#E8F5E9' }]}>
-                    <Receipt size={20} color={Colors.moss} />
-                  </View>
-                  <View style={styles.modeHeaderTexts}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={styles.modeTitle}>Zero-Friction Daily Spends</Text>
-                      <View style={[styles.modeTagPill, { backgroundColor: '#F0FDF4' }]}>
-                        <Text style={[styles.modeTagText, { color: Colors.mossDark }]}>
-                          Quick Log
-                        </Text>
-                      </View>
+            {/* Visual Simulated Mockup Card */}
+            <View style={styles.previewCard}>
+              <View style={styles.previewTopRow}>
+                <Text style={styles.previewEyebrow}>TODAY'S EXPENSES</Text>
+                <Text style={styles.previewTotal}>₹340</Text>
+              </View>
+
+              <View style={styles.previewItemList}>
+                <View style={styles.previewItem}>
+                  <View style={styles.previewItemLeft}>
+                    <Text style={styles.previewEmoji}>🍔</Text>
+                    <View>
+                      <Text style={styles.previewItemName}>Lunch with team</Text>
+                      <Text style={styles.previewItemMeta}>Food · UPI · 1:20pm</Text>
                     </View>
-                    <Text style={styles.modeDesc}>
-                      Log expenses with 1-tap categories. "Day 1 — ₹20, Day 2 — ₹40", no complicated forms.
-                    </Text>
                   </View>
+                  <Text style={styles.previewItemAmt}>₹150</Text>
                 </View>
 
-                {/* Feature Chips */}
-                <View style={styles.chipRow}>
-                  <View style={styles.featureChip}>
-                    <Zap size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Instant Category</Text>
+                <View style={styles.previewItem}>
+                  <View style={styles.previewItemLeft}>
+                    <Text style={styles.previewEmoji}>🚕</Text>
+                    <View>
+                      <Text style={styles.previewItemName}>Auto to office</Text>
+                      <Text style={styles.previewItemMeta}>Travel · Cash · 9:05am</Text>
+                    </View>
                   </View>
-                  <View style={styles.featureChip}>
-                    <TrendingUp size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Daily Totals</Text>
-                  </View>
-                  <View style={styles.featureChip}>
-                    <CheckCircle2 size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Monthly Budget</Text>
-                  </View>
+                  <Text style={styles.previewItemAmt}>₹190</Text>
                 </View>
               </View>
 
-              {/* Feature 2: Running Friends Khata */}
-              <View style={styles.modeCard}>
-                <View style={styles.modeCardTop}>
-                  <View style={[styles.modeIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                    <Users size={20} color={Colors.amber} />
-                  </View>
-                  <View style={styles.modeHeaderTexts}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={styles.modeTitle}>Friends & Lending Khata</Text>
-                      <View style={[styles.modeTagPill, { backgroundColor: '#FFFBEB' }]}>
-                        <Text style={[styles.modeTagText, { color: '#B45309' }]}>
-                          Zero Math
-                        </Text>
-                      </View>
+              <View style={styles.categoryPillRow}>
+                <View style={[styles.catPill, styles.catPillActive]}>
+                  <Text style={[styles.catPillText, styles.catPillTextActive]}>🍔 Food</Text>
+                </View>
+                <View style={styles.catPill}>
+                  <Text style={styles.catPillText}>🚕 Travel</Text>
+                </View>
+                <View style={styles.catPill}>
+                  <Text style={styles.catPillText}>🛍️ Shopping</Text>
+                </View>
+                <View style={styles.catPill}>
+                  <Text style={styles.catPillText}>⚡ Bills</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* ================= SLIDE 2: FRIENDS KHATA & PROJECTS ================= */}
+        <View style={styles.page}>
+          <View style={styles.pageContent}>
+            {/* Ambient Hero Icon */}
+            <View style={styles.heroWrapper}>
+              <View style={[styles.haloRing, { backgroundColor: 'rgba(201, 138, 62, 0.15)' }]} />
+              <View style={[styles.heroIconBadge, { backgroundColor: Colors.amberLight }]}>
+                <Users size={36} color={Colors.amber} strokeWidth={2.2} />
+              </View>
+            </View>
+
+            {/* Punchy Text Copy */}
+            <View style={styles.textBlock}>
+              <Text style={styles.headline}>
+                {selectedLanguage === 'mr'
+                  ? 'कोणाकडून किती घ्यायचे, कधीही विसरू नका'
+                  : selectedLanguage === 'hi'
+                  ? 'कौन कितना देगा, कभी न भूलें'
+                  : 'Never forget who owes who.'}
+              </Text>
+              <Text style={styles.subheadline}>
+                {selectedLanguage === 'mr'
+                  ? 'मित्रांचे उधारी खाते आणि क्लायंट प्रोजेक्ट्सचे हिशोब एकाच ठिकाणी.'
+                  : selectedLanguage === 'hi'
+                  ? 'दोस्तों का उधारी खाता और क्लाइंट प्रोजेक्ट्स का हिसाब एक जगह।'
+                  : 'Keep a running khata for friends and freelance client milestone dues in one place.'}
+              </Text>
+            </View>
+
+            {/* Visual Simulated Mockup Card */}
+            <View style={styles.previewCard}>
+              <View style={styles.previewTopRow}>
+                <Text style={styles.previewEyebrow}>RUNNING BALANCES</Text>
+                <Text style={[styles.previewTotal, { color: Colors.moss }]}>+₹7,500</Text>
+              </View>
+
+              <View style={styles.previewItemList}>
+                <View style={styles.previewItem}>
+                  <View style={styles.previewItemLeft}>
+                    <View style={[styles.avatarCircle, { backgroundColor: Colors.mossLight }]}>
+                      <Text style={[styles.avatarText, { color: Colors.moss }]}>A</Text>
                     </View>
-                    <Text style={styles.modeDesc}>
-                      Keep a running ledger for every friend — Akssh owes ₹1,400, you owe Sahil ₹900 — settle anytime.
-                    </Text>
+                    <View>
+                      <Text style={styles.previewItemName}>Akssh</Text>
+                      <Text style={styles.previewItemMeta}>Lent for dinner · 3 Sep</Text>
+                    </View>
+                  </View>
+                  <View style={styles.balanceTag}>
+                    <Text style={styles.balanceOwedText}>+₹1,400</Text>
+                    <Text style={styles.balanceSubText}>Owes you</Text>
                   </View>
                 </View>
 
-                {/* Feature Chips */}
-                <View style={styles.chipRow}>
-                  <View style={styles.featureChip}>
-                    <Users size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Running Balance</Text>
+                <View style={styles.previewItem}>
+                  <View style={styles.previewItemLeft}>
+                    <View style={[styles.avatarCircle, { backgroundColor: Colors.brickLight }]}>
+                      <Text style={[styles.avatarText, { color: Colors.brick }]}>S</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.previewItemName}>Sahil</Text>
+                      <Text style={styles.previewItemMeta}>Concert ticket · 1 Sep</Text>
+                    </View>
                   </View>
-                  <View style={styles.featureChip}>
-                    <Sparkles size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>WhatsApp Reminder</Text>
+                  <View style={styles.balanceTag}>
+                    <Text style={styles.balanceOweText}>−₹900</Text>
+                    <Text style={styles.balanceSubText}>You owe</Text>
                   </View>
-                  <View style={styles.featureChip}>
-                    <CheckCircle2 size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Partial Settle</Text>
+                </View>
+
+                {/* Milestone Project Bar */}
+                <View style={styles.projectSnippet}>
+                  <View style={styles.projectSnippetHeader}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Briefcase size={13} color="#0D9488" />
+                      <Text style={styles.projectSnippetTitle}>Acme Mobile App</Text>
+                    </View>
+                    <Text style={styles.projectSnippetStatus}>60% Paid</Text>
+                  </View>
+                  <View style={styles.progressBarWrap}>
+                    <View style={[styles.progressBarFill, { width: '60%' }]} />
                   </View>
                 </View>
               </View>
@@ -200,194 +284,62 @@ export const OnboardingScreen: React.FC = () => {
           </View>
         </View>
 
-
-
-        {/* Screen 4: Informative Workflow Preview (Personal & Freelance) */}
+        {/* ================= SLIDE 3: SMART AUTO-CAPTURE & PRIVACY ================= */}
         <View style={styles.page}>
-          <View style={styles.pageInner}>
-            <View style={[styles.heroIcon, { backgroundColor: Colors.mossLight }]}>
-              <SlidersHorizontal size={40} color={Colors.moss} strokeWidth={2} />
-            </View>
-
-            <Text style={styles.title}>{t('onboardingModeTitle')}</Text>
-            <Text style={styles.desc}>{t('onboardingModeDesc')}</Text>
-
-            {/* Informational Feature Cards */}
-            <View style={styles.modeContainer}>
-              {/* Feature 1: Personal Expenses */}
-              <View style={styles.modeCard}>
-                <View style={styles.modeCardTop}>
-                  <View style={[styles.modeIconCircle, { backgroundColor: '#E8F5E9' }]}>
-                    <User size={20} color={Colors.moss} />
-                  </View>
-                  <View style={styles.modeHeaderTexts}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={styles.modeTitle}>{t('modePersonalTitle')}</Text>
-                      <View style={[styles.modeTagPill, { backgroundColor: '#F0FDF4' }]}>
-                        <Text style={[styles.modeTagText, { color: Colors.mossDark }]}>
-                          {t('modePersonalBadge')}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.modeDesc}>{t('modePersonalDesc')}</Text>
-                  </View>
-                </View>
-
-                {/* Feature Chips */}
-                <View style={styles.chipRow}>
-                  <View style={styles.featureChip}>
-                    <Zap size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Quick Log</Text>
-                  </View>
-                  <View style={styles.featureChip}>
-                    <PieChart size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Category Budgets</Text>
-                  </View>
-                  <View style={styles.featureChip}>
-                    <Users size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Friends Khata</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Feature 2: Freelance & Client Projects */}
-              <View style={styles.modeCard}>
-                <View style={styles.modeCardTop}>
-                  <View style={[styles.modeIconCircle, { backgroundColor: '#F0FDFA' }]}>
-                    <Briefcase size={20} color="#0D9488" />
-                  </View>
-                  <View style={styles.modeHeaderTexts}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={styles.modeTitle}>{t('modeBothTitle')}</Text>
-                      <View style={[styles.modeTagPill, { backgroundColor: '#ECFDF5' }]}>
-                        <Text style={[styles.modeTagText, { color: '#047857' }]}>
-                          {t('modeBothBadge')}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.modeDesc}>{t('modeBothDesc')}</Text>
-                  </View>
-                </View>
-
-                {/* Feature Chips */}
-                <View style={styles.chipRow}>
-                  <View style={styles.featureChip}>
-                    <Building2 size={11} color="#0D9488" strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Client CRM</Text>
-                  </View>
-                  <View style={styles.featureChip}>
-                    <CheckCircle2 size={11} color="#0D9488" strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Milestone Payments</Text>
-                  </View>
-                  <View style={styles.featureChip}>
-                    <TrendingUp size={11} color="#0D9488" strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Revenue Trends</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Informational Guidance Notice */}
-              <View style={styles.infoNoticeBox}>
-                <Sparkles size={14} color={Colors.mossDark} style={{ marginRight: 8 }} />
-                <Text style={styles.infoNoticeText}>{t('onboardingModeNote')}</Text>
+          <View style={styles.pageContent}>
+            {/* Ambient Hero Icon */}
+            <View style={styles.heroWrapper}>
+              <View style={[styles.haloRing, { backgroundColor: 'rgba(62, 107, 92, 0.18)' }]} />
+              <View style={[styles.heroIconBadge, { backgroundColor: Colors.mossLight }]}>
+                <Zap size={36} color={Colors.moss} strokeWidth={2.2} />
               </View>
             </View>
-          </View>
-        </View>
 
-        {/* Screen 3: Smart Auto-Capture & Privacy Showcase */}
-        <View style={styles.page}>
-          <View style={styles.pageInner}>
-            <View style={[styles.heroIcon, { backgroundColor: Colors.amberLight }]}>
-              <Zap size={40} color={Colors.amber} strokeWidth={2} />
+            {/* Punchy Text Copy */}
+            <View style={styles.textBlock}>
+              <Text style={styles.headline}>
+                {selectedLanguage === 'mr'
+                  ? 'ऑटो-कॅप्चर आणि १००% सुरक्षितता'
+                  : selectedLanguage === 'hi'
+                  ? 'ऑटो-कैप्चर और १००% प्राइवेसी'
+                  : 'Smart auto-capture with total privacy.'}
+              </Text>
+              <Text style={styles.subheadline}>
+                {selectedLanguage === 'mr'
+                  ? 'यूपीआय ट्रान्झॅक्शन आपोआप ओळखते. कोणताही मेसेज क्लाउडवर जात नाही.'
+                  : selectedLanguage === 'hi'
+                  ? 'UPI ट्रांसैक्शन अपने आप पहचानता है। कोई भी पर्सनल SMS क्लाउड पर नहीं जाता।'
+                  : 'Detects UPI payments on-device without manual typing. 100% offline privacy.'}
+              </Text>
             </View>
 
-            <Text style={styles.title}>{t('onboardingAutoCaptureTitle')}</Text>
-            <Text style={styles.desc}>{t('onboardingAutoCaptureDesc')}</Text>
-
-            {/* Informational Feature Cards */}
-            <View style={styles.modeContainer}>
-              {/* Feature 1: UPI & Bank Detection */}
-              <View style={styles.modeCard}>
-                <View style={styles.modeCardTop}>
-                  <View style={[styles.modeIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                    <Zap size={20} color={Colors.amber} />
+            {/* Visual Simulated Mockup Card */}
+            <View style={styles.previewCard}>
+              <View style={styles.nudgeSimulation}>
+                <View style={styles.nudgeTop}>
+                  <View style={styles.nudgeSource}>
+                    <Text style={styles.nudgeBolt}>⚡</Text>
+                    <Text style={styles.nudgeSourceText}>PHONEPE / HDFC BANK</Text>
                   </View>
-                  <View style={styles.modeHeaderTexts}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={styles.modeTitle}>Instant UPI Parsing</Text>
-                      <View style={[styles.modeTagPill, { backgroundColor: '#FFFBEB' }]}>
-                        <Text style={[styles.modeTagText, { color: '#B45309' }]}>
-                          Automated
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.modeDesc}>
-                      Recognizes payments from GPay, PhonePe, Paytm, and bank SMS automatically.
-                    </Text>
-                  </View>
+                  <Text style={styles.nudgeTime}>Just now</Text>
                 </View>
 
-                {/* Feature Chips */}
-                <View style={styles.chipRow}>
-                  <View style={styles.featureChip}>
-                    <Zap size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Real-Time</Text>
-                  </View>
-                  <View style={styles.featureChip}>
-                    <Sparkles size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Zero Typing</Text>
-                  </View>
-                  <View style={styles.featureChip}>
-                    <BellRing size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Smart Match</Text>
+                <Text style={styles.nudgeBody}>
+                  ₹240 paid to Starbucks India
+                </Text>
+
+                <View style={styles.nudgeActionRow}>
+                  <View style={styles.nudgeAssignedChip}>
+                    <CheckCircle2 size={12} color={Colors.moss} style={{ marginRight: 4 }} />
+                    <Text style={styles.nudgeAssignedText}>Auto-saved as Food & Dining</Text>
                   </View>
                 </View>
               </View>
 
-              {/* Feature 2: 100% On-Device Privacy */}
-              <View style={styles.modeCard}>
-                <View style={styles.modeCardTop}>
-                  <View style={[styles.modeIconCircle, { backgroundColor: '#E8F5E9' }]}>
-                    <ShieldCheck size={20} color={Colors.moss} />
-                  </View>
-                  <View style={styles.modeHeaderTexts}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={styles.modeTitle}>Private & On-Device</Text>
-                      <View style={[styles.modeTagPill, { backgroundColor: '#F0FDF4' }]}>
-                        <Text style={[styles.modeTagText, { color: Colors.mossDark }]}>
-                          100% Private
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.modeDesc}>
-                      Parsed locally on your smartphone. SMS texts and notifications are never uploaded.
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Feature Chips */}
-                <View style={styles.chipRow}>
-                  <View style={styles.featureChip}>
-                    <ShieldCheck size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Zero Cloud SMS</Text>
-                  </View>
-                  <View style={styles.featureChip}>
-                    <CheckCircle2 size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>Encrypted Local</Text>
-                  </View>
-                  <View style={styles.featureChip}>
-                    <SlidersHorizontal size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
-                    <Text style={styles.featureChipText}>User Gated</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Informational Guidance Notice */}
-              <View style={styles.infoNoticeBox}>
-                <Sparkles size={14} color={Colors.mossDark} style={{ marginRight: 8 }} />
-                <Text style={styles.infoNoticeText}>
-                  Kept disabled by default for privacy. You can enable notification auto-capture anytime in Settings.
+              <View style={styles.privacyBanner}>
+                <ShieldCheck size={16} color={Colors.moss} style={{ marginRight: 6 }} />
+                <Text style={styles.privacyBannerText}>
+                  100% On-Device · Zero Cloud SMS Uploads
                 </Text>
               </View>
             </View>
@@ -395,7 +347,7 @@ export const OnboardingScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Paging Dots (3 dots) */}
+      {/* Dynamic Animated Pagination Capsules */}
       <View style={styles.dotsContainer}>
         {Array.from({ length: totalPages }).map((_, i) => {
           const isActive = i === currentIndex;
@@ -405,6 +357,7 @@ export const OnboardingScreen: React.FC = () => {
               activeOpacity={0.7}
               onPress={() => goToPage(i)}
               style={[styles.dot, isActive && styles.activeDot]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             />
           );
         })}
@@ -412,14 +365,29 @@ export const OnboardingScreen: React.FC = () => {
 
       {/* Action Footer */}
       <View style={styles.footer}>
-        <AnimatedPressable scaleTo={0.96} onPress={handleNext} style={styles.primaryBtn}>
+        <AnimatedPressable
+          scaleTo={0.97}
+          onPress={handleNext}
+          style={styles.primaryBtn}
+        >
           <Text style={styles.primaryBtnText}>{getButtonText()}</Text>
-          <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.2} />
+          <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.4} />
         </AnimatedPressable>
 
-        <TouchableOpacity activeOpacity={0.7} onPress={handleSkip} style={styles.ghostBtn}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={handleSkip}
+          style={styles.ghostBtn}
+          hitSlop={{ top: 6, bottom: 6, left: 10, right: 10 }}
+        >
           <Text style={styles.ghostBtnText}>
-            {isLastStep ? 'Already have an account? Sign In' : t('skipBtn')}
+            {isLastStep
+              ? selectedLanguage === 'mr'
+                ? 'आधीपासून खाते आहे का? साइन इन करा'
+                : selectedLanguage === 'hi'
+                ? 'पहले से अकाउंट है? साइन इन करें'
+                : 'Already have an account? Sign In'
+              : ''}
           </Text>
         </TouchableOpacity>
       </View>
@@ -432,6 +400,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.mist,
   },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 4,
+    height: 44,
+  },
+  brandTag: {
+    backgroundColor: 'rgba(62, 107, 92, 0.12)',
+    paddingVertical: 3,
+    paddingHorizontal: 9,
+    borderRadius: 6,
+  },
+  brandTagText: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 9.5,
+    letterSpacing: 1.4,
+    color: Colors.mossDark,
+  },
+  skipBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  skipBtnText: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 11,
+    color: Colors.inkSoft,
+    letterSpacing: 0.5,
+  },
   horizontalScrollContent: {
     alignItems: 'center',
   },
@@ -439,205 +438,288 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 26,
+    paddingHorizontal: 24,
   },
-  pageInner: {
+  pageContent: {
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  heroIcon: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+  heroWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 18,
+    position: 'relative',
+    marginBottom: 16,
+  },
+  haloRing: {
+    position: 'absolute',
+    width: 96,
+    height: 96,
+    borderRadius: 34,
+  },
+  heroIconBadge: {
+    width: 74,
+    height: 74,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: Colors.ink,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
   },
-  title: {
-    fontFamily: Fonts.serifMedium,
-    fontSize: 22,
+  textBlock: {
+    alignItems: 'center',
+    textAlign: 'center',
+    paddingHorizontal: 6,
+    marginBottom: 20,
+    gap: 8,
+  },
+  headline: {
+    fontFamily: Fonts.serifSemiBold,
+    fontSize: 24,
     color: Colors.ink,
     textAlign: 'center',
-    marginBottom: 6,
-    lineHeight: 28,
+    lineHeight: 31,
+    letterSpacing: -0.01,
   },
-  desc: {
+  subheadline: {
     fontFamily: Fonts.sansRegular,
-    fontSize: 13,
+    fontSize: 13.5,
     color: Colors.inkSoft,
     textAlign: 'center',
-    lineHeight: 19,
-    marginBottom: 14,
-    paddingHorizontal: 6,
+    lineHeight: 20,
+    maxWidth: 320,
   },
-  modeContainer: {
+  previewCard: {
     width: '100%',
-    gap: 10,
-    marginTop: 2,
-    marginBottom: 4,
-  },
-  modeCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1.2,
+    backgroundColor: Colors.card,
+    borderRadius: 20,
+    borderWidth: 1.5,
     borderColor: Colors.line,
-    padding: 13,
+    padding: 16,
     shadowColor: Colors.ink,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  modeCardTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
     gap: 12,
   },
-  modeIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  modeHeaderTexts: {
-    flex: 1,
-  },
-  modeTitleRow: {
+  previewTopRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 3,
+    alignItems: 'baseline',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.line,
+    paddingBottom: 8,
   },
-  modeTitle: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 14.5,
-    color: Colors.ink,
-  },
-  modeTagPill: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  modeTagText: {
+  previewEyebrow: {
     fontFamily: Fonts.monoMedium,
     fontSize: 9.5,
-    letterSpacing: 0.2,
-  },
-  modeDesc: {
-    fontFamily: Fonts.sansRegular,
-    fontSize: 12,
     color: Colors.inkSoft,
-    lineHeight: 16.5,
+    letterSpacing: 1,
   },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+  previewTotal: {
+    fontFamily: Fonts.serifSemiBold,
+    fontSize: 20,
+    color: Colors.ink,
   },
-  featureChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: 10,
+  previewItemList: {
+    gap: 10,
   },
-  chipIcon: {
-    marginRight: 4,
-  },
-  featureChipText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 10.5,
-    color: Colors.inkSoft,
-  },
-  infoNoticeBox: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#DCFCE7',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginTop: 2,
-  },
-  infoNoticeText: {
-    flex: 1,
-    fontFamily: Fonts.sansRegular,
-    fontSize: 11.5,
-    color: Colors.mossDark,
-    lineHeight: 16,
-  },
-  autoCaptureCard: {
-    width: '100%',
+  previewItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    marginTop: 6,
-    marginBottom: 12,
   },
-  autoCaptureCardLeft: {
-    flex: 1,
-    gap: 3,
+  previewItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  autoCaptureCardTitle: {
+  previewEmoji: {
+    fontSize: 18,
+  },
+  previewItemName: {
     fontFamily: Fonts.sansSemiBold,
-    fontSize: 15,
+    fontSize: 12.5,
     color: Colors.ink,
   },
-  autoCaptureCardSub: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 11,
+  previewItemMeta: {
+    fontFamily: Fonts.monoRegular,
+    fontSize: 9.5,
+    color: Colors.inkSoft,
+    marginTop: 1,
   },
-  autoCaptureNoticeBox: {
-    width: '100%',
-    backgroundColor: Colors.mist,
-    borderRadius: 12,
-    padding: 12,
+  previewItemAmt: {
+    fontFamily: Fonts.serifSemiBold,
+    fontSize: 13.5,
+    color: Colors.ink,
+  },
+  categoryPillRow: {
+    flexDirection: 'row',
     gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: Colors.line,
+    paddingTop: 10,
+  },
+  catPill: {
+    backgroundColor: Colors.mist,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  catPillActive: {
+    backgroundColor: Colors.moss,
+    borderColor: Colors.moss,
+  },
+  catPillText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 10,
+    color: Colors.inkSoft,
+  },
+  catPillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  avatarCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontFamily: Fonts.serifSemiBold,
+    fontSize: 12,
+  },
+  balanceTag: {
+    alignItems: 'flex-end',
+  },
+  balanceOwedText: {
+    fontFamily: Fonts.serifSemiBold,
+    fontSize: 13.5,
+    color: Colors.moss,
+  },
+  balanceOweText: {
+    fontFamily: Fonts.serifSemiBold,
+    fontSize: 13.5,
+    color: Colors.brick,
+  },
+  balanceSubText: {
+    fontFamily: Fonts.monoRegular,
+    fontSize: 8.5,
+    color: Colors.inkSoft,
+  },
+  projectSnippet: {
+    backgroundColor: 'rgba(238, 241, 236, 0.7)',
+    borderRadius: 12,
+    padding: 10,
+    gap: 6,
+    marginTop: 2,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  projectSnippetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  autoCaptureNoticeText: {
-    fontFamily: Fonts.sansRegular,
-    fontSize: 12,
-    color: Colors.inkSoft,
-    textAlign: 'center',
+  projectSnippetTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 11.5,
+    color: Colors.ink,
   },
-  autoCapturePrivacyText: {
+  projectSnippetStatus: {
     fontFamily: Fonts.monoMedium,
-    fontSize: 10.5,
+    fontSize: 9,
+    color: '#0D9488',
+  },
+  progressBarWrap: {
+    height: 4,
+    borderRadius: 100,
+    backgroundColor: Colors.line,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#0D9488',
+    borderRadius: 100,
+  },
+  nudgeSimulation: {
+    backgroundColor: 'rgba(238, 241, 236, 0.8)',
+    borderRadius: 14,
+    padding: 12,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  nudgeTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  nudgeSource: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  nudgeBolt: {
+    fontSize: 10,
+  },
+  nudgeSourceText: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 8.5,
+    letterSpacing: 0.8,
+    color: Colors.inkSoft,
+  },
+  nudgeTime: {
+    fontFamily: Fonts.monoRegular,
+    fontSize: 8.5,
+    color: Colors.inkSoft,
+  },
+  nudgeBody: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 13,
+    color: Colors.ink,
+  },
+  nudgeActionRow: {
+    flexDirection: 'row',
+    marginTop: 2,
+  },
+  nudgeAssignedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.mossLight,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
+  nudgeAssignedText: {
+    fontFamily: Fonts.monoRegular,
+    fontSize: 9.5,
     color: Colors.mossDark,
-    textAlign: 'center',
+  },
+  privacyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  privacyBannerText: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 9.5,
+    color: Colors.moss,
+    letterSpacing: 0.3,
   },
   dotsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
   dot: {
     width: 8,
@@ -647,39 +729,44 @@ const styles = StyleSheet.create({
   },
   activeDot: {
     width: 24,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: Colors.moss,
   },
   footer: {
     paddingHorizontal: 24,
-    paddingBottom: 24,
-    gap: 12,
+    paddingBottom: 20,
+    gap: 8,
   },
   primaryBtn: {
     backgroundColor: Colors.moss,
     borderRadius: 14,
     paddingVertical: 15,
+    paddingHorizontal: 20,
     flexDirection: 'row',
-    gap: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     shadowColor: Colors.moss,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
     elevation: 4,
   },
   primaryBtnText: {
     fontFamily: Fonts.sansSemiBold,
-    fontSize: 15,
+    fontSize: 15.5,
     color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   ghostBtn: {
-    paddingVertical: 8,
+    height: 24,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   ghostBtnText: {
     fontFamily: Fonts.sansMedium,
-    fontSize: 14,
+    fontSize: 12.5,
     color: Colors.inkSoft,
   },
 });
