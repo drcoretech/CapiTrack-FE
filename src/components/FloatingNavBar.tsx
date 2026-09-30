@@ -28,6 +28,7 @@ export const FloatingNavBar: React.FC = () => {
   const ledgerSubTab = useAppStore((state) => state.ledgerSubTab);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const openModal = useAppStore((state) => state.openModal);
+  const activeModal = useAppStore((state) => state.activeModal);
 
   // Floating bar entrance
   const barEntrance = useRef(new Animated.Value(40)).current;
@@ -72,6 +73,8 @@ export const FloatingNavBar: React.FC = () => {
       }).start();
     }
   };
+
+  if (activeModal) return null;
 
   return (
     <>

@@ -24,14 +24,12 @@ import {
   Briefcase,
   Layers,
   LogOut,
-  Trash2,
 } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useAppStore } from '../../../store/useAppStore';
 import { useTranslation } from '../../../i18n/translations';
 import { notificationListener } from '../../../services/notificationListener';
-import { ConfirmDeleteModal } from '../../../components/ConfirmDeleteModal';
 
 export const ProfileDetailsModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -46,7 +44,6 @@ export const ProfileDetailsModal: React.FC = () => {
   const toggleBusinessTracking = useAppStore((state) => state.toggleBusinessTracking);
   const categories = useAppStore((state) => state.categories);
   const expenses = useAppStore((state) => state.expenses);
-  const clearAllExpenses = useAppStore((state) => state.clearAllExpenses);
   const contacts = useAppStore((state) => state.contacts);
   const logout = useAppStore((state) => state.logout);
 
@@ -54,7 +51,6 @@ export const ProfileDetailsModal: React.FC = () => {
   const [nameInput, setNameInput] = useState(userName);
   const [isSaving, setIsSaving] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showClearExpensesConfirm, setShowClearExpensesConfirm] = useState(false);
 
   const isVisible = activeModal === 'profile_details';
   const activeCategoriesCount = categories.filter((c) => c.enabled).length;
@@ -278,7 +274,7 @@ export const ProfileDetailsModal: React.FC = () => {
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => openModal('manage_categories')}
-                style={styles.settingItem}
+                style={[styles.settingItem, styles.lastSettingItem]}
               >
                 <View style={styles.settingLeft}>
                   <View style={styles.settingIconCircle}>
@@ -291,27 +287,6 @@ export const ProfileDetailsModal: React.FC = () => {
                 </View>
                 <View style={styles.settingRight}>
                   <Text style={styles.changeActionText}>Configure</Text>
-                  <ChevronRight size={16} color={Colors.inkSoft} />
-                </View>
-              </TouchableOpacity>
-
-              {/* Clear All Personal Expenses */}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => setShowClearExpensesConfirm(true)}
-                style={[styles.settingItem, styles.lastSettingItem]}
-              >
-                <View style={styles.settingLeft}>
-                  <View style={[styles.settingIconCircle, { backgroundColor: '#FEE2E2' }]}>
-                    <Trash2 size={18} color={Colors.brick} />
-                  </View>
-                  <View>
-                    <Text style={[styles.settingTitle, { color: Colors.brick }]}>Clear All Expenses</Text>
-                    <Text style={styles.settingSub}>{expenses.length} personal expense records</Text>
-                  </View>
-                </View>
-                <View style={styles.settingRight}>
-                  <Text style={[styles.changeActionText, { color: Colors.brick }]}>Reset</Text>
                   <ChevronRight size={16} color={Colors.inkSoft} />
                 </View>
               </TouchableOpacity>
@@ -365,21 +340,6 @@ export const ProfileDetailsModal: React.FC = () => {
             </View>
           </Modal>
         )}
-
-        {/* Clear All Expenses Confirmation Modal */}
-        <ConfirmDeleteModal
-          visible={showClearExpensesConfirm}
-          title="Clear All Expenses?"
-          message="Are you sure you want to permanently delete all personal expense entries? This action cannot be undone."
-          itemBadge={`${expenses.length} Records`}
-          confirmLabel="Delete All"
-          cancelLabel="Cancel"
-          onConfirm={async () => {
-            setShowClearExpensesConfirm(false);
-            await clearAllExpenses();
-          }}
-          onCancel={() => setShowClearExpensesConfirm(false)}
-        />
       </SafeAreaView>
     </Modal>
   );
