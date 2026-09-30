@@ -8,7 +8,7 @@ import { useTranslation } from '../../i18n/translations';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
 import { LedgerSkeleton } from './components/LedgerSkeleton';
 import { ClientProjectsView } from './components/ClientProjectsView';
-import { Settings, Pencil } from 'lucide-react-native';
+import { Settings, Pencil, Plus, Users, Briefcase, ArrowUpRight, ArrowDownLeft } from 'lucide-react-native';
 
 export const LedgerListScreen: React.FC = () => {
   const contacts = useAppStore((state) => state.contacts);
@@ -67,181 +67,224 @@ export const LedgerListScreen: React.FC = () => {
               transform: [{ translateY: slideAnim }],
             }}
           >
-          {/* Header with Settings Badge */}
-          <View style={styles.header}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.eyebrow}>
-                {ledgerSubTab === 'projects' ? 'BUSINESS & FREELANCE' : t('udhaarKhata')}
-              </Text>
-              <Text style={styles.title}>
-                {ledgerSubTab === 'projects' ? 'Client Projects & Dues' : t('ledgerTitle')}
-              </Text>
-            </View>
-            <AnimatedPressable
-              scaleTo={0.9}
-              onPress={() => openModal('profile_details')}
-              style={styles.settingsBadge}
-            >
-              <Settings size={20} color={Colors.ink} />
-            </AnimatedPressable>
-          </View>
-
-          {/* Segmented Sub-Tab Switcher (Personal Udhar vs Client Projects) */}
-          {showBusinessTab && (
-            <View style={styles.segmentContainer}>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => setLedgerSubTab('personal')}
-                style={[
-                  styles.segmentBtn,
-                  ledgerSubTab === 'personal' && styles.segmentBtnActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.segmentText,
-                    ledgerSubTab === 'personal' && styles.segmentTextActive,
-                  ]}
-                >
-                  Personal Expenses ({contacts.length})
+            {/* Header with Quick Action & Settings Badge */}
+            <View style={styles.header}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.eyebrow}>
+                  {ledgerSubTab === 'projects' ? 'BUSINESS & FREELANCE' : t('udhaarKhata')}
                 </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => setLedgerSubTab('projects')}
-                style={[
-                  styles.segmentBtn,
-                  ledgerSubTab === 'projects' && styles.segmentBtnActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.segmentText,
-                    ledgerSubTab === 'projects' && styles.segmentTextActive,
-                  ]}
-                >
-                  Client Projects ({clientProjects.length})
+                <Text style={styles.title}>
+                  {ledgerSubTab === 'projects' ? 'Client Projects & Dues' : t('ledgerTitle')}
                 </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Conditional Content Based on Sub-Tab */}
-          {ledgerSubTab === 'projects' && showBusinessTab ? (
-            <ClientProjectsView
-              projects={clientProjects}
-              onOpenProject={(id) => openModal('project_detail', id)}
-              onAddPayment={(id) => openModal('project_detail', id)}
-              onNewProject={() => openModal('add_project')}
-            />
-          ) : (
-            <>
-              {/* Summary Row */}
-              <View style={styles.summaryRow}>
-                <View style={styles.summaryCard}>
-                  <Text style={[styles.summaryNum, { color: Colors.moss }]}>
-                    ₹{receiveTotal.toLocaleString()}
-                  </Text>
-                  <Text style={styles.summaryLbl}>{t('youWillReceive')}</Text>
-                </View>
-                <View style={styles.summaryCard}>
-                  <Text style={[styles.summaryNum, { color: Colors.brick }]}>
-                    ₹{oweTotal.toLocaleString()}
-                  </Text>
-                  <Text style={styles.summaryLbl}>{t('youOweKhata')}</Text>
-                </View>
               </View>
+              <View style={styles.headerActions}>
+                <AnimatedPressable
+                  scaleTo={0.92}
+                  onPress={() => openModal(ledgerSubTab === 'projects' ? 'add_project' : 'add_ledger')}
+                  style={styles.addBtn}
+                >
+                  <Plus size={16} color="#FFFFFF" strokeWidth={2.4} />
+                  <Text style={styles.addBtnText}>
+                    {ledgerSubTab === 'projects' ? 'New Project' : 'Add Entry'}
+                  </Text>
+                </AnimatedPressable>
+                <AnimatedPressable
+                  scaleTo={0.9}
+                  onPress={() => openModal('profile_details')}
+                  style={styles.settingsBadge}
+                >
+                  <Settings size={18} color={Colors.ink} />
+                </AnimatedPressable>
+              </View>
+            </View>
 
-              {/* Person Items */}
-              <View style={styles.list}>
-                {contacts.length === 0 ? (
-                  <View style={styles.emptyCard}>
-                    <Text style={styles.emptyTitle}>No Personal Expense Records</Text>
-                    <Text style={styles.emptySub}>
-                      Tap the "+" button below to track money you lent or borrowed from friends.
+            {/* Segmented Sub-Tab Switcher (Friends Khata vs Client Projects) */}
+            {showBusinessTab && (
+              <View style={styles.segmentContainer}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setLedgerSubTab('personal')}
+                  style={[
+                    styles.segmentBtn,
+                    ledgerSubTab === 'personal' && styles.segmentBtnActive,
+                  ]}
+                >
+                  <Users
+                    size={14}
+                    color={ledgerSubTab === 'personal' ? '#FFFFFF' : Colors.inkSoft}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      ledgerSubTab === 'personal' && styles.segmentTextActive,
+                    ]}
+                  >
+                    Friends Khata ({contacts.length})
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setLedgerSubTab('projects')}
+                  style={[
+                    styles.segmentBtn,
+                    ledgerSubTab === 'projects' && styles.segmentBtnActive,
+                  ]}
+                >
+                  <Briefcase
+                    size={14}
+                    color={ledgerSubTab === 'projects' ? '#FFFFFF' : Colors.inkSoft}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      ledgerSubTab === 'projects' && styles.segmentTextActive,
+                    ]}
+                  >
+                    Client Projects ({clientProjects.length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Conditional Content Based on Sub-Tab */}
+            {ledgerSubTab === 'projects' && showBusinessTab ? (
+              <ClientProjectsView
+                projects={clientProjects}
+                onOpenProject={(id) => openModal('project_detail', id)}
+                onAddPayment={(id) => openModal('project_detail', id)}
+                onNewProject={() => openModal('add_project')}
+              />
+            ) : (
+              <>
+                {/* Summary Row */}
+                <View style={styles.summaryRow}>
+                  <View style={styles.summaryCard}>
+                    <View style={styles.summaryCardHeader}>
+                      <View style={[styles.arrowBadge, { backgroundColor: Colors.mossLight }]}>
+                        <ArrowDownLeft size={13} color={Colors.moss} strokeWidth={2.6} />
+                      </View>
+                      <Text style={styles.summaryLbl}>{t('youWillReceive')}</Text>
+                    </View>
+                    <Text style={[styles.summaryNum, { color: Colors.moss }]}>
+                      ₹{receiveTotal.toLocaleString()}
                     </Text>
                   </View>
-                ) : (
-                  contacts.map((person) => {
-                    const isOwed = person.netBalance > 0;
-                    const isSettled = person.netBalance === 0;
-                    const dateStr = person.lastDate === 'Today' ? t('dayToday') : person.lastDate;
+                  <View style={styles.summaryCard}>
+                    <View style={styles.summaryCardHeader}>
+                      <View style={[styles.arrowBadge, { backgroundColor: '#FEE2E2' }]}>
+                        <ArrowUpRight size={13} color={Colors.brick} strokeWidth={2.6} />
+                      </View>
+                      <Text style={styles.summaryLbl}>{t('youOweKhata')}</Text>
+                    </View>
+                    <Text style={[styles.summaryNum, { color: Colors.brick }]}>
+                      ₹{oweTotal.toLocaleString()}
+                    </Text>
+                  </View>
+                </View>
 
-                    return (
-                      <AnimatedPressable
-                        key={person.id}
-                        scaleTo={0.96}
-                        onPress={() => openModal('person_detail', person.id)}
-                        style={styles.personItem}
+                {/* Person Items */}
+                <View style={styles.list}>
+                  {contacts.length === 0 ? (
+                    <View style={styles.emptyCard}>
+                      <View style={styles.emptyIconCircle}>
+                        <Users size={28} color={Colors.moss} strokeWidth={1.8} />
+                      </View>
+                      <Text style={styles.emptyTitle}>No Khata Records</Text>
+                      <Text style={styles.emptySub}>
+                        Track money you lent to friends or borrowed without awkwardness.
+                      </Text>
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => openModal('add_ledger')}
+                        style={styles.emptyAddBtn}
                       >
-                        <View style={styles.personLeft}>
-                          <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>{person.initial}</Text>
-                          </View>
-                          <View style={styles.personDetails}>
-                            <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
-                              {person.name}
-                            </Text>
-                            <Text style={styles.meta} numberOfLines={1} ellipsizeMode="tail">
-                              {t('lastPrefix')} {dateStr}
-                            </Text>
-                          </View>
-                        </View>
+                        <Plus size={14} color="#FFFFFF" strokeWidth={2.5} />
+                        <Text style={styles.emptyAddBtnText}>Add First Record</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    contacts.map((person) => {
+                      const isOwed = person.netBalance > 0;
+                      const isSettled = person.netBalance === 0;
+                      const dateStr = person.lastDate === 'Today' ? t('dayToday') : person.lastDate;
 
-                        <View style={styles.personRight}>
-                          <Text
-                            style={[
-                              styles.amount,
-                              isOwed ? styles.amountOwed : styles.amountOwe,
-                              isSettled && styles.amountSettled,
-                            ]}
-                          >
-                            {isOwed
-                              ? `+₹${person.netBalance.toLocaleString()}`
-                              : isSettled
-                              ? '₹0'
-                              : `-₹${Math.abs(person.netBalance).toLocaleString()}`}
-                          </Text>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                            <View
-                              style={[
-                                styles.pill,
-                                person.status === 'settled' ? styles.pillSettled : styles.pillPending,
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  styles.pillText,
-                                  person.status === 'settled'
-                                    ? styles.pillTextSettled
-                                    : styles.pillTextPending,
-                                ]}
-                              >
-                                {person.status === 'settled' ? t('statusSettled') : t('statusPending')}
+                      return (
+                        <AnimatedPressable
+                          key={person.id}
+                          scaleTo={0.96}
+                          onPress={() => openModal('person_detail', person.id)}
+                          style={styles.personItem}
+                        >
+                          <View style={styles.personLeft}>
+                            <View style={styles.avatar}>
+                              <Text style={styles.avatarText}>{person.initial}</Text>
+                            </View>
+                            <View style={styles.personDetails}>
+                              <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+                                {person.name}
+                              </Text>
+                              <Text style={styles.meta} numberOfLines={1} ellipsizeMode="tail">
+                                {t('lastPrefix')} {dateStr}
                               </Text>
                             </View>
-                            {person.transactions.length > 0 && (
-                              <TouchableOpacity
-                                activeOpacity={0.7}
-                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                onPress={() => {
-                                  setEditingLedgerTxn({ personId: person.id, txn: person.transactions[0] });
-                                }}
-                                style={styles.editPill}
-                              >
-                                <Pencil size={11} color={Colors.inkSoft} />
-                              </TouchableOpacity>
-                            )}
                           </View>
-                        </View>
-                      </AnimatedPressable>
-                    );
-                  })
-                )}
-              </View>
-            </>
-          )}
+
+                          <View style={styles.personRight}>
+                            <Text
+                              style={[
+                                styles.amount,
+                                isOwed ? styles.amountOwed : styles.amountOwe,
+                                isSettled && styles.amountSettled,
+                              ]}
+                            >
+                              {isOwed
+                                ? `+₹${person.netBalance.toLocaleString()}`
+                                : isSettled
+                                ? '₹0'
+                                : `-₹${Math.abs(person.netBalance).toLocaleString()}`}
+                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                              <View
+                                style={[
+                                  styles.pill,
+                                  person.status === 'settled' ? styles.pillSettled : styles.pillPending,
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.pillText,
+                                    person.status === 'settled'
+                                      ? styles.pillTextSettled
+                                      : styles.pillTextPending,
+                                  ]}
+                                >
+                                  {person.status === 'settled' ? t('statusSettled') : t('statusPending')}
+                                </Text>
+                              </View>
+                              {person.transactions.length > 0 && (
+                                <TouchableOpacity
+                                  activeOpacity={0.7}
+                                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                  onPress={() => {
+                                    setEditingLedgerTxn({ personId: person.id, txn: person.transactions[0] });
+                                  }}
+                                  style={styles.editPill}
+                                >
+                                  <Pencil size={11} color={Colors.inkSoft} />
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          </View>
+                        </AnimatedPressable>
+                      );
+                    })
+                  )}
+                </View>
+              </>
+            )}
           </Animated.View>
         )}
       </ScrollView>
@@ -263,24 +306,43 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4,
+    alignItems: 'center',
+    marginBottom: 2,
     paddingTop: 4,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.moss,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+    shadowColor: Colors.moss,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  addBtnText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 12,
+    color: '#FFFFFF',
+  },
   settingsBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: Colors.card,
     borderWidth: 1,
     borderColor: Colors.line,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: Colors.ink,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
   },
   eyebrow: {
     fontFamily: Fonts.monoMedium,
@@ -295,6 +357,39 @@ const styles = StyleSheet.create({
     color: Colors.ink,
     marginTop: 2,
   },
+  segmentContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+  },
+  segmentBtnActive: {
+    backgroundColor: Colors.moss,
+    shadowColor: Colors.moss,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  segmentText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    color: Colors.inkSoft,
+  },
+  segmentTextActive: {
+    fontFamily: Fonts.sansSemiBold,
+    color: '#FFFFFF',
+  },
   summaryRow: {
     flexDirection: 'row',
     gap: 12,
@@ -305,19 +400,36 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.line,
     borderRadius: 16,
-    paddingVertical: 14,
+    padding: 14,
+    gap: 8,
+    shadowColor: Colors.ink,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  summaryCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  arrowBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
   summaryNum: {
-    fontFamily: Fonts.serifMedium,
+    fontFamily: Fonts.serifSemiBold,
     fontSize: 22,
   },
   summaryLbl: {
-    fontFamily: Fonts.sansRegular,
-    fontSize: 11,
+    fontFamily: Fonts.monoMedium,
+    fontSize: 10,
     color: Colors.inkSoft,
-    marginTop: 3,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   list: {
     gap: 9,
@@ -332,6 +444,11 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     paddingVertical: 13,
     paddingHorizontal: 14,
+    shadowColor: Colors.ink,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 3,
+    elevation: 1,
   },
   personLeft: {
     flex: 1,
@@ -344,9 +461,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     backgroundColor: Colors.mossLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -375,7 +492,7 @@ const styles = StyleSheet.create({
   },
   amount: {
     fontFamily: Fonts.serifMedium,
-    fontSize: 15,
+    fontSize: 15.5,
   },
   amountOwed: {
     color: Colors.moss,
@@ -417,48 +534,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  segmentContainer: {
-    flexDirection: 'row',
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: Colors.line,
-  },
-  segmentBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-  },
-  segmentBtnActive: {
-    backgroundColor: Colors.mist,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  segmentText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 12.5,
-    color: Colors.inkSoft,
-  },
-  segmentTextActive: {
-    fontFamily: Fonts.sansSemiBold,
-    color: Colors.ink,
-  },
   emptyCard: {
     backgroundColor: Colors.card,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
     borderColor: Colors.line,
-    padding: 24,
+    padding: 30,
     alignItems: 'center',
     gap: 8,
+  },
+  emptyIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: Colors.mossLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   emptyTitle: {
     fontFamily: Fonts.serifMedium,
@@ -471,6 +564,21 @@ const styles = StyleSheet.create({
     color: Colors.inkSoft,
     textAlign: 'center',
     lineHeight: 18,
+    maxWidth: 240,
+  },
+  emptyAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.moss,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+    marginTop: 8,
+  },
+  emptyAddBtnText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 12,
+    color: '#FFFFFF',
   },
 });
-
