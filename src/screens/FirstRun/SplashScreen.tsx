@@ -7,32 +7,52 @@ import {
   Animated,
   Easing,
   Image,
+  Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 export const SplashScreen: React.FC = () => {
   const setFirstRunStep = useAppStore((state) => state.setFirstRunStep);
   const hasCompletedOnboarding = useAppStore((state) => state.hasCompletedOnboarding);
   const isCompletedRef = useRef(hasCompletedOnboarding);
+  const hasTransitionedRef = useRef(false);
 
-  // Animators
-  const logoScale = useRef(new Animated.Value(0.3)).current;
+  // Entrance & Exit Animators
+  const containerFade = useRef(new Animated.Value(1)).current;
+  const logoScale = useRef(new Animated.Value(0.2)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
+  const glowScale = useRef(new Animated.Value(0.5)).current;
+  const glowOpacity = useRef(new Animated.Value(0)).current;
   const pulseScale = useRef(new Animated.Value(1)).current;
   const textFade = useRef(new Animated.Value(0)).current;
-  const textSlide = useRef(new Animated.Value(15)).current;
-  const promptPulse = useRef(new Animated.Value(0.3)).current;
+  const textSlide = useRef(new Animated.Value(20)).current;
+  const badgeFade = useRef(new Animated.Value(0)).current;
+  const badgeSlide = useRef(new Animated.Value(15)).current;
+  const promptPulse = useRef(new Animated.Value(0.2)).current;
 
   const handleProceed = () => {
-    const isAuth = useAppStore.getState().isAuthenticated;
-    if (isAuth) {
-      setFirstRunStep('main');
-    } else {
-      setFirstRunStep('onboarding');
-    }
+    if (hasTransitionedRef.current) return;
+    hasTransitionedRef.current = true;
+
+    // Smooth exit dissolve before swapping screens
+    Animated.timing(containerFade, {
+      toValue: 0,
+      duration: 320,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start(() => {
+      const isAuth = useAppStore.getState().isAuthenticated;
+      if (isAuth) {
+        setFirstRunStep('main');
+      } else {
+        setFirstRunStep('onboarding');
+      }
+    });
   };
 
   useEffect(() => {
@@ -48,17 +68,29 @@ export const SplashScreen: React.FC = () => {
       })
       .catch(() => {});
 
-    // 1. Elastic Logo Pop
+    // 1. Stage 1: Ambient Glow Expansion & Elastic Logo Spring
     Animated.parallel([
       Animated.spring(logoScale, {
         toValue: 1,
-        friction: 4.5,
-        tension: 90,
+        friction: 6,
+        tension: 110,
         useNativeDriver: true,
       }),
       Animated.timing(logoOpacity, {
         toValue: 1,
         duration: 350,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(glowScale, {
+        toValue: 1,
+        friction: 7,
+        tension: 60,
+        useNativeDriver: true,
+      }),
+      Animated.timing(glowOpacity, {
+        toValue: 0.85,
+        duration: 500,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -66,14 +98,14 @@ export const SplashScreen: React.FC = () => {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseScale, {
-            toValue: 1.08,
-            duration: 1200,
+            toValue: 1.04,
+            duration: 1400,
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
           Animated.timing(pulseScale, {
             toValue: 1,
-            duration: 1200,
+            duration: 1400,
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
@@ -81,156 +113,282 @@ export const SplashScreen: React.FC = () => {
       ).start();
     });
 
-    // 3. Staggered Wordmark & Tag reveal
-    setTimeout(() => {
+    // 3. Stage 2: Staggered Wordmark & Tagline reveal
+    const textTimer = setTimeout(() => {
       Animated.parallel([
         Animated.timing(textFade, {
           toValue: 1,
           duration: 400,
+          easing: Easing.out(Easing.quad),
           useNativeDriver: true,
         }),
         Animated.spring(textSlide, {
           toValue: 0,
-          friction: 6,
+          friction: 7,
           tension: 80,
           useNativeDriver: true,
         }),
       ]).start();
-    }, 250);
+    }, 200);
 
-    // 4. Pulsing bottom prompt
+    // 4. Stage 3: Privacy & Security Trust Pill reveal
+    const badgeTimer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(badgeFade, {
+          toValue: 1,
+          duration: 450,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.spring(badgeSlide, {
+          toValue: 0,
+          friction: 7,
+          tension: 70,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, 450);
+
+    // 5. Pulsing bottom skip prompt
     Animated.loop(
       Animated.sequence([
         Animated.timing(promptPulse, {
-          toValue: 1,
+          toValue: 0.9,
           duration: 900,
+          easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(promptPulse, {
-          toValue: 0.35,
+          toValue: 0.25,
           duration: 900,
+          easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
       ])
     ).start();
 
-    // 5. Automatic transition:
-    // Returning users get a sleek 1.4s brand introduction directly into dashboard.
-    // Brand new users get 2.8s before moving to language setup.
-    const transitionDelay = isCompletedRef.current ? 1400 : 2800;
-    const timer = setTimeout(() => {
+    // 6. Automatic transition:
+    // Returning users get a sleek 1.3s introduction directly into dashboard.
+    // Brand new users get 2.4s before moving to onboarding.
+    const transitionDelay = isCompletedRef.current ? 1300 : 2400;
+    const exitTimer = setTimeout(() => {
       handleProceed();
     }, transitionDelay);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(textTimer);
+      clearTimeout(badgeTimer);
+      clearTimeout(exitTimer);
+    };
   }, []);
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.95}
-      onPress={handleProceed}
-      style={styles.container}
-    >
-      <View style={styles.content}>
-        {/* Animated Mark / Logo */}
+    <Animated.View style={[styles.outerContainer, { opacity: containerFade }]}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={handleProceed}
+        style={styles.touchArea}
+      >
+        {/* Soft Ambient Background Aura */}
         <Animated.View
           style={[
-            styles.markWrapper,
+            styles.ambientAura,
             {
-              opacity: logoOpacity,
-              transform: [
-                { scale: Animated.multiply(logoScale, pulseScale) },
-              ],
+              opacity: glowOpacity,
+              transform: [{ scale: glowScale }],
             },
           ]}
-        >
-          {/* Subtle glowing ring behind */}
-          <View style={styles.glowRing} />
-          <Image
-            source={require('../../../assets/icon.png')}
-            style={styles.markImage}
-            resizeMode="cover"
-          />
-        </Animated.View>
+        />
 
-        {/* Animated Wordmark & Tag */}
-        <Animated.View
-          style={[
-            styles.textContainer,
-            {
-              opacity: textFade,
-              transform: [{ translateY: textSlide }],
-            },
-          ]}
-        >
-          <Text style={styles.wordmark}>CapiTrack</Text>
-          <Text style={styles.tag}>TRACK. LEND. KNOW.</Text>
-        </Animated.View>
-      </View>
+        <View style={styles.content}>
+          {/* Animated Logo Mark with Dynamic Layered Glass Rings */}
+          <Animated.View
+            style={[
+              styles.markWrapper,
+              {
+                opacity: logoOpacity,
+                transform: [
+                  { scale: Animated.multiply(logoScale, pulseScale) },
+                ],
+              },
+            ]}
+          >
+            {/* Outer Soft Halo */}
+            <View style={styles.outerHalo} />
+            {/* Inner Emerald Glass Ring */}
+            <View style={styles.innerGlassRing} />
+            <Image
+              source={require('../../../assets/icon.png')}
+              style={styles.markImage}
+              resizeMode="cover"
+            />
+          </Animated.View>
 
-      {/* Pulsing prompt */}
-      <Animated.Text style={[styles.tapPrompt, { opacity: promptPulse }]}>
-        Tap anywhere to continue ›
-      </Animated.Text>
-    </TouchableOpacity>
+          {/* Animated Wordmark & Tagline */}
+          <Animated.View
+            style={[
+              styles.textContainer,
+              {
+                opacity: textFade,
+                transform: [{ translateY: textSlide }],
+              },
+            ]}
+          >
+            <Text style={styles.wordmark}>CapiTrack</Text>
+            <View style={styles.taglineWrapper}>
+              <View style={styles.taglineLine} />
+              <Text style={styles.tag}>FINANCIAL CLARITY, EFFORTLESSLY</Text>
+              <View style={styles.taglineLine} />
+            </View>
+          </Animated.View>
+
+          {/* Privacy & Security Trust Badge */}
+          <Animated.View
+            style={[
+              styles.trustBadge,
+              {
+                opacity: badgeFade,
+                transform: [{ translateY: badgeSlide }],
+              },
+            ]}
+          >
+            <Text style={styles.trustBadgeIcon}>🔒</Text>
+            <Text style={styles.trustBadgeText}>100% On-Device · Zero Cloud Snooping</Text>
+          </Animated.View>
+        </View>
+
+        {/* Pulsing Skip Prompt */}
+        <Animated.View style={[styles.promptContainer, { opacity: promptPulse }]}>
+          <Text style={styles.tapPrompt}>Tap anywhere to continue</Text>
+          <Text style={styles.promptChevron}>›</Text>
+        </Animated.View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  outerContainer: {
     flex: 1,
-    backgroundColor: Colors.ink,
+    backgroundColor: '#0E1411', // Deep Obsidian Emerald
+  },
+  touchArea: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  ambientAura: {
+    position: 'absolute',
+    width: SCREEN_WIDTH * 0.95,
+    height: SCREEN_WIDTH * 0.95,
+    borderRadius: (SCREEN_WIDTH * 0.95) / 2,
+    backgroundColor: 'rgba(62, 107, 92, 0.22)',
+    top: SCREEN_HEIGHT * 0.22,
   },
   content: {
     alignItems: 'center',
-    gap: 16,
+    gap: 20,
+    zIndex: 2,
   },
   markWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    marginBottom: 4,
   },
-  glowRing: {
+  outerHalo: {
     position: 'absolute',
-    width: 86,
-    height: 86,
-    borderRadius: 28,
-    backgroundColor: 'rgba(62, 107, 92, 0.35)',
+    width: 120,
+    height: 120,
+    borderRadius: 38,
+    backgroundColor: 'rgba(62, 107, 92, 0.20)',
+  },
+  innerGlassRing: {
+    position: 'absolute',
+    width: 98,
+    height: 98,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
   },
   markImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
+    width: 84,
+    height: 84,
+    borderRadius: 26,
     shadowColor: Colors.moss,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.55,
+    shadowRadius: 20,
+    elevation: 12,
   },
   textContainer: {
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   wordmark: {
-    fontFamily: Fonts.serifMedium,
+    fontFamily: Fonts.serifSemiBold,
     color: '#FFFFFF',
-    fontSize: 30,
-    letterSpacing: 0.6,
+    fontSize: 34,
+    letterSpacing: -0.02,
+  },
+  taglineWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
+  taglineLine: {
+    width: 16,
+    height: 1,
+    backgroundColor: 'rgba(143, 168, 156, 0.35)',
   },
   tag: {
     fontFamily: Fonts.monoMedium,
-    color: '#8AA69B',
+    color: '#8FA89C',
+    fontSize: 10,
+    letterSpacing: 2.2,
+  },
+  trustBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 100,
+    marginTop: 8,
+  },
+  trustBadgeIcon: {
     fontSize: 11,
-    letterSpacing: 1.8,
+  },
+  trustBadgeText: {
+    fontFamily: Fonts.monoRegular,
+    color: '#B6CBC2',
+    fontSize: 10.5,
+    letterSpacing: 0.4,
+  },
+  promptContainer: {
+    position: 'absolute',
+    bottom: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
   tapPrompt: {
-    position: 'absolute',
-    bottom: 50,
-    fontFamily: Fonts.monoRegular,
-    color: '#A0B4AB',
-    fontSize: 12.5,
-    letterSpacing: 0.5,
+    fontFamily: Fonts.sansRegular,
+    color: '#7D958A',
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
+  promptChevron: {
+    fontFamily: Fonts.monoMedium,
+    color: '#7D958A',
+    fontSize: 14,
   },
 });
