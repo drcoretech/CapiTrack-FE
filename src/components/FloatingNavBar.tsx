@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Home, Receipt, Users, BarChart2, Plus, Split } from 'lucide-react-native';
+import { Home, Receipt, Users, BarChart2, Plus } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { useAppStore } from '../store/useAppStore';
 import { TabScreen } from '../types';
@@ -16,7 +16,6 @@ interface NavItemConfig {
 const NAV_ITEMS: NavItemConfig[] = [
   { key: 'home', label: 'Home', icon: Home },
   { key: 'expenses', label: 'Expenses', icon: Receipt },
-  { key: 'split', label: 'Split', icon: Split },
   { key: 'ledger', label: 'Ledger', icon: Users },
   { key: 'insights', label: 'Insights', icon: BarChart2 },
 ];
@@ -36,7 +35,6 @@ export const FloatingNavBar: React.FC = () => {
   const tabScales = useRef<{ [key: string]: Animated.Value }>({
     home: new Animated.Value(1),
     expenses: new Animated.Value(1),
-    split: new Animated.Value(1),
     ledger: new Animated.Value(1),
     insights: new Animated.Value(1),
   }).current;
@@ -79,9 +77,7 @@ export const FloatingNavBar: React.FC = () => {
         <AnimatedPressable
           scaleTo={0.9}
           onPress={() => {
-            if (activeTab === 'split') {
-              openModal('add_split');
-            } else if (activeTab === 'ledger') {
+            if (activeTab === 'ledger') {
               if (ledgerSubTab === 'projects') {
                 openModal('add_project');
               } else {
