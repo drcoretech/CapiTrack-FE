@@ -138,6 +138,16 @@ export default function App() {
     );
   }
 
+  // 1b. Language Select Gate: First-time language selection before onboarding
+  if (!isAuthenticated && firstRunStep === 'language') {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <LanguageSelectScreen />
+      </SafeAreaProvider>
+    );
+  }
+
   // 2. Onboarding Gate: If unauthenticated and on onboarding step
   if (!isAuthenticated && firstRunStep === 'onboarding') {
     return (

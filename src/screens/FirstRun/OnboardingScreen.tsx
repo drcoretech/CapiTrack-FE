@@ -28,6 +28,8 @@ import {
   QrCode,
   Gift,
   Share2,
+  Receipt,
+  ArrowRight,
 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
@@ -116,6 +118,85 @@ export const OnboardingScreen: React.FC = () => {
 
             <Text style={styles.title}>{t('onboardingCombinedTitle')}</Text>
             <Text style={styles.desc}>{t('onboardingCombinedDesc')}</Text>
+
+            {/* Informational Feature Cards */}
+            <View style={styles.modeContainer}>
+              {/* Feature 1: Daily Expense Tracker */}
+              <View style={styles.modeCard}>
+                <View style={styles.modeCardTop}>
+                  <View style={[styles.modeIconCircle, { backgroundColor: '#E8F5E9' }]}>
+                    <Receipt size={20} color={Colors.moss} />
+                  </View>
+                  <View style={styles.modeHeaderTexts}>
+                    <View style={styles.modeTitleRow}>
+                      <Text style={styles.modeTitle}>Zero-Friction Daily Spends</Text>
+                      <View style={[styles.modeTagPill, { backgroundColor: '#F0FDF4' }]}>
+                        <Text style={[styles.modeTagText, { color: Colors.mossDark }]}>
+                          Quick Log
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.modeDesc}>
+                      Log expenses with 1-tap categories. "Day 1 — ₹20, Day 2 — ₹40", no complicated forms.
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Feature Chips */}
+                <View style={styles.chipRow}>
+                  <View style={styles.featureChip}>
+                    <Zap size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Instant Category</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <TrendingUp size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Daily Totals</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <CheckCircle2 size={11} color={Colors.moss} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Monthly Budget</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Feature 2: Running Friends Khata */}
+              <View style={styles.modeCard}>
+                <View style={styles.modeCardTop}>
+                  <View style={[styles.modeIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                    <Users size={20} color={Colors.amber} />
+                  </View>
+                  <View style={styles.modeHeaderTexts}>
+                    <View style={styles.modeTitleRow}>
+                      <Text style={styles.modeTitle}>Friends & Lending Khata</Text>
+                      <View style={[styles.modeTagPill, { backgroundColor: '#FFFBEB' }]}>
+                        <Text style={[styles.modeTagText, { color: '#B45309' }]}>
+                          Zero Math
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.modeDesc}>
+                      Keep a running ledger for every friend — Akssh owes ₹1,400, you owe Sahil ₹900 — settle anytime.
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Feature Chips */}
+                <View style={styles.chipRow}>
+                  <View style={styles.featureChip}>
+                    <Users size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Running Balance</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <Sparkles size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>WhatsApp Reminder</Text>
+                  </View>
+                  <View style={styles.featureChip}>
+                    <CheckCircle2 size={11} color={Colors.amber} strokeWidth={2.5} style={styles.chipIcon} />
+                    <Text style={styles.featureChipText}>Partial Settle</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -333,6 +414,7 @@ export const OnboardingScreen: React.FC = () => {
       <View style={styles.footer}>
         <AnimatedPressable scaleTo={0.96} onPress={handleNext} style={styles.primaryBtn}>
           <Text style={styles.primaryBtnText}>{getButtonText()}</Text>
+          <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.2} />
         </AnimatedPressable>
 
         <TouchableOpacity activeOpacity={0.7} onPress={handleSkip} style={styles.ghostBtn}>
@@ -576,6 +658,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.moss,
     borderRadius: 14,
     paddingVertical: 15,
+    flexDirection: 'row',
+    gap: 8,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: Colors.moss,

@@ -50,7 +50,7 @@ export const SplashScreen: React.FC = () => {
       if (isAuth) {
         setFirstRunStep('main');
       } else {
-        setFirstRunStep('onboarding');
+        setFirstRunStep('language');
       }
     });
   };
