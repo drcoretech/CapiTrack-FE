@@ -204,17 +204,37 @@ export const AddExpenseModal: React.FC = () => {
             {/* Amount Section */}
             <View style={styles.amountContainer}>
               <Text style={styles.curLabel}>
-                {entryMode === 'month_total' ? '₹ TOTAL FOR THE MONTH' : t('amountLabel')}
+                {entryMode === 'month_total' ? 'TOTAL SPENT FOR THE MONTH' : t('amountLabel')}
               </Text>
-              <TextInput
-                value={amountStr}
-                onChangeText={setAmountStr}
-                keyboardType="numeric"
-                style={styles.amountInput}
-                placeholder={entryMode === 'month_total' ? '13123' : '150'}
-                placeholderTextColor={Colors.line}
-                autoFocus={false}
-              />
+              <View style={styles.amountInputRow}>
+                <Text style={styles.currencySymbol}>₹</Text>
+                <TextInput
+                  value={amountStr}
+                  onChangeText={setAmountStr}
+                  keyboardType="numeric"
+                  style={styles.amountInput}
+                  placeholder={entryMode === 'month_total' ? '12500' : '150'}
+                  placeholderTextColor={Colors.line}
+                  autoFocus={false}
+                />
+              </View>
+
+              {/* Quick Amount Increment Presets */}
+              <View style={styles.quickAmountRow}>
+                {[50, 100, 200, 500, 1000].map((increment) => (
+                  <TouchableOpacity
+                    key={increment}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      const current = parseFloat(amountStr) || 0;
+                      setAmountStr(String(current + increment));
+                    }}
+                    style={styles.quickAmountChip}
+                  >
+                    <Text style={styles.quickAmountText}>+{increment}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
             {/* If in Month Total mode, show Month Selector first */}
@@ -269,17 +289,22 @@ export const AddExpenseModal: React.FC = () => {
                     return (
                       <AnimatedPressable
                         key={cat.id}
-                        scaleTo={0.91}
+                        scaleTo={0.93}
                         onPress={() => {
                           setSelectedCategory(cat.name);
                           Keyboard.dismiss();
                         }}
                         style={[styles.catChip, isSelected && styles.catChipSelected]}
                       >
+                        {isSelected && (
+                          <View style={styles.selectedCheckBadge}>
+                            <Check size={8} color="#FFFFFF" strokeWidth={3.5} />
+                          </View>
+                        )}
                         <CategoryIcon
                           category={cat.name}
                           icon={cat.icon}
-                          size={18}
+                          size={20}
                           color={isSelected ? Colors.moss : Colors.inkSoft}
                         />
                         <Text style={[styles.catLabel, isSelected && styles.catLabelSelected]}>
@@ -499,23 +524,57 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     borderWidth: 1,
     borderColor: Colors.line,
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 20,
+    padding: 18,
     alignItems: 'center',
+    gap: 8,
   },
   curLabel: {
     fontFamily: Fonts.monoMedium,
-    fontSize: 11,
+    fontSize: 10.5,
     color: Colors.inkSoft,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
+  },
+  amountInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  currencySymbol: {
+    fontFamily: Fonts.serifMedium,
+    fontSize: 40,
+    color: Colors.moss,
+    marginTop: 2,
   },
   amountInput: {
     fontFamily: Fonts.serifMedium,
-    fontSize: 52,
+    fontSize: 48,
     color: Colors.ink,
     textAlign: 'center',
-    paddingVertical: 4,
-    minWidth: 160,
+    paddingVertical: 2,
+    minWidth: 140,
+  },
+  quickAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 6,
+    flexWrap: 'wrap',
+  },
+  quickAmountChip: {
+    backgroundColor: Colors.mist,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  quickAmountText: {
+    fontFamily: Fonts.monoMedium,
+    fontSize: 11.5,
+    color: Colors.ink,
   },
   monthCardContainer: {
     backgroundColor: Colors.card,
@@ -625,8 +684,19 @@ const styles = StyleSheet.create({
   },
   catChipSelected: {
     borderColor: Colors.moss,
-    backgroundColor: Colors.mossLight,
+    backgroundColor: 'rgba(62, 107, 92, 0.08)',
     borderWidth: 1.5,
+  },
+  selectedCheckBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 15,
+    height: 15,
+    borderRadius: 7.5,
+    backgroundColor: Colors.moss,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   catIcon: {
     fontSize: 24,
