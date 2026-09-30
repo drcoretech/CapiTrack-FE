@@ -25,8 +25,6 @@ import {
   Layers,
   LogOut,
   Trash2,
-  Gift,
-  Share2,
 } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
@@ -34,7 +32,6 @@ import { useAppStore } from '../../../store/useAppStore';
 import { useTranslation } from '../../../i18n/translations';
 import { notificationListener } from '../../../services/notificationListener';
 import { ConfirmDeleteModal } from '../../../components/ConfirmDeleteModal';
-import { shareInviteLink } from '../../../services/upiPayment';
 
 export const ProfileDetailsModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -281,7 +278,7 @@ export const ProfileDetailsModal: React.FC = () => {
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => openModal('manage_categories')}
-                style={[styles.settingItem, styles.lastSettingItem]}
+                style={styles.settingItem}
               >
                 <View style={styles.settingLeft}>
                   <View style={styles.settingIconCircle}>
