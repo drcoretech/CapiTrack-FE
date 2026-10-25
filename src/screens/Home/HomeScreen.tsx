@@ -39,8 +39,6 @@ export const HomeScreen: React.FC = () => {
   const { t, getCategoryName, lang } = useTranslation();
 
   const [isEditingName, setIsEditingName] = useState(false);
-  const [isInitialMounting, setIsInitialMounting] = useState(isFreshAuth);
-
   // Staggered entrance animators (initialized to 1 so content is immediately visible without flicker)
   const headerFade = useRef(new Animated.Value(1)).current;
   const headerSlide = useRef(new Animated.Value(0)).current;
@@ -49,52 +47,38 @@ export const HomeScreen: React.FC = () => {
   const cardsSlide = useRef(new Animated.Value(0)).current;
   const cardsFade = useRef(new Animated.Value(1)).current;
 
-  // 1-second placeholder skeleton ONLY on fresh login or signup entry, never on tab switches
+  // Staggered entrance animation on mount
   useEffect(() => {
-    if (isFreshAuth) {
-      const timer = setTimeout(() => {
-        setIsInitialMounting(false);
-        setFreshAuth(false);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else {
-      setIsInitialMounting(false);
-    }
-  }, [isFreshAuth]);
+    headerFade.setValue(0);
+    headerSlide.setValue(-10);
+    bigStatFade.setValue(0);
+    bigStatScale.setValue(0.94);
+    cardsFade.setValue(0);
+    cardsSlide.setValue(16);
+
+    Animated.stagger(80, [
+      Animated.parallel([
+        Animated.timing(headerFade, { toValue: 1, duration: 250, useNativeDriver: true }),
+        Animated.spring(headerSlide, { toValue: 0, friction: 6, tension: 80, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(bigStatFade, { toValue: 1, duration: 280, useNativeDriver: true }),
+        Animated.spring(bigStatScale, { toValue: 1, friction: 6, tension: 70, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(cardsFade, { toValue: 1, duration: 280, useNativeDriver: true }),
+        Animated.spring(cardsSlide, { toValue: 0, friction: 7, tension: 80, useNativeDriver: true }),
+      ]),
+    ]).start();
+  }, []);
 
   // Dynamic calculations directly from real expenses array
   const todayExpenses = expenses.filter((e) => e.dayGroup === 'Today');
   const spentToday = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
   const deltaText = dashboardData?.delta ?? (spentToday > 0 ? `↑ 100% ${t('vsYesterday')}` : `0% ${t('vsYesterday')}`);
 
-  // Only show skeleton on fresh auth, zero delay on tab switches
-  const showSkeleton = isFreshAuth && isInitialMounting;
-
-  useEffect(() => {
-    if (isFreshAuth && !showSkeleton) {
-      headerFade.setValue(0);
-      headerSlide.setValue(-10);
-      bigStatFade.setValue(0);
-      bigStatScale.setValue(0.94);
-      cardsFade.setValue(0);
-      cardsSlide.setValue(16);
-
-      Animated.stagger(80, [
-        Animated.parallel([
-          Animated.timing(headerFade, { toValue: 1, duration: 250, useNativeDriver: true }),
-          Animated.spring(headerSlide, { toValue: 0, friction: 6, tension: 80, useNativeDriver: true }),
-        ]),
-        Animated.parallel([
-          Animated.timing(bigStatFade, { toValue: 1, duration: 280, useNativeDriver: true }),
-          Animated.spring(bigStatScale, { toValue: 1, friction: 6, tension: 70, useNativeDriver: true }),
-        ]),
-        Animated.parallel([
-          Animated.timing(cardsFade, { toValue: 1, duration: 280, useNativeDriver: true }),
-          Animated.spring(cardsSlide, { toValue: 0, friction: 7, tension: 80, useNativeDriver: true }),
-        ]),
-      ]).start();
-    }
-  }, [showSkeleton, isFreshAuth]);
+  // Only show skeleton if no data is available at all during initial cold sync
+  const showSkeleton = isSyncing && !dashboardData && expenses.length === 0;
 
   // Dynamic AI Insight computation based on real entries and timestamps
   const dynamicInsight = useMemo(() => {

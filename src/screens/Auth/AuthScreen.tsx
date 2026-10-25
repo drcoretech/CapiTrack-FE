@@ -40,6 +40,7 @@ export const AuthScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [workflowMode, setWorkflowMode] = useState<'personal' | 'both'>('personal');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState<'idle' | 'auth' | 'sync'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [focusedField, setFocusedField] = useState<'name' | 'password' | null>(null);
   const { isKeyboardVisible, keyboardHeight } = useKeyboard();
@@ -73,30 +74,35 @@ export const AuthScreen: React.FC = () => {
     }
 
     setIsLoading(true);
-    const startTime = Date.now();
+    setLoadingStage('auth');
 
     try {
       if (mode === 'signin') {
-        const res = await login(trimmedName, password);
+        const res = await login(trimmedName, password, (stage) => setLoadingStage(stage as any));
         if (!res.success) {
           setErrorMessage(res.message || 'Incorrect name or password. Please try again.');
+          setIsLoading(false);
+          setLoadingStage('idle');
         }
       } else {
         const isBusinessActive = workflowMode === 'both';
-        const res = await signup(trimmedName, password, isBusinessActive);
+        const res = await signup(
+          trimmedName,
+          password,
+          isBusinessActive,
+          undefined,
+          (stage) => setLoadingStage(stage as any)
+        );
         if (!res.success) {
           setErrorMessage(res.message || 'Could not create account. Please try again.');
+          setIsLoading(false);
+          setLoadingStage('idle');
         }
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Network error. Please try again.');
-    } finally {
-      // Ensure the button loader shows for at least 1000ms for tactile feedback
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 1000) {
-        await new Promise((resolve) => setTimeout(resolve, 1000 - elapsed));
-      }
       setIsLoading(false);
+      setLoadingStage('idle');
     }
   };
 
@@ -340,7 +346,14 @@ export const AuthScreen: React.FC = () => {
               style={[styles.submitBtn, isLoading && styles.submitBtnDisabled]}
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <View style={styles.submitRow}>
+                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.submitBtnText}>
+                    {loadingStage === 'sync'
+                      ? (mode === 'signin' ? 'Loading Workspace...' : 'Setting Up Workspace...')
+                      : (mode === 'signin' ? 'Signing In...' : 'Creating Account...')}
+                  </Text>
+                </View>
               ) : (
                 <View style={styles.submitRow}>
                   <Text style={styles.submitBtnText}>

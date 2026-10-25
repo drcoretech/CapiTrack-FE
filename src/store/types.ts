@@ -82,12 +82,17 @@ export interface UserSlice {
   setAppLocked: (locked: boolean) => void;
   toggleBiometricLock: () => Promise<boolean>;
   resetOnboarding: () => void;
-  login: (name: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  login: (
+    name: string,
+    password: string,
+    onProgress?: (stage: 'auth' | 'sync') => void
+  ) => Promise<{ success: boolean; message?: string }>;
   signup: (
     name: string,
     password: string,
     businessTrackingEnabled?: boolean,
-    referralCode?: string
+    referralCode?: string,
+    onProgress?: (stage: 'auth' | 'sync') => void
   ) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
 }

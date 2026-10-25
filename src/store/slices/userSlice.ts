@@ -133,11 +133,21 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
     set({ firstRunStep: 'splash', hasCompletedOnboarding: false });
   },
 
-  login: async (name: string, password: string) => {
+  login: async (name: string, password: string, onProgress?: (stage: 'auth' | 'sync') => void) => {
     try {
       const res = await api.login({ name, password });
       if (res.success && res.user) {
         const pic = res.user.profilePicture || '';
+        setAuthSession(res.token, res.user.id, res.user.name);
+        await AsyncStorage.multiSet([
+          ['@capitrack_auth_token', res.token],
+          ['@capitrack_auth_user_id', res.user.id],
+          ['@capitrack_user_name', res.user.name],
+          ['@capitrack_profile_picture', pic],
+          ['@capitrack_onboarding_completed', 'true'],
+        ]);
+
+        // Keep firstRunStep: 'auth' while prefetching home screen data so user sees the button loader
         set({
           isAuthenticated: true,
           userId: res.user.id,
@@ -150,18 +160,25 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
           selectedLanguage: (res.user.preferredLanguage as any) || 'en',
           businessTrackingEnabled: !!res.user.preferences?.businessTrackingEnabled,
           hasCompletedOnboarding: true,
-          firstRunStep: 'main',
-          isFreshAuth: true,
+          firstRunStep: 'auth',
+          isFreshAuth: false,
         });
-        setAuthSession(res.token, res.user.id, res.user.name);
-        await AsyncStorage.multiSet([
-          ['@capitrack_auth_token', res.token],
-          ['@capitrack_auth_user_id', res.user.id],
-          ['@capitrack_user_name', res.user.name],
-          ['@capitrack_profile_picture', pic],
-          ['@capitrack_onboarding_completed', 'true'],
-        ]);
-        get().loadInitialData().catch(() => {});
+
+        // Notify UI to update button text to workspace sync
+        onProgress?.('sync');
+
+        // Prefetch initial dashboard & expense data in the background
+        try {
+          const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 2500));
+          await Promise.race([get().loadInitialData(), timeoutPromise]);
+        } catch {}
+
+        // Data is ready, transition to main workspace
+        set({
+          firstRunStep: 'main',
+          isFreshAuth: false,
+        });
+
         return { success: true };
       }
       return { success: false, message: res.message || 'Login failed' };
@@ -170,7 +187,13 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
     }
   },
 
-  signup: async (name: string, password: string, businessTrackingEnabled = false, referralCode?: string) => {
+  signup: async (
+    name: string,
+    password: string,
+    businessTrackingEnabled = false,
+    referralCode?: string,
+    onProgress?: (stage: 'auth' | 'sync') => void
+  ) => {
     try {
       const res = await api.signup({
         name,
@@ -181,6 +204,17 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
       });
       if (res.success && res.user) {
         const pic = res.user.profilePicture || '';
+        setAuthSession(res.token, res.user.id, res.user.name);
+        await AsyncStorage.multiSet([
+          ['@capitrack_auth_token', res.token],
+          ['@capitrack_auth_user_id', res.user.id],
+          ['@capitrack_user_name', res.user.name],
+          ['@capitrack_profile_picture', pic],
+          ['@capitrack_business_tracking_enabled', businessTrackingEnabled ? 'true' : 'false'],
+          ['@capitrack_onboarding_completed', 'true'],
+        ]);
+
+        // Keep firstRunStep: 'auth' while prefetching home screen data
         set({
           isAuthenticated: true,
           userId: res.user.id,
@@ -193,23 +227,29 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
           selectedLanguage: (res.user.preferredLanguage as any) || 'en',
           businessTrackingEnabled: !!businessTrackingEnabled,
           hasCompletedOnboarding: true,
-          firstRunStep: 'main',
-          isFreshAuth: true,
+          firstRunStep: 'auth',
+          isFreshAuth: false,
           expenses: [],
           contacts: [],
           clientProjects: [],
           dashboardData: null,
         });
-        setAuthSession(res.token, res.user.id, res.user.name);
-        await AsyncStorage.multiSet([
-          ['@capitrack_auth_token', res.token],
-          ['@capitrack_auth_user_id', res.user.id],
-          ['@capitrack_user_name', res.user.name],
-          ['@capitrack_profile_picture', pic],
-          ['@capitrack_business_tracking_enabled', businessTrackingEnabled ? 'true' : 'false'],
-          ['@capitrack_onboarding_completed', 'true'],
-        ]);
-        get().loadInitialData().catch(() => {});
+
+        // Notify UI to update button text to workspace setup
+        onProgress?.('sync');
+
+        // Prefetch initial dashboard & expense data in the background
+        try {
+          const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 2500));
+          await Promise.race([get().loadInitialData(), timeoutPromise]);
+        } catch {}
+
+        // Data is ready, transition to main workspace
+        set({
+          firstRunStep: 'main',
+          isFreshAuth: false,
+        });
+
         return { success: true };
       }
       return { success: false, message: res.message || 'Signup failed' };
