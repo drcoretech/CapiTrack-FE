@@ -195,6 +195,73 @@ const mergeContacts = (remoteList: any[] = [], localList: any[] = []): any[] => 
   return merged;
 };
 
+// Helper to push any pending offline-created entities to MongoDB backend once internet is active
+const syncOfflineQueue = async (
+  get: () => AppState,
+  set: (fn: (state: AppState) => Partial<AppState>) => void
+) => {
+  const state = get();
+  if (!state.isAuthenticated) return;
+
+  // 1. Sync offline expenses (temporary IDs starting with 'exp_')
+  const offlineExpenses = (state.expenses || []).filter(
+    (e) => typeof e.id === 'string' && e.id.startsWith('exp_') && !isMongoId(e.id)
+  );
+
+  for (const exp of offlineExpenses) {
+    try {
+      const res = await api.createExpense({
+        amount: exp.amount,
+        category: exp.category,
+        note: exp.note,
+        date: exp.date || exp.createdAt,
+        time: exp.time,
+      });
+
+      if (res.success && res.expense) {
+        set((s) => {
+          const updated = s.expenses.map((e) =>
+            e.id === exp.id ? { ...e, id: res.expense.id } : e
+          );
+          AsyncStorage.setItem('@capitrack_expenses', JSON.stringify(updated)).catch(() => {});
+          return { expenses: updated };
+        });
+      }
+    } catch {
+      // Still offline, stop processing queue for now
+      break;
+    }
+  }
+
+  // 2. Sync offline client projects (temporary IDs starting with 'proj_')
+  const offlineProjects = (state.clientProjects || []).filter(
+    (p) => typeof p.id === 'string' && p.id.startsWith('proj_') && !isMongoId(p.id)
+  );
+
+  for (const proj of offlineProjects) {
+    try {
+      const res = await api.createProject({
+        clientName: proj.clientName,
+        projectTitle: proj.projectTitle,
+        totalValue: proj.totalValue,
+        notes: proj.notes,
+      });
+
+      if (res.success && res.project) {
+        set((s) => {
+          const updated = s.clientProjects.map((p) =>
+            p.id === proj.id ? { ...p, id: res.project.id } : p
+          );
+          AsyncStorage.setItem('@capitrack_client_projects', JSON.stringify(updated)).catch(() => {});
+          return { clientProjects: updated };
+        });
+      }
+    } catch {
+      break;
+    }
+  }
+};
+
 export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, get) => ({
   isSyncing: false,
   lastSyncedAt: null,
@@ -231,6 +298,7 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
         localContactsRaw,
         localSplitsRaw,
         localBiometric,
+        localProfilePic,
       ] = await Promise.allSettled([
         api.getDashboardSummary(),
         api.getExpenses(),
@@ -245,6 +313,7 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
         AsyncStorage.getItem('@capitrack_contacts'),
         AsyncStorage.getItem('@capitrack_split_bills'),
         AsyncStorage.getItem('@capitrack_biometric_enabled'),
+        AsyncStorage.getItem('@capitrack_profile_picture'),
       ]);
 
       set((state) => {
@@ -370,6 +439,12 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
           if (userRes.value.user.name) {
             nextState.userName = userRes.value.user.name;
           }
+          if ((userRes.value.user as any).profilePicture) {
+            nextState.profilePicture = (userRes.value.user as any).profilePicture;
+            AsyncStorage.setItem('@capitrack_profile_picture', (userRes.value.user as any).profilePicture).catch(() => {});
+          } else if (localProfilePic && localProfilePic.status === 'fulfilled' && localProfilePic.value) {
+            nextState.profilePicture = localProfilePic.value;
+          }
           if ((userRes.value.user as any).capitrackId) {
             nextState.capitrackId = (userRes.value.user as any).capitrackId;
           }
@@ -407,6 +482,9 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
       // Load groups and rewards asynchronously
       get().loadGroups?.().catch(() => {});
       get().loadRewards?.().catch(() => {});
+
+      // Flush any pending offline queue to server
+      syncOfflineQueue(get, set).catch(() => {});
     } catch {
       set({ isSyncing: false });
     }
@@ -479,6 +557,9 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
           clientProjects: nextProjects,
         };
       });
+
+      // Flush any pending offline queue to server
+      syncOfflineQueue(get, set).catch(() => {});
     } catch {}
   },
 });

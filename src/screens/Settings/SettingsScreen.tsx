@@ -8,6 +8,7 @@ import { useTranslation } from '../../i18n/translations';
 import { notificationListener } from '../../services/notificationListener';
 import { biometrics } from '../../services/biometrics';
 import { haptics } from '../../services/haptics';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 export const SettingsScreen: React.FC = () => {
   const autoCaptureEnabled = useAppStore((state) => state.autoCaptureEnabled);
@@ -23,6 +24,7 @@ export const SettingsScreen: React.FC = () => {
   const { t } = useTranslation();
 
   const [bioLabel, setBioLabel] = React.useState('Face ID / Fingerprint');
+  const [showChangePassword, setShowChangePassword] = React.useState(false);
 
   React.useEffect(() => {
     biometrics.getTypeLabel().then(setBioLabel);
@@ -141,6 +143,19 @@ export const SettingsScreen: React.FC = () => {
             <Text style={styles.ghostBtnText}>{t('changeGhost')}</Text>
           </TouchableOpacity>
 
+          {/* Change Password */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setShowChangePassword(true)}
+            style={styles.item}
+          >
+            <View style={styles.itemLeft}>
+              <Text style={styles.itemName}>Change Password</Text>
+              <Text style={styles.itemSub}>Update your account login password</Text>
+            </View>
+            <Text style={styles.ghostBtnText}>Update ›</Text>
+          </TouchableOpacity>
+
           {/* App Onboarding & Mode Setup Wizard */}
           <TouchableOpacity
             activeOpacity={0.7}
@@ -157,6 +172,12 @@ export const SettingsScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        visible={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+      />
     </SafeAreaView>
   );
 };

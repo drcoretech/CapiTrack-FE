@@ -157,6 +157,7 @@ export const api = {
         capitrackId?: string;
         referralCode?: string;
         rewardPoints?: number;
+        profilePicture?: string;
         preferredLanguage: string;
         currencySymbol: string;
         preferences: {
@@ -181,6 +182,7 @@ export const api = {
         capitrackId?: string;
         referralCode?: string;
         rewardPoints?: number;
+        profilePicture?: string;
         preferredLanguage: string;
         currencySymbol: string;
         preferences: {
@@ -203,6 +205,7 @@ export const api = {
         capitrackId?: string;
         referralCode?: string;
         rewardPoints?: number;
+        profilePicture?: string;
         preferredLanguage: string;
         currencySymbol: string;
         preferences: {
@@ -212,6 +215,15 @@ export const api = {
         };
       };
     }>('/auth/me'),
+
+  changePassword: (data: { currentPassword?: string; newPassword: string }) =>
+    request<{
+      success: boolean;
+      message: string;
+    }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
   // Health
   checkHealth: () => request<{ status: string; service: string }>('/health'),
@@ -385,6 +397,7 @@ export const api = {
         currency: string;
         currencySymbol: string;
         preferredLanguage: string;
+        profilePicture?: string;
         preferences: {
           autoCaptureEnabled: boolean;
           darkMode: boolean;
@@ -397,6 +410,7 @@ export const api = {
     autoCaptureEnabled?: boolean;
     darkMode?: boolean;
     name?: string;
+    profilePicture?: string;
   }) =>
     request<{
       success: boolean;

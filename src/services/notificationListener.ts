@@ -2,7 +2,7 @@ import { Platform, Linking, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import RNAndroidNotificationListener from 'react-native-android-notification-listener';
-import { parseNotification, isDuplicateTransaction, isBlockedNonPaymentApp } from './notificationParser';
+import { parseNotification, isDuplicateTransaction, isBlockedNonPaymentApp, ParsedPayment } from './notificationParser';
 import { useAppStore } from '../store/useAppStore';
 
 export const PENDING_NUDGE_STORAGE_KEY = '@capitrack_pending_nudge';
@@ -83,6 +83,122 @@ export async function postLocalPaymentAlert(amount: number, merchant: string, so
   }
 }
 
+/**
+ * Post a high-priority local status-bar Heads-Up Notification for incoming payments / credits / split money received.
+ */
+export async function postLocalCreditAlert(
+  amount: number,
+  sender: string,
+  sourceApp: string,
+  groupOrNote?: string,
+  settledNote?: string
+) {
+  if (!Notifications || Platform.OS !== 'android') return;
+
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') {
+      const req = await Notifications.requestPermissionsAsync();
+      if (req.status !== 'granted') return;
+    }
+
+    await Notifications.setNotificationChannelAsync('payment_alerts', {
+      name: 'Payment Alerts',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#2C5E3B',
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      sound: 'default',
+      enableVibrate: true,
+      showBadge: true,
+    });
+
+    const bodyText = settledNote
+      ? settledNote
+      : groupOrNote
+      ? `Payment received in '${groupOrNote}' via ${sourceApp}`
+      : `Payment received from ${sender} via ${sourceApp}`;
+
+    await Notifications.scheduleNotificationAsync({
+      identifier: 'capitrack_credit_alert_' + Date.now(),
+      content: {
+        title: `💰 ₹${amount.toLocaleString()} Received from ${sender}`,
+        body: bodyText,
+        data: { amount, sender, sourceApp, groupOrNote, type: 'CREDIT' },
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.MAX,
+      },
+      trigger: { channelId: 'payment_alerts' },
+    });
+  } catch (err) {
+    console.warn('[CapiTrack] Failed to schedule local credit alert:', err);
+  }
+}
+
+/**
+ * Handle incoming money received (friend paid, split bill settlement, peer credit, bank deposit).
+ * Never triggers an expense nudge asking "why did you pay those".
+ * Automatically checks open Split Bills and Khata (Ledger) to settle or record received funds.
+ */
+export async function handleIncomingCredit(parsed: ParsedPayment) {
+  const state = useAppStore.getState();
+  let settledNote: string | undefined = undefined;
+
+  // 1. Check if there is an open Split Bill matching this payment
+  if (state.splitBills && state.splitBills.length > 0 && parsed.sender) {
+    const senderLower = parsed.sender.toLowerCase().trim();
+    const groupLower = (parsed.groupOrNote || '').toLowerCase().trim();
+
+    for (const bill of state.splitBills) {
+      const titleMatches = groupLower && (bill.title.toLowerCase().includes(groupLower) || groupLower.includes(bill.title.toLowerCase()));
+
+      const matchingParticipant = bill.participants.find((p) => {
+        if (p.isCurrentUser || p.isPaid) return false;
+        const pNameLower = p.name.toLowerCase().trim();
+        const nameMatches = pNameLower === senderLower || pNameLower.includes(senderLower) || senderLower.includes(pNameLower);
+        if (titleMatches && nameMatches) return true;
+        return nameMatches && Math.abs(p.amount - parsed.amount) < 5;
+      });
+
+      if (matchingParticipant) {
+        await state.settleSplitParticipant(bill.id, matchingParticipant.id);
+        settledNote = `Split bill '${bill.title}' for ${matchingParticipant.name} marked settled!`;
+        break;
+      }
+    }
+  }
+
+  // 2. Check Khata / Ledger contacts
+  if (state.contacts && state.contacts.length > 0 && parsed.sender) {
+    const senderLower = parsed.sender.toLowerCase().trim();
+    const matchingContact = state.contacts.find((c) => {
+      const cNameLower = c.name.toLowerCase().trim();
+      return cNameLower === senderLower || cNameLower.includes(senderLower) || senderLower.includes(cNameLower);
+    });
+
+    if (matchingContact && matchingContact.netBalance > 0) {
+      await state.addLedgerEntry(
+        matchingContact.name,
+        parsed.amount,
+        'BORROWED',
+        parsed.groupOrNote ? `Payment received: ${parsed.groupOrNote}` : `Payment received via ${parsed.sourceApp}`
+      );
+      if (!settledNote) {
+        settledNote = `Credit Ledger balance for ${matchingContact.name} updated by ₹${parsed.amount.toLocaleString()}!`;
+      }
+    }
+  }
+
+  // 3. Post immediate high-priority Android heads-up notification for incoming money
+  await postLocalCreditAlert(
+    parsed.amount,
+    parsed.sender || parsed.merchant,
+    parsed.sourceApp,
+    parsed.groupOrNote,
+    settledNote
+  );
+}
+
 class NotificationListenerService {
   private isListening = false;
   private responseSubscription: any = null;
@@ -110,6 +226,10 @@ class NotificationListenerService {
             const data = response?.notification?.request?.content?.data;
             if (data && data.amount) {
               const state = useAppStore.getState();
+              if (data.type === 'CREDIT') {
+                state.setActiveTab('split');
+                return;
+              }
               if (state.autoCaptureEnabled) {
                 state.triggerNudge({
                   amount: Number(data.amount),
@@ -236,6 +356,12 @@ class NotificationListenerService {
       return;
     }
 
+    // If incoming credit / peer transfer / split payment received: NEVER ask "why did you pay those"
+    if (parsed.type === 'CREDIT') {
+      await handleIncomingCredit(parsed);
+      return;
+    }
+
     const nudgeData = {
       amount: parsed.amount,
       sourceApp: parsed.sourceApp,
@@ -254,7 +380,7 @@ class NotificationListenerService {
   /**
    * Helper to simulate a payment notification for preview and testing.
    */
-  public simulatePayment(type: 'phonepe' | 'gpay' | 'paytm' | 'custom', customAmount?: number, customMerchant?: string) {
+  public simulatePayment(type: 'phonepe' | 'gpay' | 'paytm' | 'custom' | 'split_credit', customAmount?: number, customMerchant?: string) {
     const state = useAppStore.getState();
     if (!state.autoCaptureEnabled) {
       Alert.alert(
@@ -268,7 +394,11 @@ class NotificationListenerService {
     let text = '';
     let packageName = '';
 
-    if (type === 'phonepe') {
+    if (type === 'split_credit') {
+      title = "New payment in 'Sai Angan '";
+      text = `${customMerchant || 'Shubham Naik'} paid you ₹${customAmount || 11072.99}!`;
+      packageName = 'com.google.android.apps.nbu.paisa.user';
+    } else if (type === 'phonepe') {
       title = 'PhonePe';
       text = `Paid ₹${customAmount || 1} to ${customMerchant || 'Self Account'} using UPI.`;
       packageName = 'com.phonepe.app';

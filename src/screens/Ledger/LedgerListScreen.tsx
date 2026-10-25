@@ -1,25 +1,22 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Animated, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, Animated, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
+import { styles } from './LedgerList.styles';
 import { useAppStore } from '../../store/useAppStore';
 import { useTranslation } from '../../i18n/translations';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
 import { LedgerSkeleton } from './components/LedgerSkeleton';
 import { ClientProjectsView } from './components/ClientProjectsView';
+import { LedgerSummaryRow } from './components/LedgerSummaryRow';
+import { LedgerContactItem } from './components/LedgerContactItem';
 import {
   Settings,
-  Pencil,
   Plus,
   Users,
   Briefcase,
-  ArrowUpRight,
-  ArrowDownLeft,
-  CheckCheck,
-  Trash2,
 } from 'lucide-react-native';
-import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { haptics } from '../../services/haptics';
 
 export const LedgerListScreen: React.FC = () => {
@@ -125,7 +122,7 @@ export const LedgerListScreen: React.FC = () => {
                       ledgerSubTab === 'personal' && styles.segmentTextActive,
                     ]}
                   >
-                    Friends Khata ({contacts.length})
+                    Credit Ledger ({contacts.length})
                   </Text>
                 </TouchableOpacity>
 
@@ -168,30 +165,12 @@ export const LedgerListScreen: React.FC = () => {
             ) : (
               <>
                 {/* Summary Row */}
-                <View style={styles.summaryRow}>
-                  <View style={styles.summaryCard}>
-                    <View style={styles.summaryCardHeader}>
-                      <View style={[styles.arrowBadge, { backgroundColor: Colors.mossLight }]}>
-                        <ArrowDownLeft size={13} color={Colors.moss} strokeWidth={2.6} />
-                      </View>
-                      <Text style={styles.summaryLbl}>{t('youWillReceive')}</Text>
-                    </View>
-                    <Text style={[styles.summaryNum, { color: Colors.moss }]}>
-                      ₹{receiveTotal.toLocaleString()}
-                    </Text>
-                  </View>
-                  <View style={styles.summaryCard}>
-                    <View style={styles.summaryCardHeader}>
-                      <View style={[styles.arrowBadge, { backgroundColor: '#FEE2E2' }]}>
-                        <ArrowUpRight size={13} color={Colors.brick} strokeWidth={2.6} />
-                      </View>
-                      <Text style={styles.summaryLbl}>{t('youOweKhata')}</Text>
-                    </View>
-                    <Text style={[styles.summaryNum, { color: Colors.brick }]}>
-                      ₹{oweTotal.toLocaleString()}
-                    </Text>
-                  </View>
-                </View>
+                <LedgerSummaryRow
+                  receiveTotal={receiveTotal}
+                  oweTotal={oweTotal}
+                  youWillGetLabel={t('youWillReceive')}
+                  youOweLabel={t('youOweKhata')}
+                />
 
                 {/* Person Items */}
                 <View style={styles.list}>
@@ -200,7 +179,7 @@ export const LedgerListScreen: React.FC = () => {
                       <View style={styles.emptyIconCircle}>
                         <Users size={28} color={Colors.moss} strokeWidth={1.8} />
                       </View>
-                      <Text style={styles.emptyTitle}>No Khata Records</Text>
+                      <Text style={styles.emptyTitle}>No Credit Ledger Records</Text>
                       <Text style={styles.emptySub}>
                         Track money you lent to friends or borrowed without awkwardness.
                       </Text>
@@ -214,121 +193,20 @@ export const LedgerListScreen: React.FC = () => {
                       </TouchableOpacity>
                     </View>
                   ) : (
-                    contacts.map((person) => {
-                      const isOwed = person.netBalance > 0;
-                      const isSettled = person.netBalance === 0;
-                      const dateStr = person.lastDate === 'Today' ? t('dayToday') : person.lastDate;
-
-                      const renderPersonRightActions = () => (
-                        <View style={styles.swipeActionsRow}>
-                          {!isSettled && (
-                            <TouchableOpacity
-                              activeOpacity={0.85}
-                              onPress={() => {
-                                haptics.success();
-                                settlePerson(person.id);
-                              }}
-                              style={styles.swipeSettleAction}
-                            >
-                              <CheckCheck size={18} color="#FFFFFF" strokeWidth={2.2} />
-                              <Text style={styles.swipeActionText}>Settle</Text>
-                            </TouchableOpacity>
-                          )}
-                          <TouchableOpacity
-                            activeOpacity={0.85}
-                            onPress={() => {
-                              haptics.medium();
-                              deletePerson(person.id, person.name);
-                            }}
-                            style={styles.swipeDeleteAction}
-                          >
-                            <Trash2 size={18} color="#FFFFFF" strokeWidth={2.2} />
-                            <Text style={styles.swipeActionText}>Delete</Text>
-                          </TouchableOpacity>
-                        </View>
-                      );
-
-                      return (
-                        <Swipeable
-                          key={person.id}
-                          renderRightActions={renderPersonRightActions}
-                          friction={2}
-                          rightThreshold={30}
-                          containerStyle={styles.swipeableContainer}
-                        >
-                          <AnimatedPressable
-                            scaleTo={0.97}
-                            onPress={() => {
-                              haptics.light();
-                              openModal('person_detail', person.id);
-                            }}
-                            style={styles.personItem}
-                          >
-                            <View style={styles.personLeft}>
-                              <View style={styles.avatar}>
-                                <Text style={styles.avatarText}>{person.initial}</Text>
-                              </View>
-                              <View style={styles.personDetails}>
-                                <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
-                                  {person.name}
-                                </Text>
-                                <Text style={styles.meta} numberOfLines={1} ellipsizeMode="tail">
-                                  {t('lastPrefix')} {dateStr}
-                                </Text>
-                              </View>
-                            </View>
-
-                            <View style={styles.personRight}>
-                              <Text
-                                style={[
-                                  styles.amount,
-                                  isOwed ? styles.amountOwed : styles.amountOwe,
-                                  isSettled && styles.amountSettled,
-                                ]}
-                              >
-                                {isOwed
-                                  ? `+₹${person.netBalance.toLocaleString()}`
-                                  : isSettled
-                                  ? '₹0'
-                                  : `-₹${Math.abs(person.netBalance).toLocaleString()}`}
-                              </Text>
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                                <View
-                                  style={[
-                                    styles.pill,
-                                    person.status === 'settled' ? styles.pillSettled : styles.pillPending,
-                                  ]}
-                                >
-                                  <Text
-                                    style={[
-                                      styles.pillText,
-                                      person.status === 'settled'
-                                        ? styles.pillTextSettled
-                                        : styles.pillTextPending,
-                                    ]}
-                                  >
-                                    {person.status === 'settled' ? t('statusSettled') : t('statusPending')}
-                                  </Text>
-                                </View>
-                                {person.transactions.length > 0 && (
-                                  <TouchableOpacity
-                                    activeOpacity={0.7}
-                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                    onPress={() => {
-                                      haptics.selection();
-                                      setEditingLedgerTxn({ personId: person.id, txn: person.transactions[0] });
-                                    }}
-                                    style={styles.editPill}
-                                  >
-                                    <Pencil size={11} color={Colors.inkSoft} />
-                                  </TouchableOpacity>
-                                )}
-                              </View>
-                            </View>
-                          </AnimatedPressable>
-                        </Swipeable>
-                      );
-                    })
+                    contacts.map((person) => (
+                      <LedgerContactItem
+                        key={person.id}
+                        person={person}
+                        dateStr={person.lastDate === 'Today' ? t('dayToday') : person.lastDate}
+                        statusSettledText={t('statusSettled')}
+                        statusPendingText={t('statusPending')}
+                        lastPrefixText={t('lastPrefix')}
+                        onOpenDetail={(id) => openModal('person_detail', id)}
+                        onSettle={(id) => settlePerson(id)}
+                        onDelete={(id, name) => deletePerson(id, name)}
+                        onEditTxn={(pId, txn) => setEditingLedgerTxn({ personId: pId, txn })}
+                      />
+                    ))
                   )}
                 </View>
               </>
@@ -340,325 +218,4 @@ export const LedgerListScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.mist,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 120,
-    gap: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 2,
-    paddingTop: 4,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.moss,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 6,
-    shadowColor: Colors.moss,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  addBtnText: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 12,
-    color: '#FFFFFF',
-  },
-  settingsBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  eyebrow: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 10,
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
-    color: Colors.inkSoft,
-  },
-  title: {
-    fontFamily: Fonts.serifMedium,
-    fontSize: 26,
-    color: Colors.ink,
-    marginTop: 2,
-  },
-  segmentContainer: {
-    flexDirection: 'row',
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: Colors.line,
-  },
-  segmentBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    paddingVertical: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-  },
-  segmentBtnActive: {
-    backgroundColor: Colors.moss,
-    shadowColor: Colors.moss,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  segmentText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 12,
-    color: Colors.inkSoft,
-  },
-  segmentTextActive: {
-    fontFamily: Fonts.sansSemiBold,
-    color: '#FFFFFF',
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    borderRadius: 16,
-    padding: 14,
-    gap: 8,
-    shadowColor: Colors.ink,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.02,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  summaryCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  arrowBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  summaryNum: {
-    fontFamily: Fonts.serifSemiBold,
-    fontSize: 22,
-  },
-  summaryLbl: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 10,
-    color: Colors.inkSoft,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  list: {
-    gap: 9,
-  },
-  personItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    borderRadius: 15,
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    shadowColor: Colors.ink,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.02,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  personLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginRight: 12,
-  },
-  personDetails: {
-    flex: 1,
-  },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: Colors.mossLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  avatarText: {
-    fontFamily: Fonts.serifMedium,
-    fontSize: 16,
-    color: Colors.moss,
-  },
-  name: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 14,
-    color: Colors.ink,
-  },
-  meta: {
-    fontFamily: Fonts.monoRegular,
-    fontSize: 10.5,
-    color: Colors.inkSoft,
-    marginTop: 2,
-  },
-  personRight: {
-    alignItems: 'flex-end',
-    gap: 3,
-    flexShrink: 0,
-  },
-  amount: {
-    fontFamily: Fonts.serifMedium,
-    fontSize: 15.5,
-  },
-  amountOwed: {
-    color: Colors.moss,
-  },
-  amountOwe: {
-    color: Colors.brick,
-  },
-  amountSettled: {
-    color: Colors.inkSoft,
-  },
-  pill: {
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 100,
-  },
-  pillPending: {
-    backgroundColor: Colors.amberLight,
-  },
-  pillSettled: {
-    backgroundColor: Colors.mossLight,
-  },
-  pillText: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 9,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  pillTextPending: {
-    color: Colors.amber,
-  },
-  pillTextSettled: {
-    color: Colors.moss,
-  },
-  editPill: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: Colors.mist,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: Colors.line,
-    padding: 30,
-    alignItems: 'center',
-    gap: 8,
-  },
-  emptyIconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: Colors.mossLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  emptyTitle: {
-    fontFamily: Fonts.serifMedium,
-    fontSize: 16,
-    color: Colors.ink,
-  },
-  emptySub: {
-    fontFamily: Fonts.sansRegular,
-    fontSize: 12.5,
-    color: Colors.inkSoft,
-    textAlign: 'center',
-    lineHeight: 18,
-    maxWidth: 240,
-  },
-  emptyAddBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.moss,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 6,
-    marginTop: 8,
-  },
-  emptyAddBtnText: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 12,
-    color: '#FFFFFF',
-  },
-  swipeableContainer: {
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  swipeActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 8,
-    gap: 6,
-  },
-  swipeSettleAction: {
-    backgroundColor: Colors.moss,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 66,
-    height: '100%',
-    borderRadius: 16,
-  },
-  swipeDeleteAction: {
-    backgroundColor: Colors.brick,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 66,
-    height: '100%',
-    borderRadius: 16,
-  },
-  swipeActionText: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 11,
-    color: '#FFFFFF',
-    marginTop: 3,
-  },
-});
+

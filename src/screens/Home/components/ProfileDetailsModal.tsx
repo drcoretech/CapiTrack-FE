@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   Modal,
   ScrollView,
   TextInput,
   Keyboard,
   Switch,
+  Alert,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { styles } from './ProfileDetailsModal.styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   X,
@@ -24,12 +27,15 @@ import {
   Briefcase,
   Layers,
   LogOut,
+  Lock,
+  Camera,
 } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
 import { useAppStore } from '../../../store/useAppStore';
 import { useTranslation } from '../../../i18n/translations';
 import { notificationListener } from '../../../services/notificationListener';
+import { ChangePasswordModal } from '../../Settings/ChangePasswordModal';
 
 export const ProfileDetailsModal: React.FC = () => {
   const activeModal = useAppStore((state) => state.activeModal);
@@ -37,6 +43,8 @@ export const ProfileDetailsModal: React.FC = () => {
   const openModal = useAppStore((state) => state.openModal);
   const userName = useAppStore((state) => state.userName);
   const setUserName = useAppStore((state) => state.setUserName);
+  const profilePicture = useAppStore((state) => state.profilePicture);
+  const setProfilePicture = useAppStore((state) => state.setProfilePicture);
   const selectedLanguage = useAppStore((state) => state.selectedLanguage);
   const autoCaptureEnabled = useAppStore((state) => state.autoCaptureEnabled);
   const toggleAutoCapture = useAppStore((state) => state.toggleAutoCapture);
@@ -51,6 +59,7 @@ export const ProfileDetailsModal: React.FC = () => {
   const [nameInput, setNameInput] = useState(userName);
   const [isSaving, setIsSaving] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   const isVisible = activeModal === 'profile_details';
   const activeCategoriesCount = categories.filter((c) => c.enabled).length;
@@ -63,6 +72,10 @@ export const ProfileDetailsModal: React.FC = () => {
   const handleSaveName = async () => {
     const trimmed = nameInput.trim();
     if (!trimmed) return;
+    if (trimmed.length > 20) {
+      Alert.alert('Invalid Name', 'Name cannot exceed 20 characters.');
+      return;
+    }
     setIsSaving(true);
     try {
       await setUserName(trimmed);
@@ -77,6 +90,74 @@ export const ProfileDetailsModal: React.FC = () => {
     setNameInput(userName);
     setIsEditingName(false);
     Keyboard.dismiss();
+  };
+
+  const handlePickImage = async () => {
+    const pickFromLibrary = async () => {
+      try {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Needed', 'Please allow gallery access to upload a profile picture.');
+          return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.5,
+          base64: true,
+        });
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          const imageUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+          await setProfilePicture(imageUri);
+        }
+      } catch (err: any) {
+        Alert.alert('Error', err.message || 'Failed to select photo');
+      }
+    };
+
+    const takePhoto = async () => {
+      try {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Needed', 'Please allow camera access to take a profile photo.');
+          return;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.5,
+          base64: true,
+        });
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          const imageUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+          await setProfilePicture(imageUri);
+        }
+      } catch (err: any) {
+        Alert.alert('Error', err.message || 'Failed to capture photo');
+      }
+    };
+
+    const options: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[] = [
+      { text: 'Take Photo', onPress: takePhoto },
+      { text: 'Choose from Gallery', onPress: pickFromLibrary },
+    ];
+
+    if (profilePicture) {
+      options.push({
+        text: 'Remove Photo',
+        style: 'destructive',
+        onPress: async () => {
+          await setProfilePicture('');
+        },
+      });
+    }
+
+    options.push({ text: 'Cancel', style: 'cancel' });
+
+    Alert.alert('Profile Picture', 'Update your profile photo', options);
   };
 
   const getLanguageLabel = (code: string) => {
@@ -116,10 +197,27 @@ export const ProfileDetailsModal: React.FC = () => {
         >
           {/* Profile Hero Card */}
           <View style={styles.heroCard}>
-            <View style={styles.avatarLarge}>
-              <Text style={styles.avatarLargeText}>
-                {userName ? userName[0].toUpperCase() : 'U'}
-              </Text>
+            <View style={styles.avatarWrapper}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handlePickImage}
+                style={styles.avatarLarge}
+              >
+                {profilePicture ? (
+                  <Image source={{ uri: profilePicture }} style={styles.avatarLargeImg} />
+                ) : (
+                  <Text style={styles.avatarLargeText}>
+                    {userName ? userName[0].toUpperCase() : 'U'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handlePickImage}
+                style={styles.cameraBadge}
+              >
+                <Camera size={14} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
 
             {isEditingName ? (
@@ -130,6 +228,7 @@ export const ProfileDetailsModal: React.FC = () => {
                   style={styles.nameTextInput}
                   placeholder="Your Name"
                   placeholderTextColor={Colors.inkSoft}
+                  maxLength={20}
                   autoFocus
                   selectTextOnFocus
                 />
@@ -153,7 +252,9 @@ export const ProfileDetailsModal: React.FC = () => {
               </View>
             ) : (
               <View style={styles.nameDisplayRow}>
-                <Text style={styles.displayName}>{userName}</Text>
+                <Text style={styles.displayName} numberOfLines={1} ellipsizeMode="tail">
+                  {userName}
+                </Text>
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={handleStartEdit}
@@ -274,7 +375,7 @@ export const ProfileDetailsModal: React.FC = () => {
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => openModal('manage_categories')}
-                style={[styles.settingItem, styles.lastSettingItem]}
+                style={styles.settingItem}
               >
                 <View style={styles.settingLeft}>
                   <View style={styles.settingIconCircle}>
@@ -290,7 +391,34 @@ export const ProfileDetailsModal: React.FC = () => {
                   <ChevronRight size={16} color={Colors.inkSoft} />
                 </View>
               </TouchableOpacity>
+
+              {/* Change Password */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setShowChangePassword(true)}
+                style={[styles.settingItem, styles.lastSettingItem]}
+              >
+                <View style={styles.settingLeft}>
+                  <View style={styles.settingIconCircle}>
+                    <Lock size={18} color={Colors.moss} />
+                  </View>
+                  <View>
+                    <Text style={styles.settingTitle}>Change Password</Text>
+                    <Text style={styles.settingSub}>Update your account security</Text>
+                  </View>
+                </View>
+                <View style={styles.settingRight}>
+                  <Text style={styles.changeActionText}>Update</Text>
+                  <ChevronRight size={16} color={Colors.inkSoft} />
+                </View>
+              </TouchableOpacity>
             </View>
+
+            {/* Change Password Modal */}
+            <ChangePasswordModal
+              visible={showChangePassword}
+              onClose={() => setShowChangePassword(false)}
+            />
 
             {/* Log Out Button */}
             <TouchableOpacity
@@ -344,420 +472,3 @@ export const ProfileDetailsModal: React.FC = () => {
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.mist,
-  },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 40,
-    gap: 16,
-  },
-  heroCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 22,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.line,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  avatarLarge: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: Colors.mossLight,
-    borderWidth: 2.5,
-    borderColor: Colors.moss,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  avatarLargeText: {
-    fontFamily: Fonts.serifMedium,
-    fontSize: 34,
-    color: Colors.moss,
-  },
-  nameDisplayRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  displayName: {
-    fontFamily: Fonts.serifMedium,
-    fontSize: 22,
-    fontWeight: '700',
-    color: Colors.ink,
-  },
-  editPencilBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: Colors.mossLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editNameContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  nameTextInput: {
-    width: '100%',
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 18,
-    color: Colors.ink,
-    backgroundColor: Colors.mist,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    textAlign: 'center',
-    borderWidth: 1.5,
-    borderColor: Colors.moss,
-    marginBottom: 10,
-  },
-  editBtnRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  cancelBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: Colors.mist,
-  },
-  cancelBtnText: {
-    fontSize: 13,
-    color: Colors.inkSoft,
-    fontWeight: '600',
-  },
-  saveNameBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: Colors.moss,
-  },
-  saveNameBtnText: {
-    fontSize: 13,
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: Colors.card,
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    alignItems: 'center',
-    gap: 6,
-  },
-  statIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.mist,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
-  statNumber: {
-    fontFamily: Fonts.serifMedium,
-    fontSize: 20,
-    color: Colors.ink,
-  },
-  statLabel: {
-    fontSize: 11.5,
-    fontFamily: Fonts.sansMedium,
-    color: Colors.inkSoft,
-  },
-  sectionContainer: {
-    marginTop: 4,
-  },
-  sectionHeader: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 10,
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
-    color: Colors.inkSoft,
-    marginBottom: 8,
-  },
-  cardGroup: {
-    backgroundColor: Colors.card,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    overflow: 'hidden',
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.line,
-  },
-  lastSettingItem: {
-    borderBottomWidth: 0,
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  settingIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.mist,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  settingTitle: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 13.5,
-    color: Colors.ink,
-  },
-  settingSub: {
-    fontSize: 11,
-    color: Colors.inkSoft,
-    marginTop: 2,
-  },
-  settingRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  changeActionText: {
-    fontSize: 12,
-    fontFamily: Fonts.sansSemiBold,
-    color: Colors.moss,
-  },
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1.5,
-    borderColor: '#FECACA',
-    borderRadius: 16,
-    paddingVertical: 14,
-    marginTop: 16,
-    marginBottom: 20,
-    gap: 8,
-  },
-  logoutBtnText: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 14,
-    color: '#DC2626',
-  },
-  confirmBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  confirmCard: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  confirmIconBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#FEE2E2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  confirmTitle: {
-    fontFamily: Fonts.serifSemiBold,
-    fontSize: 20,
-    color: Colors.ink,
-    marginBottom: 8,
-  },
-  confirmDesc: {
-    fontFamily: Fonts.sansRegular,
-    fontSize: 13,
-    color: Colors.inkSoft,
-    textAlign: 'center',
-    lineHeight: 19,
-    marginBottom: 22,
-  },
-  confirmActions: {
-    flexDirection: 'row',
-    width: '100%',
-    gap: 12,
-  },
-  confirmCancelBtn: {
-    flex: 1,
-    paddingVertical: 13,
-    borderRadius: 14,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  confirmCancelText: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 14,
-    color: Colors.ink,
-  },
-  confirmLogoutBtn: {
-    flex: 1,
-    paddingVertical: 13,
-    borderRadius: 14,
-    backgroundColor: '#DC2626',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  confirmLogoutText: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
-  rewardCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1.2,
-    borderColor: '#FEF3C7',
-    padding: 16,
-    shadowColor: Colors.amber,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-    gap: 14,
-  },
-  rewardCardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  rewardIconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FEF3C7',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rewardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  rewardTitle: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 15,
-    color: Colors.ink,
-  },
-  pointsBadge: {
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    paddingHorizontal: 8,
-    paddingVertical: 2.5,
-    borderRadius: 8,
-  },
-  pointsBadgeText: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 11,
-    color: '#B45309',
-    fontWeight: '700',
-  },
-  rewardSub: {
-    fontFamily: Fonts.sansRegular,
-    fontSize: 12,
-    color: Colors.inkSoft,
-  },
-  idCodesRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  idCodeBox: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  idCodeLabel: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 9.5,
-    color: Colors.inkSoft,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  idCodeValue: {
-    fontFamily: Fonts.monoMedium,
-    fontSize: 13,
-    color: Colors.mossDark,
-    fontWeight: '700',
-  },
-  shareRewardBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#16A34A',
-    borderRadius: 14,
-    paddingVertical: 12,
-    shadowColor: '#16A34A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  shareRewardBtnText: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 13.5,
-    color: '#FFFFFF',
-  },
-});
-

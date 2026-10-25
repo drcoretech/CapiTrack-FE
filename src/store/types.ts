@@ -58,6 +58,7 @@ export interface UserSlice {
   capitrackId?: string;
   referralCode?: string;
   rewardPoints?: number;
+  profilePicture?: string;
   isAuthenticated: boolean;
   currencySymbol: string;
   selectedLanguage: 'en' | 'hi' | 'mr';
@@ -68,9 +69,12 @@ export interface UserSlice {
   businessTrackingEnabled: boolean;
   isBiometricEnabled: boolean;
   isAppLocked: boolean;
+  isFreshAuth: boolean;
+  setFreshAuth: (val: boolean) => void;
   setFirstRunStep: (step: 'splash' | 'language' | 'onboarding' | 'auth' | 'main') => void;
   setHasCompletedOnboarding: (completed: boolean) => void;
   setUserName: (name: string) => Promise<void>;
+  setProfilePicture: (uri: string) => Promise<void>;
   setSelectedLanguage: (lang: 'en' | 'hi' | 'mr') => Promise<void>;
   toggleAutoCapture: () => Promise<void>;
   toggleDarkMode: () => Promise<void>;

@@ -1,149 +1,23 @@
 export interface ParsedPayment {
   isPayment: boolean;
+  type: 'DEBIT' | 'CREDIT';
   amount: number;
   sourceApp: 'PhonePe' | 'Google Pay' | 'Paytm' | 'CRED' | 'BHIM' | 'Bank SMS' | 'UPI';
   merchant: string;
+  sender?: string;
+  groupOrNote?: string;
   suggestedCategory: 'Food' | 'Travel' | 'Grocery' | 'Fun' | 'Health' | 'Shopping' | 'Bills' | 'Custom';
   rawText: string;
 }
 
-// App package identifier mapping
-export const PACKAGE_NAMES = {
-  PHONEPE: 'com.phonepe.app',
-  GPAY: 'com.google.android.apps.nbu.paisa.user',
-  PAYTM: 'net.one97.paytm',
-  CRED: 'com.dreamplug.androidapp',
-  BHIM: 'in.org.npci.upiapp',
-};
+import {
+  PACKAGE_NAMES,
+  CATEGORY_KEYWORDS,
+  TELECOM_HEADER_REGEX,
+  BANK_SENDER_NAMES,
+} from './notificationConstants';
 
-// Keyword mapping for smart merchant category prediction
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  Food: [
-    'swiggy',
-    'zomato',
-    'chai',
-    'tea',
-    'coffee',
-    'cafe',
-    'restaurant',
-    'dhaba',
-    'kitchen',
-    'hotel',
-    'canteen',
-    'baker',
-    'bakery',
-    'pizza',
-    'burger',
-    'mcdonald',
-    'kfc',
-    'domino',
-    'subway',
-    'starbucks',
-    'snack',
-    'tiffin',
-    'dosa',
-    'biryani',
-    'mithai',
-    'sweets',
-  ],
-  Travel: [
-    'uber',
-    'ola',
-    'rapido',
-    'auto',
-    'metro',
-    'petrol',
-    'fuel',
-    'toll',
-    'fastag',
-    'railway',
-    'irctc',
-    'redbus',
-    'flight',
-    'indigo',
-    'cab',
-    'driver',
-    'parking',
-  ],
-  Grocery: [
-    'zepto',
-    'blinkit',
-    'instamart',
-    'supermarket',
-    'grocery',
-    'mart',
-    'kirana',
-    'vegetable',
-    'fruits',
-    'dairy',
-    'milk',
-    'bigbasket',
-    'dmart',
-    'reliance fresh',
-  ],
-  Fun: [
-    'pvr',
-    'inox',
-    'bookmyshow',
-    'cinema',
-    'movie',
-    'netflix',
-    'prime',
-    'spotify',
-    'youtube',
-    'gaming',
-    'playstation',
-    'steam',
-    'arcade',
-  ],
-  Health: [
-    'apollo',
-    'pharmacy',
-    'medplus',
-    '1mg',
-    'pharmeasy',
-    'medical',
-    'chemist',
-    'hospital',
-    'clinic',
-    'doctor',
-    'dental',
-    'pathology',
-    'lab',
-  ],
-  Shopping: [
-    'amazon',
-    'flipkart',
-    'myntra',
-    'ajio',
-    'zara',
-    'h&m',
-    'nykaa',
-    'cloth',
-    'shoes',
-    'footwear',
-    'lifestyle',
-    'westside',
-    'trends',
-  ],
-  Bills: [
-    'bescom',
-    'electricity',
-    'power',
-    'water',
-    'gas',
-    'broadband',
-    'wifi',
-    'airtel',
-    'jio',
-    'vi',
-    'tatasky',
-    'recharge',
-    'postpaid',
-    'maintenance',
-    'rent',
-  ],
-};
+export { PACKAGE_NAMES };
 
 // Predict category based on merchant or notification title/body
 export function inferCategory(
@@ -170,13 +44,16 @@ export function inferCategory(
   return 'Food'; // Default everyday category for UPI payments
 }
 
-// Regex patterns to extract amounts from notification text
+// Regex patterns to extract amounts from notification text (must require currency symbol)
 const AMOUNT_REGEX = /(?:₹|rs\.?|inr)\s*([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)/i;
 const REVERSE_AMOUNT_REGEX = /([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)\s*(?:₹|rs\.?|inr)\b/i;
-const DEBIT_REGEX = /(?:paid|debited|sent|transferred|spent|payment of|transfer of|withdrawn|dr)\s*(?::|-)?\s*(?:to\s+|by\s+|with\s+|for\s+)?(?:₹|rs\.?|inr)?\s*([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)/i;
+const DEBIT_WITH_AMOUNT_REGEX = /(?:(?:paid|debited|sent|transferred|spent|payment of|transfer of|withdrawn|dr)\s*(?::|-)?\s*(?:by|with|for)?\s*(?:₹|rs\.?|inr)\s*([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)|(?:₹|rs\.?|inr)\s*([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)\s*(?:has been|is|was)?\s*(?:paid|debited|sent|transferred|spent|withdrawn))/i;
 
 // Regex to extract merchant/payee name
-const MERCHANT_REGEX = /(?:to|at|towards|vpa\s+)\s*([A-Za-z0-9\s&'.@_-]+?)(?:\s+successful|\s+using|\s+from|\s+on|\s+ref|\s+upi|\.|\,|$)/i;
+const MERCHANT_REGEX = /(?:to|at|towards|vpa\s+)\s*([A-Za-z0-9\s&'.@_-]+?)(?:\s+successful|\s+using|\s+from|\s+on|\s+ref|\s+upi|\.|\,|\n|$)/i;
+
+// Strictly block unpaid bill reminders, due alerts, overdue warnings, recharge reminders, and payment prompts
+const BILL_DUE_OR_REMINDER_REGEX = /(?:bill\s*(?:overdue|due)|overdue\b|was\s*due|is\s*due|due\s*(?:yesterday|today|on|by|date)|pay\s*now\b|pay\s*(?:your|the)?\s*bill|pay\s*before|recharge\s*now|payment\s*reminder|reminder\b|ignore\s*if\s*(?:already\s*)?paid|outstanding\s*bill|outstanding\s*(?:amount|balance|dues?)|pending\s*(?:bill|payment|dues?)|unpaid\s*bill|bill\s*of\s*(?:₹|rs\.?|inr)?\s*[0-9]+.*(?:due|pay\s*now))/i;
 
 // Strictly block promotional, marketing, investment, loan, deals, and spam notifications
 const PROMOTIONAL_OR_SPAM_REGEX = /(?:invest|investing|mutual funds?|sip\b|pre-approved|apply for|loan\b|quick loan|instant loan|start with just|starting at|terms and conditions|\bt&c\b|t&c apply|scratch card|cashback of up to|win up to|save up to|congratulations|reward points?|voucher|coupon|gift card|hurry\b|limited period|due date|bill generated|statement for|statement generated|otp\b|one time password|verification code|credit limit|buy\s*\d+.*get\s*\d+|get\s*\d+\s*free|offer is live|exclusive offer|special offer|discount|sale is live|flash sale|flat\s*\d+%\s*off|\b\d+%\s*off\b|just\s*(?:₹|rs\.?|inr)|only\s*(?:₹|rs\.?|inr)|use code\b|promo code|coupon code)/i;
@@ -191,32 +68,8 @@ const INTERNAL_TRANSFER_OR_SWEEP_REGEX = /(?:activmoney|activ\s*money|sweep\s*in
 // Detect explicit debit actions - a notification MUST confirm an actual payment/debit to be recorded as an expense
 const DEBIT_ACTION_REGEX = /(?:paid|debited|sent|transferred|spent|payment of|transfer of|withdrawn|\bdr\.?\b)/i;
 
-// Detect incoming credit/deposit/income notifications
-const INCOMING_CREDIT_REGEX = /(?:credited|credit\b|deposited|received|refund|cashback|added to (?:wallet|a\/c|account))/i;
-const EXPLICIT_DEBIT_CONFIRMATION = /(?:debited|paid|spent|withdrawn|\bdr\.?\b)/i;
-
-// Indian Telecom Regulatory Authority (TRAI) SMS sender pattern (e.g. JK-BOBSMS-S, AX-KOTAKB-S, VK-HDFCBK)
-const TELECOM_HEADER_REGEX = /^[A-Z]{2}-?[A-Z0-9]{4,10}(?:-[A-Z])?$/i;
-
-const BANK_SENDER_NAMES: Record<string, string> = {
-  BOB: 'Bank of Baroda',
-  BARODA: 'Bank of Baroda',
-  KOTAK: 'Kotak Bank',
-  HDFC: 'HDFC Bank',
-  SBI: 'State Bank of India',
-  ICICI: 'ICICI Bank',
-  AXIS: 'Axis Bank',
-  PNB: 'Punjab National Bank',
-  CANARA: 'Canara Bank',
-  CANBNK: 'Canara Bank',
-  UNION: 'Union Bank',
-  IDFC: 'IDFC FIRST Bank',
-  PAYTM: 'Paytm Payments Bank',
-  AIRTEL: 'Airtel Payments Bank',
-  JIO: 'Jio Payments Bank',
-  YES: 'Yes Bank',
-  INDUS: 'IndusInd Bank',
-};
+// Detect incoming credit/payment received/peer settlement notifications (friend paid, split received, salary, refund)
+const INCOMING_PAYMENT_REGEX = /(?:paid\s+you\b|has\s+paid\s+you\b|sent\s+you\b|has\s+sent\s+you\b|transferred\s+to\s+you\b|transferred\s+.*to\s+you\b|transferred\s+to\s+your\b|(?:you\s+have\s+)?received\b|payment\s+received\b|money\s+received\b|credited\b|\bcredit\s+of\b|deposited\b|refund(?:ed)?\b|cashback\b|added\s+to\s+.*(?:wallet|a\/c|account|bank))/i;
 
 export function cleanTelecomSender(header: string): string {
   if (!header) return '';
@@ -387,6 +240,7 @@ export function parseNotification(
     combined.includes('in CapiTrack') ||
     combined.includes('Tap to categorize') ||
     title.includes('💸') ||
+    title.includes('💰') ||
     combined.includes('Paid to Bank SMS Payment') ||
     combined.includes('Paid to UPI Payment')
   ) {
@@ -395,6 +249,12 @@ export function parseNotification(
 
   // 3. HARD STOP: Strictly ignore promotional ads, mutual fund marketing, loans, offers, and T&C alerts
   if (PROMOTIONAL_OR_SPAM_REGEX.test(combined)) {
+    return null;
+  }
+
+  // 3b. HARD STOP: Strictly ignore unpaid bill reminders, due alerts, overdue warnings, recharge reminders, and payment prompts
+  // E.g. "❗️ URGENT: Bill Overdue! Credit card bill of ₹1,371 for ICICI Bank card - 7000 was due yesterday. Pay now with ₹0 fees. Ignore if already paid!"
+  if (BILL_DUE_OR_REMINDER_REGEX.test(combined)) {
     return null;
   }
 
@@ -407,17 +267,6 @@ export function parseNotification(
   // 5. HARD STOP: Strictly ignore automated internal bank sweeps, FD sweeps, ActivMoney, and self-transfers
   // E.g. Kotak "ActivMoney sweep in", "debited from ActivMoney", "Auto sweep", "MOD sweep", "FD sweep" -> ignore!
   if (INTERNAL_TRANSFER_OR_SWEEP_REGEX.test(combined)) {
-    return null;
-  }
-
-  // 6. HARD STOP: Ignore incoming credit/deposit/refund/cashback notifications (income is not an expense)
-  // E.g. "A/c credited with INR 2.00 by transfer from DIGVIJAY" -> ignore!
-  if (INCOMING_CREDIT_REGEX.test(combined) && !EXPLICIT_DEBIT_CONFIRMATION.test(combined)) {
-    return null;
-  }
-
-  // 7. HARD STOP: Must contain a genuine debit/payment confirmation action
-  if (!DEBIT_ACTION_REGEX.test(combined)) {
     return null;
   }
 
@@ -439,15 +288,82 @@ export function parseNotification(
     sourceApp = 'CRED';
   } else if (packageName.includes('npci.upiapp') || /bhim/i.test(combined)) {
     sourceApp = 'BHIM';
-  } else if (/bank|debited|a\/c|acct|sms|vpa|baroda|sbi|hdfc|icici|kotak|axis/i.test(combined)) {
+  } else if (/bank|debited|credited|a\/c|acct|sms|vpa|baroda|sbi|hdfc|icici|kotak|axis/i.test(combined)) {
     sourceApp = 'Bank SMS';
+  }
+
+  // 7. Check if this is an incoming payment (friend paid, split received, peer credit, or deposit)
+  const isIncoming = INCOMING_PAYMENT_REGEX.test(combined);
+
+  if (isIncoming) {
+    let amount = 0;
+    const amountMatch = combined.match(AMOUNT_REGEX);
+    if (amountMatch && amountMatch[1]) {
+      amount = parseFloat(amountMatch[1].replace(/,/g, ''));
+    } else {
+      const reverseMatch = combined.match(REVERSE_AMOUNT_REGEX);
+      if (reverseMatch && reverseMatch[1]) {
+        amount = parseFloat(reverseMatch[1].replace(/,/g, ''));
+      }
+    }
+
+    if (!amount || isNaN(amount) || amount <= 0 || amount > 1000000 || /^[6-9]\d{9}$/.test(amount.toString())) {
+      return null;
+    }
+
+    // Extract group or note (e.g. in 'Sai Angan', for "Trip to Goa")
+    let groupOrNote = '';
+    const groupMatch = combined.match(/(?:in|for)\s+[\x27"]([^\x27"]+)[\x27"]/i) ||
+                       title.match(/(?:in|for)\s+[\x27"]([^\x27"]+)[\x27"]/i);
+    if (groupMatch && groupMatch[1]) {
+      groupOrNote = groupMatch[1].trim();
+    }
+
+    // Extract sender name
+    let sender = '';
+    const targetText = body || combined;
+    const paidYou = targetText.match(/(?:^|[\n\r]|in\s+[\x27"][^\x27"]+[\x27"]\s*)([A-Za-z\s]+?)\s+(?:has\s+)?paid\s+you/i);
+    if (paidYou && paidYou[1]) {
+      sender = paidYou[1].trim();
+    } else {
+      const sentYou = targetText.match(/(?:^|[\n\r])([A-Za-z\s]+?)\s+(?:has\s+)?sent\s+you/i);
+      if (sentYou && sentYou[1]) {
+        sender = sentYou[1].trim();
+      } else {
+        const fromMatch = targetText.match(/(?:from|by\s+transfer\s+from)\s+([A-Za-z\s]+?)(?:\s+using|\s+on|\s+via|\.|\,|$)/i);
+        if (fromMatch && fromMatch[1]) {
+          sender = fromMatch[1].trim();
+        }
+      }
+    }
+
+    if (sender) {
+      sender = sender.replace(/^(google\s*pay|phonepe|paytm|bhim|cred)\s+/i, '').trim();
+    }
+
+    return {
+      isPayment: true,
+      type: 'CREDIT',
+      amount,
+      sourceApp,
+      merchant: sender || (groupOrNote ? groupOrNote : `${sourceApp} Credit`),
+      sender: sender || undefined,
+      groupOrNote: groupOrNote || undefined,
+      suggestedCategory: 'Custom',
+      rawText: combined,
+    };
+  }
+
+  // 8. DEBIT / EXPENSE: Must contain a genuine debit/payment confirmation action
+  if (!DEBIT_ACTION_REGEX.test(combined)) {
+    return null;
   }
 
   // Extract amount
   let amount = 0;
-  const debitMatch = combined.match(DEBIT_REGEX);
-  if (debitMatch && debitMatch[1]) {
-    amount = parseFloat(debitMatch[1].replace(/,/g, ''));
+  const debitMatch = combined.match(DEBIT_WITH_AMOUNT_REGEX);
+  if (debitMatch && (debitMatch[1] || debitMatch[2])) {
+    amount = parseFloat((debitMatch[1] || debitMatch[2]).replace(/,/g, ''));
   } else {
     const amountMatch = combined.match(AMOUNT_REGEX);
     if (amountMatch && amountMatch[1]) {
@@ -460,7 +376,9 @@ export function parseNotification(
     }
   }
 
-  if (!amount || isNaN(amount) || amount <= 0) {
+  // Sanity check: must be a valid positive amount and within reasonable daily transaction limit (< ₹10,00,000)
+  // Rejects 10-digit mobile numbers or account numbers accidentally captured (e.g. 7742456731)
+  if (!amount || isNaN(amount) || amount <= 0 || amount > 1000000 || /^[6-9]\d{9}$/.test(amount.toString())) {
     return null;
   }
 
@@ -469,9 +387,14 @@ export function parseNotification(
   const merchantMatch = combined.match(MERCHANT_REGEX);
   if (merchantMatch && merchantMatch[1]) {
     merchant = merchantMatch[1].trim();
-    // Clean UPI handles (e.g. rohan@okaxis -> Rohan)
+    // Clean UPI handles (e.g. rohan@okaxis -> Rohan, 7742456731@ibl -> UPI: 7742456731)
     if (merchant.includes('@')) {
-      merchant = merchant.split('@')[0].replace(/[._0-9]/g, ' ').trim();
+      const [handleUser] = merchant.split('@');
+      if (/^\d{10}$/.test(handleUser)) {
+        merchant = `UPI: ${handleUser}`;
+      } else {
+        merchant = handleUser.replace(/[._]/g, ' ').trim();
+      }
     }
     // Filter out common false positives
     if (merchant.length < 2 || /^(upi|bank|account|your|ref|payment)$/i.test(merchant)) {
@@ -503,6 +426,7 @@ export function parseNotification(
 
   return {
     isPayment: true,
+    type: 'DEBIT',
     amount,
     sourceApp,
     merchant,

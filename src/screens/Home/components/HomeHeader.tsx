@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Settings } from 'lucide-react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
@@ -8,10 +8,11 @@ import { AnimatedPressable } from '../../../components/AnimatedPressable';
 
 interface HomeHeaderProps {
   userName: string;
+  profilePicture?: string;
   onPressProfile: () => void;
 }
 
-export const HomeHeader: React.FC<HomeHeaderProps> = ({ userName, onPressProfile }) => {
+export const HomeHeader: React.FC<HomeHeaderProps> = ({ userName, profilePicture, onPressProfile }) => {
   const { t } = useTranslation();
 
   const todayFormatted = new Date().toLocaleDateString('en-US', {
@@ -22,10 +23,16 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({ userName, onPressProfile
 
   return (
     <View style={styles.header}>
-      <TouchableOpacity activeOpacity={0.7} onPress={onPressProfile}>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={onPressProfile}
+        style={styles.profileInfoWrapper}
+      >
         <Text style={styles.eyebrow}>{t(getGreetingKey())}</Text>
         <View style={styles.nameRow}>
-          <Text style={styles.userName}>{userName}</Text>
+          <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
+            {userName}
+          </Text>
         </View>
         <Text style={styles.date}>{todayFormatted}</Text>
       </TouchableOpacity>
@@ -33,9 +40,13 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({ userName, onPressProfile
       <AnimatedPressable
         scaleTo={0.9}
         onPress={onPressProfile}
-        style={styles.settingsBadge}
+        style={[styles.settingsBadge, !!profilePicture && styles.settingsBadgeWithAvatar]}
       >
-        <Settings size={20} color={Colors.ink} />
+        {profilePicture ? (
+          <Image source={{ uri: profilePicture }} style={styles.headerAvatarImg} />
+        ) : (
+          <Settings size={20} color={Colors.ink} />
+        )}
       </AnimatedPressable>
     </View>
   );
@@ -45,8 +56,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingTop: 4,
+  },
+  profileInfoWrapper: {
+    flex: 1,
+    marginRight: 14,
   },
   eyebrow: {
     fontFamily: Fonts.monoMedium,
@@ -58,12 +73,14 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 1,
   },
   userName: {
     fontFamily: Fonts.serifMedium,
     fontSize: 24,
     color: Colors.ink,
     marginTop: 2,
+    flexShrink: 1,
   },
   date: {
     fontFamily: Fonts.monoRegular,
@@ -80,10 +97,21 @@ const styles = StyleSheet.create({
     borderColor: Colors.line,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
     shadowColor: Colors.ink,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 1,
+  },
+  settingsBadgeWithAvatar: {
+    padding: 2,
+    borderColor: Colors.moss,
+    overflow: 'hidden',
+  },
+  headerAvatarImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
   },
 });

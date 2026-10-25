@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../../theme/colors';
 import { Fonts } from '../../../theme/typography';
@@ -6,9 +6,7 @@ import { useTranslation } from '../../../i18n/translations';
 import { AnimatedPressable } from '../../../components/AnimatedPressable';
 import { CategoryIcon } from '../../../components/CategoryIcon';
 import { Expense } from '../../../types';
-import { Plus, Coffee, Trash2, ChevronRight } from 'lucide-react-native';
-import { useAppStore } from '../../../store/useAppStore';
-import { ConfirmDeleteModal } from '../../../components/ConfirmDeleteModal';
+import { Plus, Coffee, ChevronRight } from 'lucide-react-native';
 
 interface TodaysActivityListProps {
   expenses: Expense[];
@@ -24,8 +22,6 @@ export const TodaysActivityList: React.FC<TodaysActivityListProps> = ({
   onPressViewAll,
 }) => {
   const { t, getCategoryName } = useTranslation();
-  const deleteExpense = useAppStore((state) => state.deleteExpense);
-  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
 
   return (
     <View style={styles.recentSection}>
@@ -103,44 +99,12 @@ export const TodaysActivityList: React.FC<TodaysActivityListProps> = ({
                 </View>
                 <View style={styles.expRight}>
                   <Text style={styles.expAmount}>₹{exp.amount.toLocaleString()}</Text>
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      setExpenseToDelete(exp);
-                    }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    style={styles.deletePill}
-                  >
-                    <Trash2 size={12} color={Colors.brick} />
-                  </TouchableOpacity>
                 </View>
               </TouchableOpacity>
             );
           })}
         </View>
       )}
-
-      {/* Delete Confirmation Modal */}
-      <ConfirmDeleteModal
-        visible={expenseToDelete !== null}
-        title="Delete Expense?"
-        message="Are you sure you want to delete this expense? This action cannot be undone."
-        itemBadge={
-          expenseToDelete
-            ? `₹${expenseToDelete.amount.toLocaleString()} · ${(expenseToDelete.note || '').replace(/\[Monthly Total\]\s*/g, '').trim() || expenseToDelete.category}`
-            : undefined
-        }
-        confirmLabel="Delete Expense"
-        cancelLabel="Cancel"
-        onConfirm={() => {
-          if (expenseToDelete) {
-            deleteExpense(expenseToDelete.id || (expenseToDelete as any)._id);
-            setExpenseToDelete(null);
-          }
-        }}
-        onCancel={() => setExpenseToDelete(null)}
-      />
     </View>
   );
 };
@@ -295,7 +259,6 @@ const styles = StyleSheet.create({
   expRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   expAmount: {
     fontFamily: Fonts.serifMedium,
@@ -303,15 +266,5 @@ const styles = StyleSheet.create({
     color: Colors.ink,
     flexShrink: 0,
     textAlign: 'right',
-  },
-  deletePill: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

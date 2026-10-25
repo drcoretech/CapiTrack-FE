@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RNAndroidNotificationListenerHeadlessJsName } from 'react-native-android-notification-listener';
 import { parseNotification, isDuplicateTransaction, isBlockedNonPaymentApp } from './src/services/notificationParser';
 import { useAppStore } from './src/store/useAppStore';
-import { PENDING_NUDGE_STORAGE_KEY, PENDING_NUDGES_QUEUE_KEY, postLocalPaymentAlert } from './src/services/notificationListener';
+import { PENDING_NUDGE_STORAGE_KEY, PENDING_NUDGES_QUEUE_KEY, postLocalPaymentAlert, handleIncomingCredit } from './src/services/notificationListener';
 import App from './App';
 
 /**
@@ -39,6 +39,13 @@ const headlessNotificationListener = async ({ notification }: { notification?: s
       if (isDuplicateTransaction(parsed.amount, parsed.merchant, packageName)) {
         return;
       }
+
+      // If incoming credit / peer transfer / split payment received: NEVER ask "why did you pay those"
+      if (parsed.type === 'CREDIT') {
+        await handleIncomingCredit(parsed);
+        return;
+      }
+
       const nudgeData = {
         id: 'nudge_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
         amount: parsed.amount,

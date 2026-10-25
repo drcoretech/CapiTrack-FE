@@ -10,6 +10,7 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
   capitrackId: '',
   referralCode: '',
   rewardPoints: 0,
+  profilePicture: '',
   isAuthenticated: false,
   currencySymbol: '₹',
   selectedLanguage: 'en',
@@ -20,8 +21,10 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
   businessTrackingEnabled: false,
   isBiometricEnabled: false,
   isAppLocked: false,
+  isFreshAuth: false,
 
   setAppLocked: (locked: boolean) => set({ isAppLocked: locked }),
+  setFreshAuth: (val: boolean) => set({ isFreshAuth: val }),
 
   setFirstRunStep: (step) => {
     set({ firstRunStep: step });
@@ -38,6 +41,19 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
     } else {
       AsyncStorage.removeItem('@capitrack_onboarding_completed').catch(() => {});
     }
+  },
+
+  setProfilePicture: async (uri: string) => {
+    const cleanUri = uri || '';
+    set({ profilePicture: cleanUri });
+    if (cleanUri) {
+      AsyncStorage.setItem('@capitrack_profile_picture', cleanUri).catch(() => {});
+    } else {
+      AsyncStorage.removeItem('@capitrack_profile_picture').catch(() => {});
+    }
+    try {
+      await api.updatePreferences({ profilePicture: cleanUri });
+    } catch {}
   },
 
   setUserName: async (name: string) => {
@@ -121,6 +137,7 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
     try {
       const res = await api.login({ name, password });
       if (res.success && res.user) {
+        const pic = res.user.profilePicture || '';
         set({
           isAuthenticated: true,
           userId: res.user.id,
@@ -128,17 +145,20 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
           capitrackId: res.user.capitrackId || '',
           referralCode: res.user.referralCode || '',
           rewardPoints: res.user.rewardPoints || 0,
+          profilePicture: pic,
           currencySymbol: res.user.currencySymbol || '₹',
           selectedLanguage: (res.user.preferredLanguage as any) || 'en',
           businessTrackingEnabled: !!res.user.preferences?.businessTrackingEnabled,
           hasCompletedOnboarding: true,
           firstRunStep: 'main',
+          isFreshAuth: true,
         });
         setAuthSession(res.token, res.user.id, res.user.name);
         await AsyncStorage.multiSet([
           ['@capitrack_auth_token', res.token],
           ['@capitrack_auth_user_id', res.user.id],
           ['@capitrack_user_name', res.user.name],
+          ['@capitrack_profile_picture', pic],
           ['@capitrack_onboarding_completed', 'true'],
         ]);
         get().loadInitialData().catch(() => {});
@@ -160,6 +180,7 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
         preferredLanguage: get().selectedLanguage,
       });
       if (res.success && res.user) {
+        const pic = res.user.profilePicture || '';
         set({
           isAuthenticated: true,
           userId: res.user.id,
@@ -167,11 +188,13 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
           capitrackId: res.user.capitrackId || '',
           referralCode: res.user.referralCode || '',
           rewardPoints: res.user.rewardPoints || 0,
+          profilePicture: pic,
           currencySymbol: res.user.currencySymbol || '₹',
           selectedLanguage: (res.user.preferredLanguage as any) || 'en',
           businessTrackingEnabled: !!businessTrackingEnabled,
           hasCompletedOnboarding: true,
           firstRunStep: 'main',
+          isFreshAuth: true,
           expenses: [],
           contacts: [],
           clientProjects: [],
@@ -182,6 +205,7 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
           ['@capitrack_auth_token', res.token],
           ['@capitrack_auth_user_id', res.user.id],
           ['@capitrack_user_name', res.user.name],
+          ['@capitrack_profile_picture', pic],
           ['@capitrack_business_tracking_enabled', businessTrackingEnabled ? 'true' : 'false'],
           ['@capitrack_onboarding_completed', 'true'],
         ]);
@@ -200,6 +224,7 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
       '@capitrack_auth_token',
       '@capitrack_auth_user_id',
       '@capitrack_user_name',
+      '@capitrack_profile_picture',
       '@capitrack_onboarding_completed',
       '@capitrack_client_projects',
       '@capitrack_expenses',
@@ -209,8 +234,10 @@ export const createUserSlice: StateCreator<AppState, [], [], UserSlice> = (set, 
     ]).catch(() => {});
     set({
       isAuthenticated: false,
+      isFreshAuth: false,
       userId: null,
       userName: '',
+      profilePicture: '',
       expenses: [],
       contacts: [],
       clientProjects: [],
