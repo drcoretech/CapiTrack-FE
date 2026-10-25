@@ -44,7 +44,7 @@ export const MonthSelectorBar: React.FC<MonthSelectorBarProps> = ({
   const [pickerVisible, setPickerVisible] = useState(false);
   const [modalYear, setModalYear] = useState(selectedYear);
 
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<any>(null);
   const today = new Date();
   const currentCalMonth = today.getMonth() + 1;
   const currentCalYear = today.getFullYear();

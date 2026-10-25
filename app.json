@@ -37,7 +37,8 @@
           "icon": "./assets/android-icon-foreground.png",
           "color": "#2C5E3B"
         }
-      ]
+      ],
+      "expo-status-bar"
     ],
     "extra": {
       "apiUrl": "https://capitrack-be.vercel.app/api",

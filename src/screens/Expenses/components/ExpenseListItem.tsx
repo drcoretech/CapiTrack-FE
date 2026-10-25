@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import Swipeable from 'react-native-gesture-handler/Swipeable';
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Trash2 } from 'lucide-react-native';
 import { Expense } from '../../../types';
 import { Colors } from '../../../theme/colors';

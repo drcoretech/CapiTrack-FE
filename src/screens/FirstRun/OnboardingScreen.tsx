@@ -34,7 +34,7 @@ export const OnboardingScreen: React.FC = () => {
   const selectedLanguage = useAppStore((state) => state.selectedLanguage);
   const { t } = useTranslation();
 
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<any>(null);
 
   // Exactly 3 clean visual slides for Phase 1:
   // Slide 0: Daily Expenses
